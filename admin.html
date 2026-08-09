@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+  <title>Admin Dashboard — Wings & Wins</title>
+  <link rel="stylesheet" href="css/styles.css"/>
+  <style>
+    /* Styling overrides for admin features */
+    .admin-tab-content {
+      animation: fadeIn 0.4s ease forwards;
+    }
+  </style>
+</head>
+<body>
+  <div class="container animate-fade" style="max-width: 1100px;">
+    <!-- Back to Main Page link -->
+    <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+      <a href="index.html" class="btn btn-secondary" style="width: auto; padding: 8px 16px; font-size: 13px; text-decoration: none;">
+        ← Volver al Portal de Jugador
+      </a>
+      <span id="adminStatusText" class="badge">Revisando permisos...</span>
+    </div>
+
+    <header class="header-bar" style="margin-bottom: 16px;">
+      <div>
+        <h1 class="header-title gradient-text">Panel de Administración</h1>
+        <p class="hint-text">Gestión Unificada de Juegos de Bar</p>
+      </div>
+    </header>
+
+    <!-- Admin Game Switching Tabs -->
+    <div class="tabs-container">
+      <button class="tab-btn active" data-target="admin-grids">🏈 Grids</button>
+      <button class="tab-btn" data-target="admin-pools">📋 Quinielas</button>
+      <button class="tab-btn" data-target="admin-survivor">🏆 Survivor</button>
+      <button class="tab-btn" data-target="admin-firstgoal">⚽ Primer Gol</button>
+    </div>
+
+    <!-- ADMIN SECTIONS -->
+
+    <!-- 1. ADMIN GRIDS -->
+    <main id="admin-grids" class="admin-tab-content">
+      <!-- Create Grid Game -->
+      <section class="card highlight">
+        <h3 class="card-title">Crear Nuevo Grid</h3>
+        <div class="flex-row" style="flex-wrap: wrap;">
+          <div class="form-group" style="flex: 1; min-width: 140px;">
+            <label>Sucursal</label>
+            <select id="selectStore">
+              <option value="Juriquilla">Juriquilla</option>
+              <option value="Álamos">Álamos</option>
+              <option value="Paseo Qro">Paseo Qro</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1.5; min-width: 180px;">
+            <label>Equipo Local</label>
+            <select id="selectLocal"></select>
+          </div>
+          <div class="form-group" style="flex: 1.5; min-width: 180px;">
+            <label>Equipo Visitante</label>
+            <select id="selectVisit"></select>
+          </div>
+        </div>
+        <button id="btnCreateGame" class="btn btn-primary">Crear Grid de Juego</button>
+      </section>
+
+      <!-- Manage Grid Game -->
+      <section class="card" id="panelManage">
+        <h3 class="card-title">Administrar Grid</h3>
+        
+        <div class="form-group">
+          <label>Seleccionar Grid Activo</label>
+          <div class="flex-row">
+            <select id="selectGame" style="flex: 1;"></select>
+            <button id="btnLoadGame" class="btn btn-primary" style="width: auto; padding: 12px 20px;">Cargar</button>
+          </div>
+        </div>
+
+        <div class="flex-row" style="flex-wrap: wrap; margin-bottom: 16px; gap: 8px;">
+          <button id="btnLock" class="btn btn-secondary" style="flex: 1; min-width: 100px;">🔒 Bloquear</button>
+          <button id="btnUnlock" class="btn btn-secondary" style="flex: 1; min-width: 100px;">🔓 Desbloquear</button>
+          <button id="btnGen" class="btn btn-secondary" style="flex: 1; min-width: 100px;">🎲 Generar Números</button>
+          <button id="btnShow" class="btn btn-secondary" style="flex: 1; min-width: 100px;">👁️ Mostrar Números</button>
+          <button id="btnHide" class="btn btn-secondary" style="flex: 1; min-width: 100px;">🙈 Ocultar Números</button>
+        </div>
+
+        <!-- Scores & Quarter -->
+        <div class="card" style="background: rgba(0,0,0,0.15); border-color: rgba(255,255,255,0.03);">
+          <h4 style="font-size: 14px; margin-bottom: 8px;">Actualizar Marcador de Juego</h4>
+          
+          <div class="flex-row" style="margin-bottom: 12px; flex-wrap: wrap; gap: 6px;">
+            <button class="btn btn-secondary btn-q active" data-q="Q1" style="width: auto; padding: 6px 12px; font-size: 12px;">Q1</button>
+            <button class="btn btn-secondary btn-q" data-q="HT" style="width: auto; padding: 6px 12px; font-size: 12px;">HT (Medio T.)</button>
+            <button class="btn btn-secondary btn-q" data-q="Q3" style="width: auto; padding: 6px 12px; font-size: 12px;">Q3</button>
+            <button class="btn btn-secondary btn-q" data-q="FT" style="width: auto; padding: 6px 12px; font-size: 12px;">FT (Final)</button>
+          </div>
+
+          <div class="flex-row" style="justify-content: center; align-items: center; gap: 10px;">
+            <span id="nameAway" style="font-weight: 800; text-align: right; flex: 1;">Away</span>
+            <input id="scoreAway" type="number" value="0" style="width: 60px; text-align: center; font-size: 18px; padding: 6px;"/>
+            <span style="font-weight: 800; color: var(--text-muted);">vs</span>
+            <input id="scoreHome" type="number" value="0" style="width: 60px; text-align: center; font-size: 18px; padding: 6px;"/>
+            <span id="nameHome" style="font-weight: 800; text-align: left; flex: 1;">Home</span>
+          </div>
+
+          <button id="btnSaveScore" class="btn btn-primary mt-4">Guardar Marcador y Calcular Ganador</button>
+        </div>
+
+        <!-- Visual Grid -->
+        <h4 style="margin: 16px 0 8px;">Visualización del Tablero</h4>
+        <div id="gridHost" class="text-center hint-text py-4" style="background: rgba(0,0,0,0.15); border-radius: 12px; border: 1px dashed var(--border-color);">
+          (Carga un juego para visualizar el grid)
+        </div>
+
+        <!-- Approval Lists -->
+        <h4 style="margin: 20px 0 8px;">Gestión de Solicitudes de Jugadores</h4>
+        <div class="flex-row" style="flex-direction: column; gap: 12px; margin-top: 10px;">
+          <div>
+            <h5 style="font-size: 14px; color: var(--danger-color); margin-bottom: 6px;">🚫 Solicitudes Pendientes de Aprobación</h5>
+            <div id="listPend" class="hint-text py-2" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 12px; border: 1px solid var(--border-color);">
+              — Carga un juego para ver pendientes —
+            </div>
+          </div>
+          <div>
+            <h5 style="font-size: 14px; color: var(--success-color); margin-bottom: 6px;">✅ Jugadores Aprobados en este Grid</h5>
+            <div id="listAppr" class="hint-text py-2" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 12px; border: 1px solid var(--border-color);">
+              — Carga un juego para ver aprobados —
+            </div>
+          </div>
+        </div>
+
+        <!-- Dangerous clean buttons -->
+        <div class="flex-row" style="margin-top: 24px; gap: 10px; flex-wrap: wrap;">
+          <button id="btnCleanOrphans" class="btn btn-secondary" style="flex: 1; min-width: 140px; font-size: 13px;">🧹 Limpiar Celdas Huérfanas</button>
+          <button id="btnDeleteGame" class="btn btn-danger" style="flex: 1; min-width: 140px; font-size: 13px;">🚨 Eliminar Grid (Profundo)</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- 2. ADMIN POOLS -->
+    <main id="admin-pools" class="admin-tab-content hidden">
+      <section class="card highlight">
+        <h3 class="card-title">Configurar Quiniela</h3>
+        <p class="card-subtitle">Administra los partidos semanales de quiniela.</p>
+        
+        <div class="form-group">
+          <label>ID de Semana</label>
+          <input type="text" id="adminPoolWeekId" value="week_1" style="width: 160px;"/>
+        </div>
+
+        <button id="btnLoadAdminPool" class="btn btn-primary mb-4">Cargar Semana de Quiniela</button>
+
+        <div id="adminPoolGames" class="flex-row" style="flex-direction: column; gap: 8px;">
+          <!-- Loaded dynamically -->
+        </div>
+
+        <div class="form-group mt-4">
+          <label>Registrar Ganadores Oficiales de la Semana</label>
+          <div id="adminPoolWinnersForm" class="flex-row" style="flex-direction: column; gap: 10px;">
+            <!-- Loaded dynamically -->
+          </div>
+          <button id="btnUpdatePoolResults" class="btn btn-primary mt-4" style="display: none;">Calcular Puntos de Clientes</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- 3. ADMIN SURVIVOR -->
+    <main id="admin-survivor" class="admin-tab-content hidden">
+      <section class="card highlight">
+        <h3 class="card-title">Configuración de Survivor</h3>
+        <p class="card-subtitle">Cambia la semana activa y califica a los participantes.</p>
+        
+        <div class="flex-row" style="align-items: flex-end; margin-bottom: 20px;">
+          <div class="form-group" style="flex: 1; margin: 0;">
+            <label>Semana Activa del Torneo</label>
+            <input type="number" id="adminSurvivorWeek" value="1" min="1" max="18"/>
+          </div>
+          <button id="btnSaveSurvivorWeek" class="btn btn-primary" style="width: auto; padding: 12px 24px;">Actualizar Semana</button>
+        </div>
+
+        <h4 style="margin-bottom: 8px;">Lista de Participantes en Survivor</h4>
+        <div id="adminSurvivorPlayers" class="flex-row" style="flex-direction: column; gap: 8px;">
+          <div class="text-center hint-text py-2">Cargando participantes...</div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 4. ADMIN FIRST GOAL -->
+    <main id="admin-firstgoal" class="admin-tab-content hidden">
+      <section class="card highlight">
+        <h3 class="card-title">Crear Apuesta de Primer Gol / Touchdown</h3>
+        <div class="form-group">
+          <label>Nombre del Partido / Evento</label>
+          <input type="text" id="inpFGGameName" placeholder="Ej. Dallas Cowboys @ NY Giants"/>
+        </div>
+        <div class="form-group">
+          <label>Opciones (Separadas por comas)</label>
+          <textarea id="txtFGOptions" rows="3" placeholder="Ej. CeeDee Lamb, Brandin Cooks, Daniel Jones, Nadie, Otro"></textarea>
+        </div>
+        <button id="btnCreateFG" class="btn btn-primary">Crear Juego Primer Gol</button>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Juegos Activos de Primer Gol</h3>
+        <div id="adminFGActiveGames" class="flex-row" style="flex-direction: column; gap: 12px;">
+          <!-- Loaded dynamically -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Firebase v8 SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <!-- Script Modules -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/admin.js"></script>
+
+  <!-- Admin Tab Switching -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabs = document.querySelectorAll('.tab-btn');
+      const contents = document.querySelectorAll('.admin-tab-content');
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+          e.preventDefault();
+          const targetId = tab.getAttribute('data-target');
+
+          tabs.forEach(btn => btn.classList.toggle('active', btn === tab));
+          contents.forEach(content => {
+            content.classList.toggle('hidden', content.id !== targetId);
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>

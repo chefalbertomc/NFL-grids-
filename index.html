@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
+  <title>Wings & Wins — NFL Bar Games</title>
+  <link rel="stylesheet" href="css/styles.css"/>
+</head>
+<body>
+  <div class="container animate-fade">
+    <!-- Header Bar -->
+    <header class="header-bar">
+      <div>
+        <h1 class="header-title gradient-text">Wings & Wins</h1>
+        <p class="hint-text">Juegos de Bar en tu Celular</p>
+      </div>
+      <div>
+        <button id="btnGoogle" class="btn btn-primary" style="width: auto; padding: 8px 16px;">
+          Entrar con Google
+        </button>
+        <div id="userBadge" class="user-badge hidden">
+          <img id="userAvatar" src="" alt="Avatar"/>
+          <span id="userName">Socio</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs-container">
+      <button class="tab-btn active" data-target="tab-grids">🏈 NFL Grids</button>
+      <button class="tab-btn" data-target="tab-pools">📋 Quiniela</button>
+      <button class="tab-btn" data-target="tab-survivor">🏆 Survivor</button>
+      <button class="tab-btn" data-target="tab-firstgoal">⚽ Primer Gol</button>
+      <a href="admin.html" class="tab-btn admin-only hidden" style="text-decoration: none; display: inline-block;">⚙️ Admin</a>
+    </div>
+
+    <!-- TABS CONTENTS -->
+
+    <!-- 1. TAB GRIDS -->
+    <main id="tab-grids" class="tab-content">
+      <section class="card highlight">
+        <h3 class="card-title">Juegos de Cuadrícula Disponibles</h3>
+        <p class="card-subtitle">Selecciona un juego para unirte o ver tu tablero en tiempo real.</p>
+        
+        <div class="form-group">
+          <label for="filterStore">Filtrar por Sucursal</label>
+          <select id="filterStore">
+            <option value="">Todas las sucursales</option>
+          </select>
+        </div>
+
+        <div id="gridsList" class="flex-row" style="flex-direction: column; gap: 10px;">
+          <!-- Loaded dynamically -->
+          <div class="text-center hint-text py-4">Cargando grids disponibles...</div>
+        </div>
+      </section>
+
+      <section class="card" id="joinGridForm" style="display: none;">
+        <h3 class="card-title">Registrarse en el Grid</h3>
+        <p class="card-subtitle" id="selectedGridLabel">Selecciona un juego arriba para registrarte.</p>
+        
+        <div class="form-group">
+          <label>Apodo / Nickname (visible en la tabla)</label>
+          <input type="text" id="inpGridNick" placeholder="Ej. El Rompequinielas"/>
+        </div>
+        
+        <div class="flex-row">
+          <div class="form-group" style="flex: 1;">
+            <label>Mesa</label>
+            <input type="text" id="inpGridTable" placeholder="Ej. B4"/>
+          </div>
+          <div class="form-group" style="flex: 1;">
+            <label>Mesero</label>
+            <input type="text" id="inpGridWaiter" placeholder="Ej. Carlos"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Paquete de Cuadros</label>
+          <select id="selGridPack">
+            <option value="5">🏈 5 Cuadros ($)</option>
+            <option value="10">🏈 10 Cuadros ($$)</option>
+            <option value="15">🏈 15 Cuadros ($$$)</option>
+          </select>
+        </div>
+
+        <button id="btnJoinGrid" class="btn btn-primary">Enviar Solicitud</button>
+        <p id="gridJoinStatus" class="hint-text mt-4 text-center"></p>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Mis Grids Aprobados</h3>
+        <p class="card-subtitle">Grids donde tu registro ha sido verificado y aprobado.</p>
+        <div id="myGridsList" class="flex-row" style="flex-direction: column; gap: 10px;">
+          <!-- Loaded dynamically -->
+          <div class="text-center hint-text">Inicia sesión con Google para ver tus grids.</div>
+        </div>
+      </section>
+    </main>
+
+    <!-- 2. TAB POOLS -->
+    <main id="tab-pools" class="tab-content hidden">
+      <section class="card highlight">
+        <h3 class="card-title">Quiniela de la Semana</h3>
+        <p class="card-subtitle">Elige el ganador de cada partido de la semana de la NFL.</p>
+        
+        <div id="poolStatus" class="hint-text mb-4 text-center">Inicia sesión para guardar tu quiniela.</div>
+        
+        <div id="poolGamesList" class="flex-row" style="flex-direction: column; gap: 12px; margin-bottom: 20px;">
+          <!-- Games loaded dynamically -->
+        </div>
+
+        <button id="btnSavePool" class="btn btn-primary" disabled>Guardar Quiniela</button>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Tabla de Posiciones de la Semana</h3>
+        <p class="card-subtitle">Clasificación acumulada de quinielas de clientes en esta sucursal.</p>
+        <div id="poolLeaderboard" class="flex-row" style="flex-direction: column; gap: 8px;">
+          <!-- Loaded dynamically -->
+        </div>
+      </section>
+    </main>
+
+    <!-- 3. TAB SURVIVOR -->
+    <main id="tab-survivor" class="tab-content hidden">
+      <section class="card highlight">
+        <h3 class="card-title">Juego de Survivor</h3>
+        <p class="card-subtitle">Elige un equipo ganador para esta semana. Si gana, sigues vivo. No puedes repetir equipo en semanas posteriores.</p>
+        
+        <div class="card" style="background: rgba(0,0,0,0.25); border-color: rgba(255,255,255,0.05); margin-bottom: 16px;">
+          <div class="flex-between">
+            <div>
+              <div class="hint-text">Tu Estado</div>
+              <h4 id="survivorUserStatus" style="color: var(--success-color);">VIVO</h4>
+            </div>
+            <div style="text-align: right;">
+              <div class="hint-text">Semana Activa</div>
+              <h4 id="survivorWeekNum">Semana 1</h4>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Selecciona tu Equipo Survivor para esta semana</label>
+          <select id="selSurvivorTeam">
+            <option value="" disabled selected>Cargando equipos disponibles...</option>
+          </select>
+        </div>
+
+        <button id="btnSaveSurvivor" class="btn btn-primary" disabled>Registrar Survivor Pick</button>
+        <p id="survivorStatusText" class="hint-text mt-4 text-center"></p>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Historial de tus Selecciones</h3>
+        <p class="card-subtitle">Equipos que has seleccionado en semanas anteriores (no elegibles de nuevo).</p>
+        <div id="survivorHistory" class="flex-row" style="flex-direction: column; gap: 8px;">
+          <!-- Loaded dynamically -->
+        </div>
+      </section>
+    </main>
+
+    <!-- 4. TAB FIRST GOAL -->
+    <main id="tab-firstgoal" class="tab-content hidden">
+      <section class="card highlight">
+        <h3 class="card-title">Atínale al Primer Gol / Touchdown</h3>
+        <p class="card-subtitle">Apuesta quién anotará los primeros puntos en el partido en curso.</p>
+
+        <div id="firstGoalGamesList" class="flex-row" style="flex-direction: column; gap: 16px;">
+          <!-- Loaded dynamically -->
+          <div class="text-center hint-text">No hay partidos activos para apuestas de primer gol en este momento.</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Mis Apuestas del Día</h3>
+        <div id="myFirstGoalBets" class="flex-row" style="flex-direction: column; gap: 8px;">
+          <!-- Loaded dynamically -->
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Mobile Bottom Navigation Bar -->
+  <nav class="mobile-nav">
+    <a href="#" class="nav-item active" data-target="tab-grids">
+      <span class="nav-icon">🏈</span>
+      <span>Grids</span>
+    </a>
+    <a href="#" class="nav-item" data-target="tab-pools">
+      <span class="nav-icon">📋</span>
+      <span>Quiniela</span>
+    </a>
+    <a href="#" class="nav-item" data-target="tab-survivor">
+      <span class="nav-icon">🏆</span>
+      <span>Survivor</span>
+    </a>
+    <a href="#" class="nav-item" data-target="tab-firstgoal">
+      <span class="nav-icon">⚽</span>
+      <span>Primer Gol</span>
+    </a>
+    <a href="admin.html" class="nav-item admin-only hidden">
+      <span class="nav-icon">⚙️</span>
+      <span>Admin</span>
+    </a>
+  </nav>
+
+  <!-- Firebase v8 SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+  <!-- Configuration and Logic -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/grids.js"></script>
+  <script src="js/pools.js"></script>
+  <script src="js/survivor.js"></script>
+  <script src="js/firstgoal.js"></script>
+
+  <!-- Tab Switching Handler -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabs = document.querySelectorAll('.tab-btn, .mobile-nav .nav-item');
+      const contents = document.querySelectorAll('.tab-content');
+
+      tabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+          if (tab.tagName === 'A' && tab.getAttribute('href') && tab.getAttribute('href') !== '#') {
+            return; // Let links navigate
+          }
+          e.preventDefault();
+          const targetId = tab.getAttribute('data-target');
+
+          // Update tabs active state
+          document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-target') === targetId);
+          });
+          document.querySelectorAll('.mobile-nav .nav-item').forEach(item => {
+            item.classList.toggle('active', item.getAttribute('data-target') === targetId);
+          });
+
+          // Show correct tab content
+          contents.forEach(content => {
+            content.classList.toggle('hidden', content.id !== targetId);
+          });
+        });
+      });
+    });
+  </script>
+</body>
+</html>
