@@ -134,7 +134,13 @@
       card.innerHTML = `
         <div class="flex-between">
           <div>
-            <h4 style="font-size: 15px;">${g.away} @ ${g.home}</h4>
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+              <img src="${window.getTeamLogoURL(g.away)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${g.away}"/>
+              <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${g.away}</span>
+              <span style="font-size: 12px; color: var(--text-muted); font-weight: bold;">@</span>
+              <img src="${window.getTeamLogoURL(g.home)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${g.home}"/>
+              <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${g.home}</span>
+            </div>
             <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
               <span class="badge">${g.code}</span>
               ${g.store ? `<span class="badge accent">${g.store}</span>` : ''}
@@ -313,7 +319,13 @@
               card.innerHTML = `
                 <div class="flex-between" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 8px;">
                   <div>
-                    <h4 style="font-size: 16px; margin: 0;">${away} @ ${home}</h4>
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                      <img src="${window.getTeamLogoURL(away)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${away}"/>
+                      <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${away}</span>
+                      <span style="font-size: 12px; color: var(--text-muted); font-weight: bold;">@</span>
+                      <img src="${window.getTeamLogoURL(home)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${home}"/>
+                      <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${home}</span>
+                    </div>
                     <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center;">
                       <span class="badge">${code}</span>
                       ${store ? `<span class="badge accent">${store}</span>` : ''}
@@ -418,7 +430,13 @@
           card.innerHTML = `
             <div class="flex-between" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 8px;">
               <div>
-                <h4 style="font-size: 16px; margin: 0;">${away} @ ${home}</h4>
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                  <img src="${window.getTeamLogoURL(away)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${away}"/>
+                  <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${away}</span>
+                  <span style="font-size: 12px; color: var(--text-muted); font-weight: bold;">@</span>
+                  <img src="${window.getTeamLogoURL(home)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${home}"/>
+                  <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${home}</span>
+                </div>
                 <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center;">
                   <span class="badge">${code}</span>
                   ${store ? `<span class="badge accent">${store}</span>` : ''}

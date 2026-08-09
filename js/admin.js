@@ -378,10 +378,12 @@
       b.classList.toggle('active', b.getAttribute('data-q') === q);
     });
 
-    const verticalTeamName = document.getElementById('nameAway');
-    const horizontalTeamName = document.getElementById('nameHome');
-    if (verticalTeamName) verticalTeamName.textContent = away;
-    if (horizontalTeamName) horizontalTeamName.textContent = home;
+    if (verticalTeamName) {
+      verticalTeamName.innerHTML = `<img src="${window.getTeamLogoURL(away)}" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle; margin-right: 6px;" alt="${away}"/> ${away}`;
+    }
+    if (horizontalTeamName) {
+      horizontalTeamName.innerHTML = `${home} <img src="${window.getTeamLogoURL(home)}" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle; margin-left: 6px;" alt="${home}"/>`;
+    }
 
     const wrapper = document.createElement('div');
     wrapper.className = 'grid-container-wrapper';

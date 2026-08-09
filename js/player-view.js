@@ -189,7 +189,15 @@
     const sa = two(g.scoreAway || 0);
     const q = g.quarter || 'Q1';
 
-    gameTitle.textContent = `${away} ${sa} vs ${sh} ${home}`;
+    gameTitle.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+        <img src="${window.getTeamLogoURL(away)}" style="width: 32px; height: 32px; object-fit: contain;" alt="${away}"/>
+        <span>${away} ${sa}</span>
+        <span style="color: var(--text-muted); font-size: 0.8em; margin: 0 4px;">vs</span>
+        <span>${sh} ${home}</span>
+        <img src="${window.getTeamLogoURL(home)}" style="width: 32px; height: 32px; object-fit: contain;" alt="${home}"/>
+      </div>
+    `;
     
     if (verticalTeam) verticalTeam.textContent = away;
     if (horizontalTeam) horizontalTeam.textContent = home;
