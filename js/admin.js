@@ -837,8 +837,8 @@
     if (e.target.checked) {
       syncEspnScore(false);
       if (espnTimer) clearInterval(espnTimer);
-      espnTimer = setInterval(() => syncEspnScore(false), 15000);
-      if (espnStatus) espnStatus.textContent = 'Auto-sync activado (15s)';
+      espnTimer = setInterval(() => syncEspnScore(false), 2000);
+      if (espnStatus) espnStatus.textContent = 'Auto-sync en vivo activado (2s)';
     } else {
       if (espnTimer) clearInterval(espnTimer);
       espnTimer = null;
