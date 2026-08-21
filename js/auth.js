@@ -36,9 +36,15 @@
           const provider = new firebase.auth.GoogleAuthProvider();
           await firebase.auth().signInWithPopup(provider);
         } catch (e) {
-          console.error('[auth] Login error:', e);
-          alert('Error al iniciar sesión con Google: ' + e.message);
-          btnGoogle.disabled = false;
+          console.error('[auth] Popup login error, attempting redirect:', e);
+          try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            await firebase.auth().signInWithRedirect(provider);
+          } catch (e2) {
+            console.error('[auth] Redirect login error:', e2);
+            alert('Error al iniciar sesión con Google: ' + e2.message);
+            btnGoogle.disabled = false;
+          }
         }
       });
     }
