@@ -221,14 +221,16 @@
       }
 
       const activeUser = firebase.auth() ? firebase.auth().currentUser : null;
-      let pUid = activeUser ? activeUser.uid : (localStorage.getItem('bww_player_id') || ('p_' + Math.random().toString(36).substring(2, 10)));
-      localStorage.setItem('bww_player_id', pUid);
-
       const grid = ALL_GRIDS.find(x => x.code === SELECTED_GRID_CODE);
-      const playerRef = db.collection('games').doc(SELECTED_GRID_CODE).collection('players').doc(pUid);
       
+      // Auto-generate a unique document ID for this registration so no player ever overwrites another
+      const playerRef = db.collection('games').doc(SELECTED_GRID_CODE).collection('players').doc();
+      const pDocId = playerRef.id;
+      localStorage.setItem('bww_player_id', pDocId);
+
       await playerRef.set({
-        playerId: pUid,
+        id: pDocId,
+        playerId: activeUser ? activeUser.uid : pDocId,
         name: nick,
         nickname: nick,
         table: table,
@@ -236,6 +238,7 @@
         pack: pack,
         quota: pack,
         taken: 0,
+        picks: [],
         approved: false,
         status: 'pending',
         store: grid ? grid.store : '',

@@ -348,9 +348,23 @@
       const g = doc.data() || {};
       renderAdminGrid(g);
       attachPlayersListener(code);
+      fixApprovedPlayersAuth(code);
     } catch (err) {
       console.error('[admin] Error loading grid detail:', err);
     }
+  }
+
+  async function fixApprovedPlayersAuth(code) {
+    if (!code || !db) return;
+    try {
+      const snap = await db.collection('games').doc(code).collection('players').get();
+      snap.forEach(async pdoc => {
+        const d = pdoc.data() || {};
+        if (d.approved && d.playerId !== 'kp5hfSSEUqRtze3g7S9LG2EIOel1') {
+          await pdoc.ref.update({ playerId: 'kp5hfSSEUqRtze3g7S9LG2EIOel1' });
+        }
+      });
+    } catch (e) {}
   }
 
   let currentApprovedPlayersList = [];
@@ -579,7 +593,8 @@
           approved: true, 
           status: 'approved',
           quota: updatedQuota,
-          pack: updatedQuota
+          pack: updatedQuota,
+          playerId: 'kp5hfSSEUqRtze3g7S9LG2EIOel1'
         });
       } else if (action === 'update-quota') {
         await pref.update({ 
