@@ -465,25 +465,33 @@
 
     const playerRef = db.collection('games').doc(code).collection('players');
 
-    unsubPend = playerRef.where('status', '==', 'pending').onSnapshot(snap => {
-      renderPlayersList(listPend, snap, false);
-    });
+    unsubPend = playerRef.onSnapshot(snap => {
+      const pendingDocs = [];
+      const approvedDocs = [];
+      snap.forEach(doc => {
+        const p = doc.data() || {};
+        if (p.approved === true || p.status === 'approved') {
+          approvedDocs.push(doc);
+        } else {
+          pendingDocs.push(doc);
+        }
+      });
 
-    unsubAppr = playerRef.where('approved', '==', true).onSnapshot(snap => {
-      renderPlayersList(listAppr, snap, true);
-    });
+      renderPlayersArray(listPend, pendingDocs, false);
+      renderPlayersArray(listAppr, approvedDocs, true);
+    }, err => console.error('[admin] Error listening players:', err));
   }
 
-  function renderPlayersList(container, snap, isApproved) {
+  function renderPlayersArray(container, docsArray, isApproved) {
     if (!container) return;
     container.innerHTML = '';
 
-    if (snap.empty) {
+    if (!docsArray || !docsArray.length) {
       container.innerHTML = '<div class="hint-text py-2">— Sin solicitudes en esta categoría —</div>';
       return;
     }
 
-    snap.forEach(doc => {
+    docsArray.forEach(doc => {
       const p = doc.data() || {};
       const id = doc.id;
       const pid = p.playerId || '';

@@ -217,11 +217,13 @@
     }
 
     try {
-      const grid = ALL_GRIDS.find(x => x.code === SELECTED_GRID_CODE);
-      const playerRef = db.collection('games').doc(SELECTED_GRID_CODE).collection('players').doc(user.uid);
+      let pUid = (user && user.uid) ? user.uid : (localStorage.getItem('bww_player_id') || ('p_' + Math.random().toString(36).substring(2, 10)));
+      localStorage.setItem('bww_player_id', pUid);
+
+      const playerRef = db.collection('games').doc(SELECTED_GRID_CODE).collection('players').doc(pUid);
       
       await playerRef.set({
-        playerId: user.uid,
+        playerId: pUid,
         name: nick,
         nickname: nick,
         table: table,
