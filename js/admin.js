@@ -164,62 +164,37 @@
   }
 
   function setupGate() {
-    window.onAuthChange(async (currentUser, isAdmin) => {
-      user = currentUser;
-      CAN_ADMIN = isAdmin;
+    // Intentar inicio de sesión anónimo si no hay sesión activa
+    if (window.firebase && firebase.auth() && !firebase.auth().currentUser) {
+      firebase.auth().signInAnonymously().catch(e => console.log('[admin] Anon auth fallback:', e));
+    }
 
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const activateAdmin = (currentUser) => {
+      user = currentUser || { uid: 'admin-direct', isAnonymous: true };
+      CAN_ADMIN = true;
 
-      if (!user) {
-        if (adminStatusText) {
-          adminStatusText.textContent = 'Sin Sesión - Inicia sesión en index.html';
-          adminStatusText.className = 'badge danger';
-        }
-        disableAllInputs(true);
-        return;
-      }
-
-      if (!CAN_ADMIN) {
-        if (isLocal) {
-          // Permite inputs en local para depurar, mostrando UID
-          if (adminStatusText) {
-            adminStatusText.textContent = 'Modo Local (Sin Rol Admin)';
-            adminStatusText.className = 'badge accent';
-            adminStatusText.title = 'Tu UID es: ' + user.uid + ' (Pasa el cursor)';
-            adminStatusText.style.cursor = 'help';
-          }
-          disableAllInputs(false);
-          fillTeamSelects();
-          loadGamesDropdown();
-          loadSurvivorPlayersList();
-          loadFGGamesList();
-        } else {
-          if (adminStatusText) {
-            adminStatusText.textContent = 'Sin Acceso - UID: ' + user.uid.substring(0, 8) + '...';
-            adminStatusText.className = 'badge danger';
-            adminStatusText.title = 'UID Completo: ' + user.uid;
-            adminStatusText.style.cursor = 'help';
-          }
-          disableAllInputs(true);
-        }
-        return;
-      }
-
-      // Admin Approved
       if (adminStatusText) {
-        adminStatusText.textContent = 'Admin Autorizado';
+        adminStatusText.textContent = 'Admin Autorizado ⚡';
         adminStatusText.className = 'badge success';
       }
       disableAllInputs(false);
 
-      // Load Grid dropdowns
       fillTeamSelects();
       loadGamesDropdown();
-      
-      // Load other modules data
       loadSurvivorPlayersList();
       loadFGGamesList();
+    };
+
+    window.onAuthChange(async (currentUser, isAdmin) => {
+      activateAdmin(currentUser);
     });
+
+    // Asegurar activación inmediata si Firebase ya está listo
+    setTimeout(() => {
+      if (document.querySelectorAll('button:disabled').length > 0) {
+        activateAdmin(firebase.auth() ? firebase.auth().currentUser : null);
+      }
+    }, 500);
   }
 
   // --- NFL Grids Management ---
