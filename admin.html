@@ -15,11 +15,14 @@
 <body>
   <div class="container animate-fade" style="max-width: 1100px;">
     <!-- Back to Main Page link -->
-    <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+    <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
       <a href="index.html" class="btn btn-secondary" style="width: auto; padding: 8px 16px; font-size: 13px; text-decoration: none;">
         ← Volver al Portal de Jugador
       </a>
-      <span id="adminStatusText" class="badge">Revisando permisos...</span>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button id="btnSwitchAccount" class="btn btn-primary" style="width: auto; padding: 6px 12px; font-size: 12px;">🔄 Cambiar Cuenta de Google</button>
+        <span id="adminStatusText" class="badge">Revisando permisos...</span>
+      </div>
     </div>
 
     <header class="header-bar" style="margin-bottom: 16px;">

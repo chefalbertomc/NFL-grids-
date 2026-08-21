@@ -163,6 +163,20 @@
     });
   }
 
+  const btnSwitchAccount = document.getElementById('btnSwitchAccount');
+  if (btnSwitchAccount) {
+    btnSwitchAccount.addEventListener('click', async () => {
+      try {
+        await firebase.auth().signOut();
+        const provider = new firebase.auth.GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        await firebase.auth().signInWithPopup(provider);
+      } catch (err) {
+        console.error('[admin] Switch account error:', err);
+      }
+    });
+  }
+
   function setupGate() {
     window.onAuthChange(async (currentUser, isAdmin) => {
       user = currentUser;
@@ -170,7 +184,7 @@
 
       if (!user) {
         if (adminStatusText) {
-          adminStatusText.textContent = 'Sin Sesión - Inicia sesión con Google en el botón superior';
+          adminStatusText.textContent = 'Sin Sesión - Usa "Cambiar Cuenta de Google" para entrar con chefalbertomc';
           adminStatusText.className = 'badge danger';
         }
         disableAllInputs(true);
@@ -179,7 +193,8 @@
 
       if (!CAN_ADMIN) {
         if (adminStatusText) {
-          adminStatusText.textContent = 'Sin Permisos Admin - Tu UID: ' + user.uid;
+          const userEmail = user.email || user.displayName || user.uid;
+          adminStatusText.textContent = `Cuenta actual (${userEmail}) no es Admin. Usa "Cambiar Cuenta" para entrar con chefalbertomc`;
           adminStatusText.className = 'badge danger';
         }
         disableAllInputs(true);
@@ -187,7 +202,7 @@
       }
 
       if (adminStatusText) {
-        adminStatusText.textContent = 'Admin Autorizado (' + (user.displayName || user.email || 'Google') + ')';
+        adminStatusText.textContent = 'Admin Autorizado (' + (user.email || user.displayName || 'Google') + ')';
         adminStatusText.className = 'badge success';
       }
       disableAllInputs(false);
