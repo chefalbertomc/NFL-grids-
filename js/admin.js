@@ -353,6 +353,25 @@
     }
   }
 
+  let currentApprovedPlayersList = [];
+
+  function buildMergedCells(gameCells, approvedList) {
+    const merged = { ...(gameCells || {}) };
+    if (Array.isArray(approvedList)) {
+      approvedList.forEach(p => {
+        const pPicks = Array.isArray(p.picks) ? p.picks : [];
+        pPicks.forEach(cellKey => {
+          merged[cellKey] = {
+            name: p.nickname || p.name || '—',
+            playerDocId: p.id,
+            playerId: p.playerId || p.id
+          };
+        });
+      });
+    }
+    return merged;
+  }
+
   function renderAdminGrid(g) {
     if (!gridHost) return;
     gridHost.innerHTML = '';
@@ -360,7 +379,7 @@
     const reveal = !!g.showNumbers;
     const topNums = Array.isArray(g.numsTop) ? g.numsTop : [];
     const leftNums = Array.isArray(g.numsLeft) ? g.numsLeft : [];
-    const cells = g.cells || {};
+    const cells = buildMergedCells(g.cells || {}, currentApprovedPlayersList);
 
     const home = g.homeTeam || g.home || 'Local';
     const away = g.awayTeam || g.away || 'Visitante';
@@ -468,10 +487,12 @@
     unsubPend = playerRef.onSnapshot(snap => {
       const pendingDocs = [];
       const approvedDocs = [];
+      currentApprovedPlayersList = [];
       snap.forEach(doc => {
         const p = doc.data() || {};
         if (p.approved === true || p.status === 'approved') {
           approvedDocs.push(doc);
+          currentApprovedPlayersList.push({ id: doc.id, ...p });
         } else {
           pendingDocs.push(doc);
         }
@@ -479,6 +500,7 @@
 
       renderPlayersArray(listPend, pendingDocs, false);
       renderPlayersArray(listAppr, approvedDocs, true);
+      if (currentGame) renderAdminGrid(currentGame);
     }, err => console.error('[admin] Error listening players:', err));
   }
 

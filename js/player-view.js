@@ -155,6 +155,7 @@
             nickname: d.nickname || d.name || '',
             quota: Number(d.quota || d.pack || 0),
             taken: Number(d.taken || 0),
+            picks: Array.isArray(d.picks) ? d.picks : [],
             ref: doc.ref
           };
 
@@ -315,6 +316,23 @@
     }
   }
 
+  function buildMergedCells(gameCells, approvedList) {
+    const merged = { ...(gameCells || {}) };
+    if (Array.isArray(approvedList)) {
+      approvedList.forEach(p => {
+        const pPicks = Array.isArray(p.picks) ? p.picks : [];
+        pPicks.forEach(cellKey => {
+          merged[cellKey] = {
+            name: p.nickname || p.name || '—',
+            playerDocId: p.id,
+            playerId: p.playerId || p.id
+          };
+        });
+      });
+    }
+    return merged;
+  }
+
   function renderGrid(g) {
     if (!gridBoard) return;
     gridBoard.innerHTML = '';
@@ -322,7 +340,7 @@
     const reveal = !!g.showNumbers;
     const topNums = Array.isArray(g.numsTop) ? g.numsTop : [];
     const leftNums = Array.isArray(g.numsLeft) ? g.numsLeft : [];
-    const cells = g.cells || {};
+    const cells = buildMergedCells(g.cells || {}, approvedPlayers);
 
     // Header top-left cell
     const corner = document.createElement('div');
@@ -411,80 +429,45 @@
       return;
     }
 
-    if (window.ensurePlayerAuth) {
-      await window.ensurePlayerAuth();
+    const myPicks = Array.isArray(activePlayer.picks) ? activePlayer.picks : [];
+    const isPickedByMe = myPicks.includes(key);
+
+    if (!isPickedByMe && info && info.playerDocId && info.playerDocId !== activePlayer.id) {
+      alert('Esta casilla ya está ocupada por otro jugador.');
+      return;
     }
 
     const quota = Number(activePlayer.quota || 0);
 
-    const gameRef = db.collection('games').doc(code);
-
     try {
-      await db.runTransaction(async (tx) => {
-        // 1. ALL READS FIRST (Firestore rule: all tx.get calls must precede tx.update calls)
-        const snap = await tx.get(gameRef);
-        if (!snap.exists) throw new Error('El juego no existe');
-        
-        let playerSnap = null;
-        if (activePlayer && activePlayer.ref) {
-          playerSnap = await tx.get(activePlayer.ref);
-        }
-
-        const data = snap.data() || {};
-        const cells = data.cells || {};
-        const cur = cells[key];
-
-        // Cannot touch cells owned by someone else
-        if (cur && !cellOwnerIsMe(cur)) {
-          throw new Error('Casilla ya ocupada por otro jugador');
-        }
-
-        // Count current picks
-        let myUsedCount = 0;
-        for (const k in cells) {
-          if (cellOwnerIsMe(cells[k])) myUsedCount++;
-        }
-
-        // 2. ALL WRITES AFTER ALL READS
-        if (cur && cellOwnerIsMe(cur)) {
-          // Toggle OFF (unpick cell)
-          tx.update(gameRef, { [`cells.${key}`]: firebase.firestore.FieldValue.delete() });
-          myUsedCount = Math.max(0, myUsedCount - 1);
-        } else if (!cur) {
-          // Toggle ON (pick cell) - Check quota first
-          if (myUsedCount >= quota) {
-            throw new Error('limit-reached');
-          }
-
-          tx.update(gameRef, {
-            [`cells.${key}`]: {
-              name: activePlayer.nickname,
-              playerId: user ? user.uid : null,
-              playerDocId: activePlayer.id,
-              ts: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
-            }
-          });
-          myUsedCount += 1;
-        }
-
-        // Update count in player sub-document
-        if (playerSnap && activePlayer.ref) {
-          tx.update(activePlayer.ref, {
-            taken: myUsedCount,
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
-          });
-        }
-      });
-    } catch (e) {
-      if (e.message === 'limit-reached') {
-        alert('¡Límite alcanzado! No tienes más cuadros disponibles en tu paquete para este registro.');
-      } else if (e.message.includes('ocupada')) {
-        alert('Esta casilla ya está ocupada por otro jugador.');
-      } else {
-        console.error('[player-view] Transaction failed:', e);
-        alert('Error al marcar casilla: ' + e.message);
+      if (window.ensurePlayerAuth) {
+        await window.ensurePlayerAuth();
       }
+
+      const playerDocRef = db.collection('games').doc(code).collection('players').doc(activePlayer.id);
+
+      if (isPickedByMe) {
+        await playerDocRef.update({
+          picks: firebase.firestore.FieldValue.arrayRemove(key),
+          taken: Math.max(0, myPicks.length - 1),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
+        });
+      } else {
+        if (myPicks.length >= quota) {
+          alert('¡Límite alcanzado! No tienes más cuadros disponibles en tu paquete para este registro.');
+          return;
+        }
+        await playerDocRef.update({
+          picks: firebase.firestore.FieldValue.arrayUnion(key),
+          taken: myPicks.length + 1,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
+        });
+      }
+    } catch (err) {
+      console.error('[player-view] Error updating pick:', err);
+      alert('Error al marcar casilla: ' + err.message);
     }
+  }
   }
 
   // Run initialization
