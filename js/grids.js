@@ -252,6 +252,7 @@
         gridJoinStatus.textContent = '¡Solicitud enviada! Espera a que el mesero o administrador te apruebe.';
         gridJoinStatus.style.color = 'var(--success-color)';
       }
+      alert(`¡Solicitud enviada exitosamente para ${nick}! Ahora revisa la pantalla de Admin para aprobarla.`);
       
       if (inpTable) inpTable.value = '';
       if (inpWaiter) inpWaiter.value = '';
