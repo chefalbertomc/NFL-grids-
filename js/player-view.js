@@ -180,7 +180,6 @@
       }, err => {
         console.error('[player-view] Players listen error:', err);
       });
-      });
   }
 
   function updateGameHeader(g) {
