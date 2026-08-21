@@ -407,24 +407,31 @@
 
     try {
       await db.runTransaction(async (tx) => {
+        // 1. ALL READS FIRST (Firestore rule: all tx.get calls must precede tx.update calls)
         const snap = await tx.get(gameRef);
         if (!snap.exists) throw new Error('El juego no existe');
         
+        let playerSnap = null;
+        if (activePlayer && activePlayer.ref) {
+          playerSnap = await tx.get(activePlayer.ref);
+        }
+
         const data = snap.data() || {};
         const cells = data.cells || {};
         const cur = cells[key];
 
-        // 1. Cannot touch cells owned by someone else
+        // Cannot touch cells owned by someone else
         if (cur && !cellOwnerIsMe(cur)) {
-          throw new Error('Casilla ya ocupada');
+          throw new Error('Casilla ya ocupada por otro jugador');
         }
 
-        // 2. Count current picks
+        // Count current picks
         let myUsedCount = 0;
         for (const k in cells) {
           if (cellOwnerIsMe(cells[k])) myUsedCount++;
         }
 
+        // 2. ALL WRITES AFTER ALL READS
         if (cur && cellOwnerIsMe(cur)) {
           // Toggle OFF (unpick cell)
           tx.update(gameRef, { [`cells.${key}`]: firebase.firestore.FieldValue.delete() });
@@ -439,15 +446,15 @@
             [`cells.${key}`]: {
               name: activePlayer.nickname,
               playerId: user ? user.uid : null,
-              playerDocId: activePlayer.id, // Guarda el ID único del registro para evitar conflictos del mismo UID
+              playerDocId: activePlayer.id,
               ts: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
             }
           });
           myUsedCount += 1;
         }
 
-        // 3. Update count in player sub-document
-        if (activePlayer.ref) {
+        // Update count in player sub-document
+        if (playerSnap && activePlayer.ref) {
           tx.update(activePlayer.ref, {
             taken: myUsedCount,
             updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
@@ -457,8 +464,11 @@
     } catch (e) {
       if (e.message === 'limit-reached') {
         alert('¡Límite alcanzado! No tienes más cuadros disponibles en tu paquete para este registro.');
-      } else if (!e.message.includes('ocupada') && !e.message.includes('créditos') && !e.message.includes('suficientes') && !e.message.includes('limit-reached')) {
+      } else if (e.message.includes('ocupada')) {
+        alert('Esta casilla ya está ocupada por otro jugador.');
+      } else {
         console.error('[player-view] Transaction failed:', e);
+        alert('Error al marcar casilla: ' + e.message);
       }
     }
   }
