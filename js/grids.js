@@ -217,9 +217,19 @@
     }
 
     try {
-      let pUid = (user && user.uid) ? user.uid : (localStorage.getItem('bww_player_id') || ('p_' + Math.random().toString(36).substring(2, 10)));
+      if (firebase.auth() && !firebase.auth().currentUser) {
+        try {
+          await firebase.auth().signInAnonymously();
+        } catch (anonErr) {
+          console.warn('[grids] Anonymous sign-in attempt:', anonErr);
+        }
+      }
+
+      const activeUser = firebase.auth() ? firebase.auth().currentUser : null;
+      let pUid = activeUser ? activeUser.uid : (localStorage.getItem('bww_player_id') || ('p_' + Math.random().toString(36).substring(2, 10)));
       localStorage.setItem('bww_player_id', pUid);
 
+      const grid = ALL_GRIDS.find(x => x.code === SELECTED_GRID_CODE);
       const playerRef = db.collection('games').doc(SELECTED_GRID_CODE).collection('players').doc(pUid);
       
       await playerRef.set({
