@@ -35,7 +35,7 @@
 
   // --- Parameters & DOM ---
   const params = new URLSearchParams(location.search);
-  const code = (params.get('code') || '').trim().toUpperCase();
+  let code = (params.get('code') || '').trim().toUpperCase();
   const pid = (params.get('pid') || '').trim();
 
   const gameTitle = document.getElementById('gameTitle');
@@ -47,11 +47,6 @@
   const gridMsg = document.getElementById('gridMsg');
   const verticalTeam = document.getElementById('verticalTeam');
   const horizontalTeam = document.getElementById('horizontalTeam');
-
-  if (!code) {
-    if (gridMsg) gridMsg.textContent = 'Error: Falta el código (?code=) en la URL.';
-    return;
-  }
 
   // --- State ---
   let db = null;
@@ -67,11 +62,9 @@
 
   function cellOwnerIsMe(info) {
     if (!info) return false;
-    // 1. Comprobar por ID de documento de registro único del jugador
     if (activePlayer && info.playerDocId && info.playerDocId === activePlayer.id) {
       return true;
     }
-    // 2. Fallback de compatibilidad (por UID de cuenta o coincidencia de apodo)
     const mineById = user && info.playerId && info.playerId === user.uid && (!info.playerDocId || (activePlayer && info.playerDocId === activePlayer.id));
     const mineByName = activePlayer && norm(info.name) === norm(activePlayer.nickname);
     return !!(mineById || mineByName);
@@ -97,17 +90,39 @@
   }
 
   function startListeners() {
-    // Listen to Firebase Auth state
     firebase.auth().onAuthStateChanged((u) => {
       user = u || null;
       startGameListener();
-      startPlayersListener();
     });
   }
 
   let unsubGame = null;
-  function startGameListener() {
+  async function startGameListener() {
     if (unsubGame) unsubGame();
+
+    // Si la URL no trae código de juego, buscar automáticamente el juego más reciente en Firestore
+    if (!code) {
+      try {
+        const snap = await db.collection('games').orderBy('createdAt', 'desc').limit(1).get();
+        if (!snap.empty) {
+          code = snap.docs[0].id;
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.set('code', code);
+          window.history.replaceState(null, '', newUrl.toString());
+        }
+      } catch (err) {
+        try {
+          const snap = await db.collection('games').limit(1).get();
+          if (!snap.empty) code = snap.docs[0].id;
+        } catch (e) {}
+      }
+    }
+
+    if (!code) {
+      if (gridMsg) gridMsg.textContent = 'No hay juegos activos en este momento.';
+      return;
+    }
+
     unsubGame = db.collection('games').doc(code).onSnapshot((snap) => {
       if (!snap.exists) {
         if (gridMsg) gridMsg.textContent = 'El juego no existe en la base de datos.';
@@ -116,6 +131,7 @@
       game = snap.data() || {};
       updateGameHeader(game);
       renderGrid(game);
+      startPlayersListener();
     }, err => {
       console.error('[player-view] Game listen error:', err);
     });
@@ -123,6 +139,7 @@
 
   let unsubPlayers = null;
   function startPlayersListener() {
+    if (!code) return;
     if (unsubPlayers) unsubPlayers();
     unsubPlayers = db.collection('games').doc(code).collection('players')
       .onSnapshot((qs) => {
