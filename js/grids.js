@@ -148,9 +148,12 @@
               ${g.locked ? '<span class="badge danger">Bloqueado</span>' : ''}
             </div>
           </div>
-          <div>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+            <a href="player-view.html?code=${g.code}" class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 13px; text-decoration: none;">
+              👁️ Ver Tablero
+            </a>
             <button class="btn btn-primary" data-select-code="${g.code}" style="width: auto; padding: 6px 12px; font-size: 13px;">
-              ${SELECTED_GRID_CODE === g.code ? 'Seleccionado' : 'Unirse / Ver'}
+              ${SELECTED_GRID_CODE === g.code ? 'Seleccionado' : 'Unirse'}
             </button>
           </div>
         </div>
