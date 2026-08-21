@@ -174,7 +174,7 @@
                        approvedPlayers.find(p => userUid && (p.id === userUid || p.playerId === userUid)) ||
                        pendingPlayers.find(p => pid && (p.id === pid || p.playerId === pid)) ||
                        pendingPlayers.find(p => savedPlayerId && (p.id === savedPlayerId || p.playerId === savedPlayerId)) ||
-                       (approvedPlayers.length ? approvedPlayers[0] : null);
+                       null;
 
         updatePlayerUI();
         if (game) renderGrid(game);
@@ -199,11 +199,22 @@
         <span>${sh} ${home}</span>
         <img src="${window.getTeamLogoURL(home)}" style="width: 32px; height: 32px; object-fit: contain;" alt="${home}"/>
       </div>
+      <div style="font-size: 13px; font-weight: normal; color: var(--text-muted); margin-top: 4px;">
+        Código del Grid: <strong style="color: var(--accent-color);">${g.code || code}</strong> | Estado: <strong>${q}</strong>
+      </div>
     `;
     
     if (verticalTeam) verticalTeam.textContent = away;
     if (horizontalTeam) horizontalTeam.textContent = home;
-    if (lockBadge) lockBadge.style.display = g.locked ? 'inline-block' : 'none';
+    if (lockBadge) {
+      if (g.locked) {
+        lockBadge.textContent = '🔒 BLOQUEADO';
+        lockBadge.className = 'badge badge-danger';
+      } else {
+        lockBadge.textContent = '⚡ ABIERTO';
+        lockBadge.className = 'badge badge-success';
+      }
+    }
 
     // Update Winners History Widgets
     const q1Name = document.getElementById('q1-winner-name');
@@ -228,27 +239,22 @@
   }
 
   function updatePlayerUI() {
-    let quota = 0;
-    let taken = 0;
-
-    if (activePlayer) {
-      if (whoamiEl) whoamiEl.textContent = `Apodo: ${activePlayer.nickname}`;
-      if (whoamiEl) whoamiEl.className = "badge success";
-      quota = Number(activePlayer.quota || 0);
-      taken = Number(activePlayer.taken || 0);
-    } else if (pendingPlayers.length > 0) {
-      if (whoamiEl) whoamiEl.textContent = 'Registro Pendiente';
-      if (whoamiEl) whoamiEl.className = "badge danger";
-    } else {
-      if (whoamiEl) whoamiEl.textContent = 'No registrado';
-      if (whoamiEl) whoamiEl.className = "badge";
+    if (whoamiEl) {
+      if (activePlayer) {
+        whoamiEl.textContent = `Jugador: ${activePlayer.nickname}`;
+        whoamiEl.style.color = 'var(--accent-color)';
+      } else if (pendingPlayers.length > 0) {
+        whoamiEl.textContent = `Solicitud Pendiente (${pendingPlayers[0].nickname})`;
+        whoamiEl.style.color = 'var(--text-muted)';
+      } else {
+        whoamiEl.textContent = 'Selecciona tu Apodo';
+        whoamiEl.style.color = 'var(--text-muted)';
+      }
     }
 
-    if (quotaInfo) {
-      quotaInfo.textContent = `Paquete: ${quota} | Usadas: ${taken}`;
-    }
+    const quota = activePlayer ? Number(activePlayer.quota || 0) : 0;
+    const taken = activePlayer ? Number(activePlayer.taken || 0) : 0;
 
-    // Update custom selection status card (how many squares remaining)
     const statusCard = document.getElementById('selection-status-card');
     const statusText = document.getElementById('selection-status-text');
     if (statusText) {
@@ -274,7 +280,7 @@
           statusCard.style.borderColor = 'var(--danger-color)';
         }
       } else {
-        statusText.innerHTML = `❌ No estás registrado en este grid de juego. Regístrate en el dashboard.`;
+        statusText.innerHTML = `📌 Selecciona tu apodo en la lista desplegable abajo para comenzar.`;
         if (statusCard) {
           statusCard.style.background = 'rgba(255,255,255,0.01)';
           statusCard.style.borderColor = 'var(--border-color)';
@@ -282,14 +288,14 @@
       }
     }
 
-    // Toggle dropdown if player has multiple registrations
-    if (approvedPlayers.length > 1 && nickChooser) {
+    // Toggle dropdown if approved players exist
+    if (approvedPlayers.length > 0 && nickChooser) {
       nickChooser.style.display = 'inline-block';
-      nickChooser.innerHTML = '';
+      nickChooser.innerHTML = '<option value="">-- Elige tu Apodo --</option>';
       approvedPlayers.forEach(p => {
         const o = document.createElement('option');
         o.value = p.id;
-        o.textContent = p.nickname;
+        o.textContent = `${p.nickname} (${p.taken}/${p.quota} cuadros)`;
         nickChooser.appendChild(o);
       });
       if (activePlayer) {
@@ -299,13 +305,17 @@
       // Update handler
       nickChooser.onchange = () => {
         const selectedId = nickChooser.value;
-        activePlayer = approvedPlayers.find(p => p.id === selectedId) || null;
-        
-        // Actualizar el parámetro pid de la URL para que no rebote ante cambios en tiempo real
-        if (activePlayer) {
-          const newUrl = new URL(window.location.href);
-          newUrl.searchParams.set('pid', activePlayer.id);
-          window.history.replaceState(null, '', newUrl.toString());
+        if (selectedId) {
+          activePlayer = approvedPlayers.find(p => p.id === selectedId) || null;
+          localStorage.setItem('bww_player_id', selectedId);
+          
+          if (activePlayer) {
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.set('pid', activePlayer.id);
+            window.history.replaceState(null, '', newUrl.toString());
+          }
+        } else {
+          activePlayer = null;
         }
 
         updatePlayerUI();
@@ -467,7 +477,6 @@
       console.error('[player-view] Error updating pick:', err);
       alert('Error al marcar casilla: ' + err.message);
     }
-  }
   }
 
   // Run initialization
