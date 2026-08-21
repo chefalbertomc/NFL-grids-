@@ -180,6 +180,9 @@
 
     if (joinGridForm) {
       joinGridForm.style.display = 'block';
+      try {
+        joinGridForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } catch (e) {}
       selectedGridLabel.textContent = `Registrarse en: ${g.away} @ ${g.home} (${g.code})`;
       if (gridJoinStatus) gridJoinStatus.textContent = '';
       
