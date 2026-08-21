@@ -105,6 +105,16 @@
           </div>
 
           <button id="btnSaveScore" class="btn btn-primary mt-4">Guardar Marcador y Calcular Ganador</button>
+
+          <div class="flex-row" style="margin-top:12px; background: rgba(255, 209, 0, 0.08); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--primary-color); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <span style="font-weight: bold; color: #ffd100;">⚡ ESPN Live:</span>
+            <button id="btnSyncEspn" class="btn btn-primary" style="width: auto; padding: 6px 14px; font-size: 13px;">Sincronizar ESPN ahora</button>
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; color: var(--text-color);">
+              <input type="checkbox" id="chkAutoSyncEspn" style="width:16px; height:16px; cursor:pointer" />
+              Auto-sincronizar (15s)
+            </label>
+            <span id="espnStatus" class="hint-text" style="font-size: 12px; color: var(--text-muted);"></span>
+          </div>
         </div>
 
         <!-- Visual Grid -->

@@ -100,6 +100,9 @@
   const scoreHome = document.getElementById('scoreHome');
   const scoreAway = document.getElementById('scoreAway');
   const btnSaveScore = document.getElementById('btnSaveScore');
+  const btnSyncEspn = document.getElementById('btnSyncEspn');
+  const chkAutoSyncEspn = document.getElementById('chkAutoSyncEspn');
+  const espnStatus = document.getElementById('espnStatus');
 
   const gridHost = document.getElementById('gridHost');
   const listPend = document.getElementById('listPend');
@@ -277,6 +280,8 @@
     if (btnShow) btnShow.addEventListener('click', () => toggleNumbersVisibility(true));
     if (btnHide) btnHide.addEventListener('click', () => toggleNumbersVisibility(false));
     if (btnSaveScore) btnSaveScore.addEventListener('click', saveGridScore);
+    if (btnSyncEspn) btnSyncEspn.addEventListener('click', () => syncEspnScore(true));
+    if (chkAutoSyncEspn) chkAutoSyncEspn.addEventListener('change', toggleEspnAutoSync);
     if (btnCleanOrphans) btnCleanOrphans.addEventListener('click', cleanOrphanPicks);
     if (btnDeleteGame) btnDeleteGame.addEventListener('click', deleteGridGame);
 
@@ -711,6 +716,141 @@
       loadGameDetail();
     } catch (err) {
       alert('Error al guardar marcador: ' + err.message);
+    }
+  }
+
+  // ---------- ESPN Live Sync ----------
+  let espnTimer = null;
+
+  function isTeamMatch(targetTeam, espnTeam) {
+    if (!targetTeam || !espnTeam) return false;
+    const t = targetTeam.toLowerCase().trim();
+    const dName = (espnTeam.displayName || '').toLowerCase().trim();
+    const name = (espnTeam.name || '').toLowerCase().trim();
+    const location = (espnTeam.location || '').toLowerCase().trim();
+    const abbr = (espnTeam.abbreviation || '').toLowerCase().trim();
+
+    return dName.includes(t) || t.includes(dName) ||
+           name.includes(t) || t.includes(name) ||
+           (location && (location.includes(t) || t.includes(location))) ||
+           (abbr && abbr === t);
+  }
+
+  async function syncEspnScore(showToast = true) {
+    if (!currentGridCode) {
+      if (showToast) alert('Primero carga un juego');
+      return;
+    }
+    if (espnStatus) espnStatus.textContent = 'Consultando ESPN...';
+
+    try {
+      const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
+      const data = await res.json();
+      const ref = db.collection('games').doc(currentGridCode);
+      const snap = await ref.get();
+      if (!snap.exists) {
+        if (espnStatus) espnStatus.textContent = 'Error: Juego no existe';
+        return;
+      }
+      const g = snap.data() || {};
+      const homeTarget = g.homeTeam || g.home || '';
+      const awayTarget = g.awayTeam || g.away || '';
+
+      let matchedEvent = null;
+      let matchedHomeComp = null;
+      let matchedAwayComp = null;
+
+      for (const ev of (data.events || [])) {
+        const comps = ev.competitions?.[0]?.competitors || [];
+        const hComp = comps.find(c => c.homeAway === 'home');
+        const aComp = comps.find(c => c.homeAway === 'away');
+        if (!hComp || !aComp) continue;
+
+        const isHomeMatch = isTeamMatch(homeTarget, hComp.team);
+        const isAwayMatch = isTeamMatch(awayTarget, aComp.team);
+        const isSwappedHome = isTeamMatch(homeTarget, aComp.team);
+        const isSwappedAway = isTeamMatch(awayTarget, hComp.team);
+
+        if ((isHomeMatch && isAwayMatch) || (isSwappedHome && isSwappedAway)) {
+          matchedEvent = ev;
+          matchedHomeComp = isHomeMatch ? hComp : aComp;
+          matchedAwayComp = isAwayMatch ? aComp : hComp;
+          break;
+        }
+      }
+
+      if (!matchedEvent || !matchedHomeComp || !matchedAwayComp) {
+        const msg = `No encontrado en ESPN (${awayTarget} vs ${homeTarget})`;
+        if (espnStatus) espnStatus.textContent = msg;
+        if (showToast) alert(msg);
+        return;
+      }
+
+      const sHome = parseInt(matchedHomeComp.score || 0, 10);
+      const sAway = parseInt(matchedAwayComp.score || 0, 10);
+      const statusText = matchedEvent.status?.type?.shortDetail || matchedEvent.status?.type?.detail || 'Q1';
+
+      const upd = {
+        scoreHome: sHome,
+        scoreAway: sAway,
+        quarter: statusText,
+        locked: true,
+        lastEspnSync: Date.now()
+      };
+
+      const topNums = g.numsTop || [];
+      const leftNums = g.numsLeft || [];
+      let winnerName = 'Nadie';
+      if (topNums.length && leftNums.length) {
+        const lastDigitHome = sHome % 10;
+        const lastDigitAway = sAway % 10;
+        const winCol = topNums.indexOf(lastDigitHome);
+        const winRow = leftNums.indexOf(lastDigitAway);
+        upd.winCol = winCol;
+        upd.winRow = winRow;
+        const cellKey = `${winRow}-${winCol}`;
+        const winningCell = g.cells ? g.cells[cellKey] : null;
+        if (winningCell && winningCell.name) {
+          winnerName = winningCell.name;
+        }
+      }
+
+      const scoreStr = `${sAway} - ${sHome}`;
+      if (statusText.includes('1st') || statusText.includes('Q1')) {
+        upd.q1_winner = winnerName; upd.q1_score = scoreStr;
+      } else if (statusText.includes('2nd') || statusText.includes('HT') || statusText.includes('Q2')) {
+        upd.q2_winner = winnerName; upd.q2_score = scoreStr;
+      } else if (statusText.includes('3rd') || statusText.includes('Q3')) {
+        upd.q3_winner = winnerName; upd.q3_score = scoreStr;
+      } else if (statusText.includes('4th') || statusText.includes('FT') || statusText.includes('Q4')) {
+        upd.q4_winner = winnerName; upd.q4_score = scoreStr;
+      }
+
+      await ref.update(upd);
+
+      if (scoreHome) scoreHome.value = sHome;
+      if (scoreAway) scoreAway.value = sAway;
+
+      const msg = `ESPN: ${sHome} - ${sAway} (${statusText})`;
+      if (espnStatus) espnStatus.textContent = msg;
+
+      loadGameDetail();
+    } catch (err) {
+      console.error('[ESPN Sync Error]', err);
+      if (espnStatus) espnStatus.textContent = 'Error al consultar ESPN';
+    }
+  }
+
+  function toggleEspnAutoSync(e) {
+    if (e.target.checked) {
+      syncEspnScore(false);
+      if (espnTimer) clearInterval(espnTimer);
+      espnTimer = setInterval(() => syncEspnScore(false), 15000);
+      if (espnStatus) espnStatus.textContent = 'Auto-sync activado (15s)';
+    } else {
+      if (espnTimer) clearInterval(espnTimer);
+      espnTimer = null;
+      if (espnStatus) espnStatus.textContent = 'Auto-sync desactivado';
     }
   }
 
