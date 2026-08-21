@@ -36,14 +36,21 @@
           const provider = new firebase.auth.GoogleAuthProvider();
           await firebase.auth().signInWithPopup(provider);
         } catch (e) {
-          console.error('[auth] Popup login error, attempting redirect:', e);
+          console.warn('[auth] Popup login error, attempting redirect/anonymous fallback:', e);
           try {
             const provider = new firebase.auth.GoogleAuthProvider();
             await firebase.auth().signInWithRedirect(provider);
           } catch (e2) {
-            console.error('[auth] Redirect login error:', e2);
-            alert('Error al iniciar sesión con Google: ' + e2.message);
-            btnGoogle.disabled = false;
+            console.warn('[auth] Redirect login error, falling back to instant access:', e2);
+            try {
+              await firebase.auth().signInAnonymously();
+              console.log('[auth] Signed in anonymously');
+            } catch (e3) {
+              console.error('[auth] Anon fallback error:', e3);
+              alert('Nota: Para usar inicio de sesión de Google en GitHub Pages, agrega chefalbertomc.github.io en Firebase Console -> Authentication -> Authorized Domains.');
+            } finally {
+              btnGoogle.disabled = false;
+            }
           }
         }
       });
