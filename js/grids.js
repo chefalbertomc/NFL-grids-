@@ -216,12 +216,8 @@
     }
 
     try {
-      if (firebase.auth() && !firebase.auth().currentUser) {
-        try {
-          await firebase.auth().signInAnonymously();
-        } catch (anonErr) {
-          console.warn('[grids] Anonymous sign-in attempt:', anonErr);
-        }
+      if (window.ensurePlayerAuth) {
+        await window.ensurePlayerAuth();
       }
 
       const activeUser = firebase.auth() ? firebase.auth().currentUser : null;

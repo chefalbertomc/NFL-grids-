@@ -411,10 +411,8 @@
       return;
     }
 
-    if (firebase.auth() && !firebase.auth().currentUser) {
-      try {
-        await firebase.auth().signInAnonymously();
-      } catch (e) {}
+    if (window.ensurePlayerAuth) {
+      await window.ensurePlayerAuth();
     }
 
     const quota = Number(activePlayer.quota || 0);

@@ -17,6 +17,26 @@
     }
   };
 
+  window.ensurePlayerAuth = async function() {
+    if (firebase.auth().currentUser) {
+      return firebase.auth().currentUser;
+    }
+    const email = 'player.guest@wingsandwins.com';
+    const pass = 'wings123456password';
+    try {
+      const res = await firebase.auth().signInWithEmailAndPassword(email, pass);
+      return res.user;
+    } catch (err) {
+      try {
+        const res = await firebase.auth().createUserWithEmailAndPassword(email, pass);
+        return res.user;
+      } catch (e) {
+        console.error('[auth] Background player account error:', e);
+      }
+    }
+    return null;
+  };
+
   function notifyCallbacks() {
     authCallbacks.forEach(cb => cb(window.currentUser, window.isAdmin));
   }
