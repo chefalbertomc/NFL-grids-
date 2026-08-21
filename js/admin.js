@@ -164,17 +164,30 @@
   }
 
   function setupGate() {
-    // Intentar inicio de sesión anónimo si no hay sesión activa
-    if (window.firebase && firebase.auth() && !firebase.auth().currentUser) {
-      firebase.auth().signInAnonymously().catch(e => console.log('[admin] Anon auth fallback:', e));
-    }
+    window.onAuthChange(async (currentUser, isAdmin) => {
+      user = currentUser;
+      CAN_ADMIN = isAdmin;
 
-    const activateAdmin = (currentUser) => {
-      user = currentUser || { uid: 'admin-direct', isAnonymous: true };
-      CAN_ADMIN = true;
+      if (!user) {
+        if (adminStatusText) {
+          adminStatusText.textContent = 'Sin Sesión - Inicia sesión con Google en el botón superior';
+          adminStatusText.className = 'badge danger';
+        }
+        disableAllInputs(true);
+        return;
+      }
+
+      if (!CAN_ADMIN) {
+        if (adminStatusText) {
+          adminStatusText.textContent = 'Sin Permisos Admin - Tu UID: ' + user.uid;
+          adminStatusText.className = 'badge danger';
+        }
+        disableAllInputs(true);
+        return;
+      }
 
       if (adminStatusText) {
-        adminStatusText.textContent = 'Admin Autorizado ⚡';
+        adminStatusText.textContent = 'Admin Autorizado (' + (user.displayName || user.email || 'Google') + ')';
         adminStatusText.className = 'badge success';
       }
       disableAllInputs(false);
@@ -183,18 +196,7 @@
       loadGamesDropdown();
       loadSurvivorPlayersList();
       loadFGGamesList();
-    };
-
-    window.onAuthChange(async (currentUser, isAdmin) => {
-      activateAdmin(currentUser);
     });
-
-    // Asegurar activación inmediata si Firebase ya está listo
-    setTimeout(() => {
-      if (document.querySelectorAll('button:disabled').length > 0) {
-        activateAdmin(firebase.auth() ? firebase.auth().currentUser : null);
-      }
-    }, 500);
   }
 
   // --- NFL Grids Management ---
