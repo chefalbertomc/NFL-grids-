@@ -100,16 +100,8 @@
     // Listen to Firebase Auth state
     firebase.auth().onAuthStateChanged((u) => {
       user = u || null;
-      if (!user) {
-        if (whoamiEl) whoamiEl.textContent = 'Sin Sesión';
-        if (gridMsg) gridMsg.textContent = 'Debes iniciar sesión en la pantalla principal para jugar.';
-      }
-      
-      // Start Game and Player Listeners
       startGameListener();
-      if (user) {
-        startPlayersListener(user.uid);
-      }
+      startPlayersListener();
     });
   }
 
@@ -130,10 +122,9 @@
   }
 
   let unsubPlayers = null;
-  function startPlayersListener(uid) {
+  function startPlayersListener() {
     if (unsubPlayers) unsubPlayers();
     unsubPlayers = db.collection('games').doc(code).collection('players')
-      .where('playerId', '==', uid)
       .onSnapshot((qs) => {
         approvedPlayers = [];
         pendingPlayers = [];
@@ -143,6 +134,7 @@
           const isApproved = (d.status === 'approved') || !!d.approved;
           const item = {
             id: doc.id,
+            playerId: d.playerId || doc.id,
             nickname: d.nickname || d.name || '',
             quota: Number(d.quota || d.pack || 0),
             taken: Number(d.taken || 0),
@@ -156,28 +148,21 @@
           }
         });
 
-        // Set active player profile
-        // 1. Priorizar el jugador que ya estaba seleccionado activamente en esta sesión
-        let currentActiveId = activePlayer ? activePlayer.id : null;
-        if (currentActiveId) {
-          activePlayer = approvedPlayers.find(p => p.id === currentActiveId) || pendingPlayers.find(p => p.id === currentActiveId) || null;
-        }
+        const savedPlayerId = localStorage.getItem('bww_player_id');
+        const userUid = user ? user.uid : null;
 
-        // 2. Si no hay selección activa, recurrir al pid de la URL
-        if (!activePlayer && pid) {
-          activePlayer = approvedPlayers.find(p => p.id === pid) || pendingPlayers.find(p => p.id === pid) || null;
-        }
+        activePlayer = approvedPlayers.find(p => pid && (p.id === pid || p.playerId === pid)) ||
+                       approvedPlayers.find(p => savedPlayerId && (p.id === savedPlayerId || p.playerId === savedPlayerId)) ||
+                       approvedPlayers.find(p => userUid && (p.id === userUid || p.playerId === userUid)) ||
+                       pendingPlayers.find(p => pid && (p.id === pid || p.playerId === pid)) ||
+                       pendingPlayers.find(p => savedPlayerId && (p.id === savedPlayerId || p.playerId === savedPlayerId)) ||
+                       (approvedPlayers.length ? approvedPlayers[0] : null);
 
-        // 3. Fallback: Si no hay selección, tomar el primero aprobado
-        if (!activePlayer && approvedPlayers.length) {
-          activePlayer = approvedPlayers[0];
-        }
-
-        // Update UI Info
         updatePlayerUI();
         if (game) renderGrid(game);
       }, err => {
         console.error('[player-view] Players listen error:', err);
+      });
       });
   }
 
@@ -405,7 +390,17 @@
 
   async function onCellClick(key, info, g) {
     if (g.locked) return;
-    if (!activePlayer) return;
+    if (!activePlayer) {
+      alert('Tu apodo aún está pendiente de aprobación por el administrador en el panel Admin.');
+      return;
+    }
+
+    if (firebase.auth() && !firebase.auth().currentUser) {
+      try {
+        await firebase.auth().signInAnonymously();
+      } catch (e) {}
+    }
+
     const quota = Number(activePlayer.quota || 0);
 
     const gameRef = db.collection('games').doc(code);
