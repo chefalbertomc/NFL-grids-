@@ -193,10 +193,6 @@
 
   async function joinGrid() {
     if (!SELECTED_GRID_CODE || !db) return;
-    if (!user) {
-      alert('Debes iniciar sesión con Google para unirte a un juego.');
-      return;
-    }
 
     const nick = (inpNick ? inpNick.value : '').trim();
     const table = (inpTable ? inpTable.value : '').trim();
