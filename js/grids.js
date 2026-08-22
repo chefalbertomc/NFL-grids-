@@ -326,7 +326,8 @@
 
     const savedNick = (localStorage.getItem('player_nick') || '').trim();
     const savedPlayerId = localStorage.getItem('bww_player_id');
-    const userUid = user ? user.uid : null;
+    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const userUid = activeUser ? activeUser.uid : null;
 
     if (!savedNick && !savedPlayerId && !userUid) {
       myGridsList.innerHTML = '<div class="text-center hint-text py-3">— Aún no te has registrado en ningún juego. Toca <strong>Unirse</strong> en algún partido arriba para comenzar. —</div>';
