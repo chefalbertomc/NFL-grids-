@@ -267,226 +267,110 @@
   }
 
   // Fetch grids where player has an approved registration
-  let myGridsUnsub = null;
+  // Fetch grids where player has a registration (by nick, doc id, or auth uid)
   async function loadMyGrids() {
-    if (!db || !user) return;
-    if (myGridsUnsub) {
-      myGridsUnsub();
-      myGridsUnsub = null;
+    if (!db || !myGridsList) return;
+
+    const savedNick = (localStorage.getItem('player_nick') || '').trim().toLowerCase();
+    const savedPlayerId = localStorage.getItem('bww_player_id');
+    const userUid = user ? user.uid : null;
+
+    if (!savedNick && !savedPlayerId && !userUid) {
+      myGridsList.innerHTML = '<div class="text-center hint-text py-2">— No te has registrado en ningún grid todavía —</div>';
+      return;
     }
 
-    // Load active approved registrations
     try {
-      myGridsUnsub = db.collectionGroup('players')
-        .where('playerId', '==', user.uid)
-        .orderBy('createdAt', 'desc')
-        .onSnapshot(async snap => {
-          if (!myGridsList) return;
-          myGridsList.innerHTML = '';
+      const activeRegistrations = [];
 
-          if (snap.empty) {
-            myGridsList.innerHTML = '<div class="text-center hint-text py-2">— No te has registrado en ningún grid todavía —</div>';
-            return;
-          }
+      // Scan all active games
+      for (const g of ALL_GRIDS) {
+        try {
+          const playersSnap = await db.collection('games').doc(g.code).collection('players').get();
+          playersSnap.forEach(pdoc => {
+            const p = pdoc.data() || {};
+            const pNick = (p.nickname || p.name || '').trim().toLowerCase();
+            const pId = p.playerId || '';
 
-          // Agrupar registros por código de juego
-          const groups = {};
-          for (const doc of snap.docs) {
-            const p = doc.data() || {};
-            const gameRef = doc.ref.parent.parent;
-            if (!gameRef) continue;
-            const code = gameRef.id;
+            const isMatch = (savedNick && pNick === savedNick) ||
+                            (savedPlayerId && (pdoc.id === savedPlayerId || pId === savedPlayerId)) ||
+                            (userUid && (pId === userUid || pdoc.id === userUid));
 
-            if (!groups[code]) {
-              groups[code] = {
-                code: code,
-                gameRef: gameRef,
-                players: []
-              };
+            if (isMatch) {
+              activeRegistrations.push({
+                code: g.code,
+                game: g,
+                docId: pdoc.id,
+                player: p,
+                isApproved: (p.status === 'approved') || !!p.approved
+              });
             }
-            groups[code].players.push({
-              docId: doc.id,
-              p: p
-            });
-          }
+          });
+        } catch (err) {
+          // ignore individual game permission errors if any
+        }
+      }
 
-          // Cargar detalles de juego y renderizar tarjetas agrupadas
-          for (const code in groups) {
-            const group = groups[code];
-            try {
-              const gameDoc = await group.gameRef.get();
-              if (!gameDoc.exists) continue;
-              const g = gameDoc.data() || {};
-
-              const home = g.homeTeam || g.home || 'Local';
-              const away = g.awayTeam || g.away || 'Visitante';
-              const store = g.store || g.tienda || '';
-
-              const card = document.createElement('div');
-              card.className = 'card';
-              card.style.padding = '14px 18px';
-              card.style.margin = '0 0 12px 0';
-              card.style.background = 'rgba(255,255,255,0.01)';
-              card.style.border = '1px solid var(--border-color)';
-              card.style.borderRadius = '16px';
-
-              card.innerHTML = `
-                <div class="flex-between" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 8px;">
-                  <div>
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
-                      <img src="${window.getTeamLogoURL(away)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${away}"/>
-                      <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${away}</span>
-                      <span style="font-size: 12px; color: var(--text-muted); font-weight: bold;">@</span>
-                      <img src="${window.getTeamLogoURL(home)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${home}"/>
-                      <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${home}</span>
-                    </div>
-                    <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center;">
-                      <span class="badge">${code}</span>
-                      ${store ? `<span class="badge accent">${store}</span>` : ''}
-                    </div>
-                  </div>
-                  <span class="badge" style="background: rgba(255, 193, 7, 0.1); color: var(--accent-color); font-weight: bold;">
-                    ${group.players.length} ${group.players.length === 1 ? 'Registro' : 'Registros'}
-                  </span>
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
-                  ${group.players.map(item => {
-                    const approved = (item.p.status === 'approved') || !!item.p.approved;
-                    const taken = Number(item.p.taken || 0);
-                    const quota = Number(item.p.quota || item.p.pack || 0);
-                    return `
-                      <div class="flex-between" style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.08);">
-                        <div>
-                          <span style="font-weight: 700; color: var(--text-color);">${item.p.nickname || item.p.name}</span>
-                          <span class="badge success" style="margin-left: 6px;">${taken}/${quota} usados</span>
-                        </div>
-                        <div>
-                          ${approved 
-                            ? `<a class="btn btn-primary" href="player-view.html?code=${encodeURIComponent(code)}&pid=${encodeURIComponent(item.docId)}" style="width: auto; padding: 4px 12px; font-size: 12px; text-decoration: none; color: var(--bg-color);">Jugar</a>`
-                            : `<span class="badge" style="background-color: var(--danger-glow); color: var(--danger-color); border-color: var(--danger-color); padding: 4px 8px; font-size: 11px;">Pendiente</span>`
-                          }
-                        </div>
-                      </div>
-                    `;
-                  }).join('')}
-                </div>
-              `;
-              myGridsList.appendChild(card);
-            } catch (err) {
-              console.error('[grids] Error fetching individual my-grid detail:', err);
-            }
-          }
-        }, err => {
-          console.error('[grids] Snap listener error for collectionGroup:', err);
-          // Fallback static load if rules prevent group listen
-          loadMyGridsOnce();
-        });
-    } catch (e) {
-      console.error('[grids] Error starting my-grids listener:', e);
-    }
-  }
-
-  // Static fallback load using get()
-  async function loadMyGridsOnce() {
-    if (!db || !user || !myGridsList) return;
-    myGridsList.innerHTML = '<div class="text-center hint-text">Cargando mis grids...</div>';
-    
-    try {
-      const snap = await db.collectionGroup('players').where('playerId', '==', user.uid).get();
-      myGridsList.innerHTML = '';
-      
-      if (snap.empty) {
-        myGridsList.innerHTML = '<div class="text-center hint-text">— No te has registrado en ningún grid todavía —</div>';
+      if (activeRegistrations.length === 0) {
+        myGridsList.innerHTML = '<div class="text-center hint-text py-2">— No te has registrado en ningún grid todavía —</div>';
         return;
       }
 
-      // Agrupar registros por código de juego
-      const groups = {};
-      for (const doc of snap.docs) {
-        const p = doc.data() || {};
-        const gameRef = doc.ref.parent.parent;
-        if (!gameRef) continue;
-        const code = gameRef.id;
+      myGridsList.innerHTML = '';
+      activeRegistrations.forEach(item => {
+        const g = item.game;
+        const p = item.player;
+        const taken = Number(p.taken || 0);
+        const quota = Number(p.quota || p.pack || 0);
+        const remaining = Math.max(0, quota - taken);
 
-        if (!groups[code]) {
-          groups[code] = {
-            code: code,
-            gameRef: gameRef,
-            players: []
-          };
-        }
-        groups[code].players.push({
-          docId: doc.id,
-          p: p
-        });
-      }
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.padding = '14px 18px';
+        card.style.margin = '0 0 12px 0';
+        card.style.background = 'rgba(255,255,255,0.02)';
+        card.style.border = item.isApproved ? '1px solid var(--accent-color)' : '1px solid var(--border-color)';
+        card.style.borderRadius = '16px';
 
-      // Renderizar tarjetas agrupadas
-      for (const code in groups) {
-        const group = groups[code];
-        try {
-          const gameDoc = await group.gameRef.get();
-          if (!gameDoc.exists) continue;
-          const g = gameDoc.data() || {};
-
-          const home = g.homeTeam || g.home || 'Local';
-          const away = g.awayTeam || g.away || 'Visitante';
-          const store = g.store || g.tienda || '';
-
-          const card = document.createElement('div');
-          card.className = 'card';
-          card.style.padding = '14px 18px';
-          card.style.margin = '0 0 12px 0';
-          card.style.background = 'rgba(255,255,255,0.01)';
-          card.style.border = '1px solid var(--border-color)';
-          card.style.borderRadius = '16px';
-
-          card.innerHTML = `
-            <div class="flex-between" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 8px;">
-              <div>
-                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
-                  <img src="${window.getTeamLogoURL(away)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${away}"/>
-                  <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${away}</span>
-                  <span style="font-size: 12px; color: var(--text-muted); font-weight: bold;">@</span>
-                  <img src="${window.getTeamLogoURL(home)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${home}"/>
-                  <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${home}</span>
-                </div>
-                <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center;">
-                  <span class="badge">${code}</span>
-                  ${store ? `<span class="badge accent">${store}</span>` : ''}
-                </div>
+        card.innerHTML = `
+          <div class="flex-between" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 8px;">
+            <div>
+              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+                <img src="${window.getTeamLogoURL(g.away)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${g.away}"/>
+                <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${g.away}</span>
+                <span style="font-size: 12px; color: var(--text-muted); font-weight: bold;">@</span>
+                <img src="${window.getTeamLogoURL(g.home)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${g.home}"/>
+                <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${g.home}</span>
               </div>
-              <span class="badge" style="background: rgba(255, 193, 7, 0.1); color: var(--accent-color); font-weight: bold;">
-                ${group.players.length} ${group.players.length === 1 ? 'Registro' : 'Registros'}
-              </span>
+              <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center;">
+                <span class="badge">${g.code}</span>
+                ${g.store ? `<span class="badge accent">${g.store}</span>` : ''}
+              </div>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
-              ${group.players.map(item => {
-                const approved = (item.p.status === 'approved') || !!item.p.approved;
-                const taken = Number(item.p.taken || 0);
-                const quota = Number(item.p.quota || item.p.pack || 0);
-                return `
-                  <div class="flex-between" style="background: rgba(255,255,255,0.02); padding: 8px 12px; border-radius: 8px; border: 1px dashed rgba(255,255,255,0.08);">
-                    <div>
-                      <span style="font-weight: 700; color: var(--text-color);">${item.p.nickname || item.p.name}</span>
-                      <span class="badge success" style="margin-left: 6px;">${taken}/${quota} usados</span>
-                    </div>
-                    <div>
-                      ${approved 
-                        ? `<a class="btn btn-primary" href="player-view.html?code=${encodeURIComponent(code)}&pid=${encodeURIComponent(item.docId)}" style="width: auto; padding: 4px 12px; font-size: 12px; text-decoration: none; color: var(--bg-color);">Jugar</a>`
-                        : `<span class="badge" style="background-color: var(--danger-glow); color: var(--danger-color); border-color: var(--danger-color); padding: 4px 8px; font-size: 11px;">Pendiente</span>`
-                      }
-                    </div>
-                  </div>
-                `;
-              }).join('')}
+            <span class="badge" style="${item.isApproved ? 'background:#00e676; color:#000; font-weight:900;' : 'background:rgba(255,209,0,0.1); color:#ffd100;'}">
+              ${item.isApproved ? '✅ APROBADO' : '⏳ PENDIENTE'}
+            </span>
+          </div>
+          <div class="flex-between" style="margin-top: 10px;">
+            <div>
+              <span style="font-weight: 800; font-size: 15px; color: var(--accent-color);">${p.nickname || p.name}</span>
+              <span class="badge success" style="margin-left: 8px;">${taken}/${quota} casillas usadas</span>
             </div>
-          `;
-          myGridsList.appendChild(card);
-        } catch (_) {}
-      }
+            <div>
+              ${item.isApproved
+                ? `<a class="btn btn-primary" href="player-view.html?code=${encodeURIComponent(g.code)}&pid=${encodeURIComponent(item.docId)}&nick=${encodeURIComponent(p.nickname || p.name)}" style="width: auto; padding: 8px 16px; font-size: 13px; text-decoration: none; font-weight: 800;">
+                    ${remaining > 0 ? `🎲 Escoger ${remaining} Casillas` : '👁️ Ver Mi Grid'}
+                   </a>`
+                : `<span style="font-size: 12px; color: var(--text-muted);">Espera a que el admin te apruebe</span>`
+              }
+            </div>
+          </div>
+        `;
+        myGridsList.appendChild(card);
+      });
     } catch (e) {
-      console.error('[grids] Fallback list failed:', e);
+      console.error('[grids] Error loading my grids:', e);
+      if (myGridsList) myGridsList.innerHTML = '<div class="text-center hint-text py-2">— Error al cargar tus grids —</div>';
     }
   }
 

@@ -166,15 +166,27 @@
           }
         });
 
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlNick = (urlParams.get('nick') || '').trim().toLowerCase();
+        const savedNick = (localStorage.getItem('player_nick') || '').trim().toLowerCase();
         const savedPlayerId = localStorage.getItem('bww_player_id');
         const userUid = user ? user.uid : null;
 
         activePlayer = approvedPlayers.find(p => pid && (p.id === pid || p.playerId === pid)) ||
+                       approvedPlayers.find(p => urlNick && p.nickname.toLowerCase() === urlNick) ||
+                       approvedPlayers.find(p => savedNick && p.nickname.toLowerCase() === savedNick) ||
                        approvedPlayers.find(p => savedPlayerId && (p.id === savedPlayerId || p.playerId === savedPlayerId)) ||
                        approvedPlayers.find(p => userUid && (p.id === userUid || p.playerId === userUid)) ||
                        pendingPlayers.find(p => pid && (p.id === pid || p.playerId === pid)) ||
+                       pendingPlayers.find(p => urlNick && p.nickname.toLowerCase() === urlNick) ||
+                       pendingPlayers.find(p => savedNick && p.nickname.toLowerCase() === savedNick) ||
                        pendingPlayers.find(p => savedPlayerId && (p.id === savedPlayerId || p.playerId === savedPlayerId)) ||
                        null;
+
+        if (activePlayer) {
+          localStorage.setItem('bww_player_id', activePlayer.id);
+          localStorage.setItem('player_nick', activePlayer.nickname);
+        }
 
         updatePlayerUI();
         if (game) renderGrid(game);
