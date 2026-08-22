@@ -726,22 +726,26 @@
         alert('Cuota del jugador actualizada a ' + updatedQuota + ' cuadros.');
       } else if (action === 'reject') {
         await pref.update({ approved: false, status: 'rejected' });
-      } else if (action === 'delete') {
-        await pref.delete();
-      } else if (action === 'remove') {
-        customConfirm('Eliminar Jugador', '¿Deseas eliminar a este jugador y liberar todas sus casillas?', async () => {
-          try {
-            await cleanPlayerCells(currentGridCode, playerDocId);
-            await pref.delete();
-          } catch (err) { console.error(err); }
-        });
+      } else if (action === 'delete' || action === 'remove') {
+        if (!confirm('¿Deseas eliminar a este jugador y liberar todas sus casillas?')) return;
+        try {
+          await cleanPlayerCells(currentGridCode, playerDocId);
+          await pref.delete();
+          alert('✅ Jugador eliminado exitosamente.');
+        } catch (err) {
+          console.error(err);
+          alert('Error al eliminar: ' + err.message);
+        }
       } else if (action === 'reset') {
-        customConfirm('Restablecer Casillas', '¿Deseas liberar las casillas elegidas por este jugador?', async () => {
-          try {
-            await cleanPlayerCells(currentGridCode, playerDocId);
-            await pref.update({ taken: 0 });
-          } catch (err) { console.error(err); }
-        });
+        if (!confirm('¿Deseas liberar las casillas elegidas por este jugador?')) return;
+        try {
+          await cleanPlayerCells(currentGridCode, playerDocId);
+          await pref.update({ taken: 0 });
+          alert('✅ Casillas liberadas exitosamente.');
+        } catch (err) {
+          console.error(err);
+          alert('Error al resetear: ' + err.message);
+        }
       }
     } catch (err) {
       console.error('[admin] Error performing player action:', err);
@@ -1150,27 +1154,31 @@
   }
 
   async function deleteGridGame() {
-    if (!currentGridCode) return;
-    customConfirm('Eliminar Grid', `¿Estás seguro de que deseas eliminar permanentemente el grid ${currentGridCode} y todos sus registros de jugadores? Esta acción no se puede deshacer.`, async () => {
-      try {
-        const ref = db.collection('games').doc(currentGridCode);
-        
-        // Delete players subcollection in a batch
-        const players = await ref.collection('players').get();
-        const batch = db.batch();
-        players.forEach(doc => batch.delete(doc.ref));
-        await batch.commit();
+    if (!currentGridCode) {
+      alert('Selecciona un juego primero.');
+      return;
+    }
+    if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente el grid ${currentGridCode} y todos sus registros? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+    try {
+      const ref = db.collection('games').doc(currentGridCode);
+      
+      // Delete players subcollection in a batch
+      const players = await ref.collection('players').get();
+      const batch = db.batch();
+      players.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
 
-        // Delete main document
-        await ref.delete();
-        alert('Grid eliminado exitosamente.');
-        currentGridCode = null;
-        if (gridHost) gridHost.textContent = '(Carga un juego para visualizar el grid)';
-        loadGamesDropdown();
-      } catch (err) {
-        alert('Error al eliminar grid: ' + err.message);
-      }
-    });
+      // Delete main document
+      await ref.delete();
+      alert(`✅ Grid ${currentGridCode} eliminado exitosamente.`);
+      currentGridCode = null;
+      if (gridHost) gridHost.textContent = '(Carga un juego para visualizar el grid)';
+      await loadGamesDropdown();
+    } catch (err) {
+      alert('Error al eliminar grid: ' + err.message);
+    }
   }
 
   // --- Pools (Quinielas) Admin Logic ---
