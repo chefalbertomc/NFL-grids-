@@ -347,8 +347,9 @@
     if (btnGen) btnGen.addEventListener('click', generateGridNumbers);
     if (btnShow) btnShow.addEventListener('click', () => toggleNumbersVisibility(true));
     if (btnHide) btnHide.addEventListener('click', () => toggleNumbersVisibility(false));
-    if (btnCleanOrphans) btnCleanOrphans.addEventListener('click', cleanOrphanPicks);
     if (btnDeleteGame) btnDeleteGame.addEventListener('click', deleteGridGame);
+    const btnDeleteCurrentGame = document.getElementById('btnDeleteCurrentGame');
+    if (btnDeleteCurrentGame) btnDeleteCurrentGame.addEventListener('click', deleteGridGame);
 
     const btnSearchGames = document.getElementById('btnSearchGames');
     if (btnSearchGames) btnSearchGames.addEventListener('click', searchEspnGames);

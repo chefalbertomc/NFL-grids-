@@ -68,13 +68,18 @@
       snap.forEach(doc => {
         const d = doc.data() || {};
         const code = String(doc.id || d.code || '').toUpperCase();
-        if (!code) return;
-        const free = 100 - Object.keys(d.cells || {}).length;
+        const home = d.homeTeam || d.home || '';
+        const away = d.awayTeam || d.away || '';
+        
+        // Skip test dummy placeholder games
+        if (!home || !away || (home.toLowerCase() === 'local' && away.toLowerCase() === 'visitante')) {
+          return;
+        }
         
         ALL_GRIDS.push({
           code: code,
-          home: d.homeTeam || d.home || 'Local',
-          away: d.awayTeam || d.away || 'Visitante',
+          home: home,
+          away: away,
           store: d.store || d.tienda || '',
           locked: !!d.locked,
           free: free
