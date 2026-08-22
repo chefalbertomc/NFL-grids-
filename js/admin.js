@@ -319,18 +319,40 @@
         return;
       }
 
-      snap.forEach(doc => {
+      let validGamesCount = 0;
+
+      for (const doc of snap.docs) {
         const g = doc.data() || {};
         const code = doc.id;
+        const away = (g.awayTeam || g.away || '').trim();
+        const home = (g.homeTeam || g.home || '').trim();
+
+        // If it's a dummy test placeholder game, auto-purge it from database and skip
+        if (!away || !home || (home.toLowerCase() === 'local' && away.toLowerCase() === 'visitante')) {
+          try {
+            await doc.ref.delete();
+          } catch (err) {}
+          continue;
+        }
+
+        validGamesCount++;
         const opt = document.createElement('option');
         opt.value = code;
-        opt.textContent = `${g.awayTeam || g.away || 'Visitante'} @ ${g.homeTeam || g.home || 'Local'} (${g.store || ''} — ${code})`;
+        opt.textContent = `${away} @ ${home} (${g.store || ''} — ${code})`;
         selectGame.appendChild(opt);
-      });
+      }
 
-      // Select first by default if not set
-      if (!currentGridCode && selectGame.options.length) {
-        currentGridCode = selectGame.options[0].value;
+      if (validGamesCount === 0) {
+        selectGame.innerHTML = '<option disabled selected>— No hay grids creados —</option>';
+        return;
+      }
+
+      // Select first valid game by default if not set or invalid
+      if (selectGame.options.length) {
+        if (!currentGridCode || !Array.from(selectGame.options).some(o => o.value === currentGridCode)) {
+          currentGridCode = selectGame.options[0].value;
+        }
+        selectGame.value = currentGridCode;
         loadGameDetail();
       }
     } catch (e) {
