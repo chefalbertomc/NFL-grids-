@@ -30,7 +30,7 @@
 
   // Override standard alert
   window.alert = function(msg) {
-    customAlert('Wings & Wins', msg);
+    customAlert('Drink & Wins', msg);
   };
 
   // --- Parameters & DOM ---

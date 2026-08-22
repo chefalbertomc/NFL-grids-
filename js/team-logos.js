@@ -1,4 +1,4 @@
-// Shared NFL Team Logos, Colors & Secondary Colors — Wings & Wins
+// Shared NFL Team Logos, Colors & Secondary Colors — Drink & Wins
 (function() {
   'use strict';
 

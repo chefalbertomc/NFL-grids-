@@ -7,34 +7,32 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <link rel="icon" type="image/jpeg" href="img/logo.jpg" />
-  <title>Admin Dashboard — Wings & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=14.0"/>
+  <title>Admin Dashboard — Drink & Wins</title>
+  <link rel="stylesheet" href="css/styles.css?v=15.0"/>
   <style>
     /* Styling overrides for admin features */
     .admin-tab-content {
-      animation: fadeIn 0.4s ease forwards;
+      display: none;
+    }
+    .admin-tab-content.active {
+      display: block;
     }
   </style>
 </head>
 <body>
-  <div class="container animate-fade" style="max-width: 1100px;">
-    <!-- Back to Main Page link -->
-    <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-      <a href="index.html" class="btn btn-secondary" style="width: auto; padding: 8px 16px; font-size: 13px; text-decoration: none;">
-        ← Volver al Portal de Jugador
-      </a>
-      <div style="display: flex; gap: 8px; align-items: center;">
-        <button id="btnSwitchAccount" class="btn btn-primary" style="width: auto; padding: 6px 12px; font-size: 12px;">🔄 Cambiar Cuenta de Google</button>
-        <span id="adminStatusText" class="badge">Revisando permisos...</span>
-      </div>
+  <div class="container animate-fade">
+    <!-- Auth Status Indicator Banner -->
+    <div id="adminAuthBanner" class="card" style="margin-bottom: 12px; background: rgba(0,0,0,0.3); padding: 8px 16px; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
+      <span id="adminStatusText">Verificando acceso...</span>
+      <button id="btnAdminGoogle" class="btn btn-secondary" style="width: auto; padding: 4px 12px; font-size: 12px; display: none;">Entrar con Google</button>
     </div>
 
     <header class="header-bar" style="margin-bottom: 16px;">
       <div class="app-brand-header">
-        <img src="img/logo.jpg" alt="Wings & Wins by Beto" class="app-brand-logo" />
+        <img src="img/logo.jpg" alt="Drink & Wins by Beto" class="app-brand-logo" />
         <div>
           <h1 class="header-title gradient-text">Panel de Administración</h1>
-          <p class="hint-text">Wings & Wins by Beto — Gestión Unificada</p>
+          <p class="hint-text">Drink & Wins by Beto — Gestión Unificada</p>
         </div>
       </div>
     </header>
@@ -267,10 +265,10 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Script Modules -->
-  <script src="js/firebase-config.js?v=14.0"></script>
-  <script src="js/auth.js?v=14.0"></script>
-  <script src="js/team-logos.js?v=14.0"></script>
-  <script src="js/admin.js?v=14.0"></script>
+  <script src="js/firebase-config.js?v=15.0"></script>
+  <script src="js/auth.js?v=15.0"></script>
+  <script src="js/team-logos.js?v=15.0"></script>
+  <script src="js/admin.js?v=15.0"></script>
 
   <!-- Admin Tab Switching -->
   <script>
