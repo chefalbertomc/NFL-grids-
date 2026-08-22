@@ -1037,43 +1037,63 @@
         lastEspnSync: Date.now()
       };
 
-      // Calculate current winner cell
+      // Calculate quarter winner function
       const topNums = g.numsTop || [];
       const leftNums = g.numsLeft || [];
-      let winnerName = 'Nadie';
+      function calcQuarterWinner(aScore, hScore) {
+        if (!topNums.length || !leftNums.length) return 'Nadie';
+        const lastDigitHome = Number(hScore) % 10;
+        const lastDigitAway = Number(aScore) % 10;
+        const winCol = topNums.indexOf(lastDigitHome);
+        const winRow = leftNums.indexOf(lastDigitAway);
+        if (winCol === -1 || winRow === -1) return 'Nadie';
+        const cellKey = `${winRow}-${winCol}`;
+        const winningCell = g.cells ? g.cells[cellKey] : null;
+        return (winningCell && winningCell.name) ? winningCell.name : 'Nadie';
+      }
+
+      // Live overall winner cell coordinates
       if (topNums.length && leftNums.length) {
         const lastDigitHome = sHome % 10;
         const lastDigitAway = sAway % 10;
-        const winCol = topNums.indexOf(lastDigitHome);
-        const winRow = leftNums.indexOf(lastDigitAway);
-        upd.winCol = winCol;
-        upd.winRow = winRow;
-
-        // Look in game cells object for the winning cell name
-        const cellKey = `${winRow}-${winCol}`;
-        const winningCell = g.cells ? g.cells[cellKey] : null;
-        if (winningCell && winningCell.name) winnerName = winningCell.name;
+        upd.winCol = topNums.indexOf(lastDigitHome);
+        upd.winRow = leftNums.indexOf(lastDigitAway);
       }
 
-      const scoreStr = `${sAway} - ${sHome}`;
+      const aAbbr = (matchedAwayComp.team?.abbreviation || awayTarget.substring(0, 3)).toUpperCase();
+      const hAbbr = (matchedHomeComp.team?.abbreviation || homeTarget.substring(0, 3)).toUpperCase();
 
-      // Save snapshot when quarter changes for the first time
-      if (currentQuarterKey && currentQuarterKey !== _lastSavedQuarter) {
-        // When we enter a new quarter, save the PREVIOUS quarter's final score
-        const prevMap = { q2: 'q1', q3: 'q2', q4: 'q3' };
-        const prevKey = prevMap[currentQuarterKey];
-        if (prevKey && !g[`${prevKey}_winner`]) {
-          upd[`${prevKey}_winner`] = winnerName;
-          upd[`${prevKey}_score`] = scoreStr;
-        }
-        // Also always update current quarter running snapshot
-        upd[`${currentQuarterKey}_winner`] = winnerName;
-        upd[`${currentQuarterKey}_score`] = scoreStr;
-        _lastSavedQuarter = currentQuarterKey;
-      } else if (currentQuarterKey) {
-        // Keep updating current quarter's running winner
-        upd[`${currentQuarterKey}_winner`] = winnerName;
-        upd[`${currentQuarterKey}_score`] = scoreStr;
+      const aLines = matchedAwayComp.linescores || [];
+      const hLines = matchedHomeComp.linescores || [];
+
+      // Q1 Score & Winner
+      if (aLines[0] && hLines[0]) {
+        const aQ1 = aLines[0].value;
+        const hQ1 = hLines[0].value;
+        upd.q1_score = `${aAbbr} ${aQ1} - ${hAbbr} ${hQ1}`;
+        upd.q1_winner = calcQuarterWinner(aQ1, hQ1);
+      }
+
+      // Q2 (Medio Tiempo cumulative score & winner)
+      if (aLines[0] && aLines[1] && hLines[0] && hLines[1]) {
+        const aQ2 = aLines[0].value + aLines[1].value;
+        const hQ2 = hLines[0].value + hLines[1].value;
+        upd.q2_score = `${aAbbr} ${aQ2} - ${hAbbr} ${hQ2}`;
+        upd.q2_winner = calcQuarterWinner(aQ2, hQ2);
+      }
+
+      // Q3 (3er Cuarto cumulative score & winner)
+      if (aLines[0] && aLines[1] && aLines[2] && hLines[0] && hLines[1] && hLines[2]) {
+        const aQ3 = aLines[0].value + aLines[1].value + aLines[2].value;
+        const hQ3 = hLines[0].value + hLines[1].value + hLines[2].value;
+        upd.q3_score = `${aAbbr} ${aQ3} - ${hAbbr} ${hQ3}`;
+        upd.q3_winner = calcQuarterWinner(aQ3, hQ3);
+      }
+
+      // Q4 (Final score & winner)
+      if (isCompleted || periodNum >= 4 || aLines.length >= 4) {
+        upd.q4_score = `${aAbbr} ${sAway} - ${hAbbr} ${sHome}`;
+        upd.q4_winner = calcQuarterWinner(sAway, sHome);
       }
 
       await ref.update(upd);
