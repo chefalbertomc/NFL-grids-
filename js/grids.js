@@ -351,13 +351,14 @@
                             (savedPlayerId && (pdoc.id === savedPlayerId || pId === savedPlayerId)) ||
                             (userUid && (pId === userUid || pdoc.id === userUid));
 
-            if (isMatch) {
+            const isApproved = (p.status === 'approved') || !!p.approved;
+
+            if (isApproved && isMatch) {
               activeRegistrations.push({
                 code: g.code,
                 game: g,
                 docId: pdoc.id,
-                player: p,
-                isApproved: (p.status === 'approved') || !!p.approved
+                player: p
               });
             }
           });
@@ -365,15 +366,7 @@
       }
 
       if (activeRegistrations.length === 0) {
-        if (savedNick) {
-          myGridsList.innerHTML = `
-            <div class="text-center hint-text py-3" style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 14px;">
-              — Solicitud enviada como <strong style="color:#ffd100;">"${savedNick}"</strong>. En cuanto el mesero o admin te apruebe, aquí podrás escoger tus cuadros. —
-            </div>
-          `;
-        } else {
-          myGridsList.innerHTML = '<div class="text-center hint-text py-3" style="background:rgba(255,255,255,0.02); border-radius:12px; padding:16px;">— Toca <strong>🏈 Unirse a este Grid</strong> en cualquier juego arriba para registrar tu apodo y ver tus casillas. —</div>';
-        }
+        myGridsList.innerHTML = '<div class="text-center hint-text py-3" style="background:rgba(255,255,255,0.02); border-radius:12px; padding:16px;">— Aún no tienes grids aprobados. Regístrate en un juego arriba y espera la aprobación del admin. —</div>';
         return;
       }
 
@@ -390,7 +383,7 @@
         card.style.padding = '14px 18px';
         card.style.margin = '0 0 12px 0';
         card.style.background = 'rgba(255,255,255,0.02)';
-        card.style.border = item.isApproved ? '1px solid var(--accent-color)' : '1px solid var(--border-color)';
+        card.style.border = '1px solid var(--accent-color)';
         card.style.borderRadius = '16px';
 
         card.innerHTML = `
@@ -407,8 +400,8 @@
                 <span style="font-weight: 800; font-size: 15px; color: var(--text-color);">${g.home}</span>
               </div>
             </div>
-            <span class="badge" style="${item.isApproved ? 'background:#00e676; color:#000; font-weight:900;' : 'background:rgba(255,209,0,0.15); color:#ffd100; font-weight:800;'}">
-              ${item.isApproved ? '✅ APROBADO' : '⏳ PENDIENTE'}
+            <span class="badge" style="background:#00e676; color:#000; font-weight:900;">
+              ✅ APROBADO
             </span>
           </div>
 
@@ -425,12 +418,9 @@
             <button class="btn btn-secondary" onclick="window.shareGridWhatsApp('${g.code}')" style="width: auto; padding: 10px 14px; font-size: 13px; background: rgba(37,211,102,0.12); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 4px; border-radius: 10px;">
               💬 WhatsApp
             </button>
-            ${item.isApproved
-              ? `<a class="btn btn-primary" href="player-view.html?code=${encodeURIComponent(g.code)}&pid=${encodeURIComponent(item.docId)}&nick=${encodeURIComponent(p.nickname || p.name)}" style="flex: 1; padding: 10px 16px; font-size: 14px; text-decoration: none; font-weight: 800; text-align: center; border-radius: 10px;">
-                  ${remaining > 0 ? `🎲 Escoger ${remaining} Casillas` : '👁️ Ver Mi Grid'}
-                 </a>`
-              : `<div style="flex: 1; font-size: 12px; color: var(--text-muted); text-align: right; font-weight: 600;">Espera a que el admin te apruebe</div>`
-            }
+            <a class="btn btn-primary" href="player-view.html?code=${encodeURIComponent(g.code)}&pid=${encodeURIComponent(item.docId)}&nick=${encodeURIComponent(p.nickname || p.name)}" style="flex: 1; padding: 10px 16px; font-size: 14px; text-decoration: none; font-weight: 800; text-align: center; border-radius: 10px;">
+              ${remaining > 0 ? `🎲 Escoger ${remaining} Casillas` : '👁️ Ver Mi Grid'}
+            </a>
           </div>
         `;
         myGridsList.appendChild(card);
