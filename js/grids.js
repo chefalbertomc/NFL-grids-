@@ -150,12 +150,12 @@
         <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px;">
           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1;">
             <div style="display: inline-flex; align-items: center; gap: 6px;">
-              <img src="${window.getTeamLogoURL(g.away)}" style="width: 26px; height: 26px; object-fit: contain;" alt="${g.away}"/>
+              <img src="${window.getTeamLogoURL(g.away)}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width: 26px; height: 26px; object-fit: contain;" alt="${g.away}"/>
               <span style="font-weight: 800; font-size: 15px; color: var(--text-color);">${g.away}</span>
             </div>
             <span style="font-size: 12px; color: var(--text-muted); font-weight: 900;">@</span>
             <div style="display: inline-flex; align-items: center; gap: 6px;">
-              <img src="${window.getTeamLogoURL(g.home)}" style="width: 26px; height: 26px; object-fit: contain;" alt="${g.home}"/>
+              <img src="${window.getTeamLogoURL(g.home)}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width: 26px; height: 26px; object-fit: contain;" alt="${g.home}"/>
               <span style="font-weight: 800; font-size: 15px; color: var(--text-color);">${g.home}</span>
             </div>
           </div>
@@ -276,7 +276,7 @@
         return;
       }
 
-      const activeUser = firebase.auth() ? firebase.auth().currentUser : null;
+      const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
       const grid = ALL_GRIDS.find(x => x.code === SELECTED_GRID_CODE);
       
       // Auto-generate a unique document ID for this registration
@@ -330,13 +330,13 @@
     const userUid = activeUser ? activeUser.uid : null;
 
     if (!savedNick && !savedPlayerId && !userUid) {
-      myGridsList.innerHTML = '<div class="text-center hint-text py-3">— Aún no te has registrado en ningún juego. Toca <strong>Unirse</strong> en algún partido arriba para comenzar. —</div>';
+      myGridsList.innerHTML = '<div class="text-center hint-text py-3" style="background:rgba(255,255,255,0.02); border-radius:12px; padding:16px;">— Toca <strong>🏈 Unirse a este Grid</strong> en cualquier juego arriba para registrar tu apodo y ver tus casillas. —</div>';
       return;
     }
 
     try {
       const activeRegistrations = [];
-      const matchNickLower = savedNick.toLowerCase();
+      const matchNickLower = savedNick ? savedNick.toLowerCase() : '';
 
       // Scan all active games
       for (const g of ALL_GRIDS) {
@@ -365,11 +365,15 @@
       }
 
       if (activeRegistrations.length === 0) {
-        myGridsList.innerHTML = `
-          <div class="text-center hint-text py-3" style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 12px;">
-            — Registro enviado como <strong style="color:#ffd100;">"${savedNick}"</strong>. Espera la aprobación del mesero o admin. —
-          </div>
-        `;
+        if (savedNick) {
+          myGridsList.innerHTML = `
+            <div class="text-center hint-text py-3" style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 14px;">
+              — Solicitud enviada como <strong style="color:#ffd100;">"${savedNick}"</strong>. En cuanto el mesero o admin te apruebe, aquí podrás escoger tus cuadros. —
+            </div>
+          `;
+        } else {
+          myGridsList.innerHTML = '<div class="text-center hint-text py-3" style="background:rgba(255,255,255,0.02); border-radius:12px; padding:16px;">— Toca <strong>🏈 Unirse a este Grid</strong> en cualquier juego arriba para registrar tu apodo y ver tus casillas. —</div>';
+        }
         return;
       }
 
@@ -394,12 +398,12 @@
           <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
             <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <div style="display: inline-flex; align-items: center; gap: 6px;">
-                <img src="${window.getTeamLogoURL(g.away)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${g.away}"/>
+                <img src="${window.getTeamLogoURL(g.away)}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width: 24px; height: 24px; object-fit: contain;" alt="${g.away}"/>
                 <span style="font-weight: 800; font-size: 15px; color: var(--text-color);">${g.away}</span>
               </div>
               <span style="font-size: 12px; color: var(--text-muted); font-weight: 900;">@</span>
               <div style="display: inline-flex; align-items: center; gap: 6px;">
-                <img src="${window.getTeamLogoURL(g.home)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${g.home}"/>
+                <img src="${window.getTeamLogoURL(g.home)}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width: 24px; height: 24px; object-fit: contain;" alt="${g.home}"/>
                 <span style="font-weight: 800; font-size: 15px; color: var(--text-color);">${g.home}</span>
               </div>
             </div>

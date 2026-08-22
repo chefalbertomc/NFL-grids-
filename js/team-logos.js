@@ -97,7 +97,7 @@
   window.getTeamLogoURL = function(teamName) {
     const abbr = resolve(teamName);
     if (abbr) return 'https://a.espncdn.com/i/teamlogos/nfl/500/' + abbr + '.png';
-    return 'https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png';
+    return 'img/logo.jpg';
   };
 
   window.getTeamColor = function(teamName) {
@@ -111,7 +111,7 @@
     const secondaryColor = abbr ? (TEAM_SECONDARY[abbr] || '#ffffff') : '#ffffff';
     const logo = abbr
       ? 'https://a.espncdn.com/i/teamlogos/nfl/500/' + abbr + '.png'
-      : 'https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png';
+      : 'img/logo.jpg';
     return { abbr, color, secondaryColor, logo };
   };
 })();
