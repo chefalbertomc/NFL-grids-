@@ -312,21 +312,23 @@
     ];
     quarters.forEach(({ key, nameId, scoreId, cardId }) => {
       const winner = g[`${key}_winner`];
-      const score  = g[`${key}_score`];
-      const nameEl  = document.getElementById(nameId);
-      const scoreEl = document.getElementById(scoreId);
-      const card    = document.getElementById(cardId);
-
-      if (nameEl) nameEl.textContent = winner || '—';
-      if (scoreEl) scoreEl.textContent = score ? score : '';
+      if (nameEl) {
+        if (winner && winner !== 'Nadie' && winner !== '—') {
+          nameEl.innerHTML = `<span style="color:#ffd100; font-size:17px; font-weight:900;">🏆 ${winner}</span>`;
+        } else if (winner === 'Nadie') {
+          nameEl.innerHTML = `<span style="color:var(--text-muted); font-size:13px; font-weight:700;">Casilla Libre</span>`;
+        } else {
+          nameEl.textContent = '—';
+        }
+      }
+      if (scoreEl) scoreEl.textContent = score ? `Marcador: ${score}` : '';
 
       if (card) {
         const hasWinner = winner && winner !== 'Nadie' && winner !== '—';
-        card.style.borderColor = hasWinner ? 'var(--accent-color)' : 'var(--border-color)';
+        card.style.borderColor = hasWinner ? '#ffd100' : 'var(--border-color)';
         card.style.background = hasWinner
-          ? 'rgba(255,209,0,0.07)'
+          ? 'rgba(255,209,0,0.12)'
           : 'rgba(255,255,255,0.02)';
-        if (nameEl) nameEl.style.color = hasWinner ? 'var(--accent-color)' : 'var(--text-muted)';
       }
     });
   }
