@@ -512,7 +512,9 @@
     gridWrap.className = 'grid-wrapper';
     // Apply team color CSS variables for axis labels
     gridWrap.style.setProperty('--team-away-color', awayInfo.color);
+    gridWrap.style.setProperty('--team-away-secondary', awayInfo.secondaryColor || '#ffffff');
     gridWrap.style.setProperty('--team-home-color', homeInfo.color);
+    gridWrap.style.setProperty('--team-home-secondary', homeInfo.secondaryColor || '#ffffff');
 
     // Away team: vertical left axis with logo + name
     const sideLabel = document.createElement('div');

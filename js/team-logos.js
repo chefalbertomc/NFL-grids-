@@ -1,4 +1,4 @@
-// Shared NFL Team Logos & Colors Utility for Wings & Wins
+// Shared NFL Team Logos, Colors & Secondary Colors — Wings & Wins
 (function() {
   'use strict';
 
@@ -37,6 +37,7 @@
     'commanders': 'wsh', 'washington': 'wsh'
   };
 
+  // Primary (fill) color
   const TEAM_COLORS = {
     'ari': '#97233F', 'atl': '#A71930', 'bal': '#241773', 'buf': '#00338D',
     'car': '#0085CA', 'chi': '#0B162A', 'cin': '#FB4F14', 'cle': '#FF3C00',
@@ -46,6 +47,42 @@
     'min': '#4F2683', 'ne':  '#002244', 'no':  '#A08A4A', 'nyg': '#0B2265',
     'nyj': '#125740', 'phi': '#004C54', 'pit': '#FFB612', 'sf':  '#AA0000',
     'sea': '#002244', 'tb':  '#D50A0A', 'ten': '#0C2340', 'wsh': '#5A1414'
+  };
+
+  // Secondary (stroke/outline) color — the team's accent color
+  const TEAM_SECONDARY = {
+    'ari': '#FFB612', // Cardinals - Gold
+    'atl': '#000000', // Falcons - Black
+    'bal': '#9E7C0C', // Ravens - Gold
+    'buf': '#C60C30', // Bills - Red
+    'car': '#101820', // Panthers - Black
+    'chi': '#C83803', // Bears - Orange
+    'cin': '#000000', // Bengals - Black
+    'cle': '#311D00', // Browns - Brown
+    'dal': '#869397', // Cowboys - Silver
+    'den': '#002244', // Broncos - Navy
+    'det': '#B0B7BC', // Lions - Silver
+    'gb':  '#FFB612', // Packers - Gold
+    'hou': '#C9243F', // Texans - Red
+    'ind': '#A2AAAD', // Colts - Silver
+    'jax': '#D7A22A', // Jaguars - Gold
+    'kc':  '#FFB81C', // Chiefs - Gold
+    'lv':  '#A5ACAF', // Raiders - Silver
+    'lac': '#FFC20E', // Chargers - Gold
+    'lar': '#FFA300', // Rams - Gold
+    'mia': '#FC4C02', // Dolphins - Orange
+    'min': '#FFC62F', // Vikings - Gold
+    'ne':  '#C60C30', // Patriots - Red
+    'no':  '#101820', // Saints - Black
+    'nyg': '#A71930', // Giants - Red
+    'nyj': '#000000', // Jets - Black
+    'phi': '#A5ACAF', // Eagles - Silver
+    'pit': '#101820', // Steelers - Black
+    'sf':  '#B3995D', // 49ers - Gold
+    'sea': '#69BE28', // Seahawks - Action Green
+    'tb':  '#FF7900', // Buccaneers - Orange
+    'ten': '#4B92DB', // Titans - Titans Blue
+    'wsh': '#FFB612'  // Commanders - Gold
   };
 
   function resolve(teamName) {
@@ -71,9 +108,10 @@
   window.getTeamInfo = function(teamName) {
     const abbr = resolve(teamName);
     const color = abbr ? (TEAM_COLORS[abbr] || '#ffd100') : '#ffd100';
+    const secondaryColor = abbr ? (TEAM_SECONDARY[abbr] || '#ffffff') : '#ffffff';
     const logo = abbr
       ? 'https://a.espncdn.com/i/teamlogos/nfl/500/' + abbr + '.png'
       : 'https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png';
-    return { abbr, color, logo };
+    return { abbr, color, secondaryColor, logo };
   };
 })();

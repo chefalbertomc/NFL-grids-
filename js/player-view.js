@@ -213,7 +213,9 @@
     const gridWrapper = document.querySelector('.grid-wrapper');
     if (gridWrapper) {
       gridWrapper.style.setProperty('--team-home-color', homeInfo.color);
+      gridWrapper.style.setProperty('--team-home-secondary', homeInfo.secondaryColor || '#ffffff');
       gridWrapper.style.setProperty('--team-away-color', awayInfo.color);
+      gridWrapper.style.setProperty('--team-away-secondary', awayInfo.secondaryColor || '#ffffff');
     }
 
     // Update axis labels with logos
