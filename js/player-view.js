@@ -199,27 +199,11 @@
     if (!gameTitle) return;
     const home = g.homeTeam || g.home || 'Local';
     const away = g.awayTeam || g.away || 'Visitante';
-    const sh = two(g.scoreHome || 0);
-    const sa = two(g.scoreAway || 0);
-    const q = g.quarter || 'Q1';
 
     const homeInfo = window.getTeamInfo ? window.getTeamInfo(home) : { color: '#ffd100', logo: '' };
     const awayInfo = window.getTeamInfo ? window.getTeamInfo(away) : { color: '#ffd100', logo: '' };
 
-    gameTitle.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-        <img src="${awayInfo.logo}" style="width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 0 6px ${awayInfo.color});" alt="${away}"/>
-        <span style="color:${awayInfo.color}; font-weight:800;">${away}</span>
-        <span style="color:${awayInfo.color}; font-size:1.1em; font-weight:900;">${sa}</span>
-        <span style="color: var(--text-muted); font-size: 0.85em; margin: 0 2px;">vs</span>
-        <span style="color:${homeInfo.color}; font-size:1.1em; font-weight:900;">${sh}</span>
-        <span style="color:${homeInfo.color}; font-weight:800;">${home}</span>
-        <img src="${homeInfo.logo}" style="width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 0 6px ${homeInfo.color});" alt="${home}"/>
-      </div>
-      <div style="font-size: 12px; font-weight: normal; color: var(--text-muted); margin-top: 4px;">
-        Código: <strong style="color: var(--accent-color);">${g.code || code}</strong> &nbsp;|&nbsp; <strong>${q}</strong>
-      </div>
-    `;
+    gameTitle.innerHTML = `<span class="gradient-text">Tablero Grid ${g.code || code}</span> ${g.store ? `<span class="badge accent" style="font-size:11px; vertical-align:middle; margin-left:6px;">${g.store}</span>` : ''}`;
 
     // Apply team colors to CSS variables on the grid wrapper
     const gridWrapper = document.querySelector('.grid-wrapper');
