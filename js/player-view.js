@@ -248,25 +248,45 @@
       }
     }
 
-    // --- Live Score Banner ---
-    const banner = document.getElementById('live-score-banner');
-    if (banner) {
-      banner.style.display = 'block';
-      const awayLogo = document.getElementById('score-away-logo');
-      const awayName = document.getElementById('score-away-name');
-      const awayVal  = document.getElementById('score-away-val');
-      const homeLogo = document.getElementById('score-home-logo');
-      const homeName = document.getElementById('score-home-name');
-      const homeVal  = document.getElementById('score-home-val');
-      const quarterEl = document.getElementById('score-quarter');
+    // --- TV Broadcast Scorebug Banner ---
+    const tvScorebug = document.getElementById('playerTvScorebug');
+    if (tvScorebug) {
+      tvScorebug.style.display = 'flex';
 
-      if (awayLogo) { awayLogo.src = awayInfo.logo; awayLogo.style.filter = `drop-shadow(0 0 8px ${awayInfo.color})`; }
-      if (awayName) { awayName.textContent = away; awayName.style.color = awayInfo.color; }
-      if (awayVal)  { awayVal.textContent = sa; awayVal.style.color = awayInfo.color; }
-      if (homeLogo) { homeLogo.src = homeInfo.logo; homeLogo.style.filter = `drop-shadow(0 0 8px ${homeInfo.color})`; }
-      if (homeName) { homeName.textContent = home; homeName.style.color = homeInfo.color; }
-      if (homeVal)  { homeVal.textContent = sh; homeVal.style.color = homeInfo.color; }
-      if (quarterEl) quarterEl.textContent = q;
+      const awayWing = document.getElementById('playerTvAwayWing');
+      const awayLogo = document.getElementById('playerTvAwayLogo');
+      const awayCity = document.getElementById('playerTvAwayCity');
+      const awayMascot = document.getElementById('playerTvAwayMascot');
+      const awayScore = document.getElementById('playerTvAwayScore');
+
+      const homeWing = document.getElementById('playerTvHomeWing');
+      const homeLogo = document.getElementById('playerTvHomeLogo');
+      const homeCity = document.getElementById('playerTvHomeCity');
+      const homeMascot = document.getElementById('playerTvHomeMascot');
+      const homeScore = document.getElementById('playerTvHomeScore');
+
+      const tvQuarter = document.getElementById('playerTvQuarter');
+      const tvClock = document.getElementById('playerTvClock');
+      const tvSituation = document.getElementById('playerTvSituation');
+
+      if (awayWing) awayWing.style.setProperty('--team-bg', awayInfo.color);
+      if (awayLogo) { awayLogo.src = awayInfo.logo; awayLogo.alt = away; }
+      if (awayCity) awayCity.textContent = away;
+      if (awayMascot) awayMascot.textContent = (awayInfo.abbr || away).toUpperCase();
+      if (awayScore) awayScore.textContent = g.scoreAway ?? 0;
+
+      if (homeWing) homeWing.style.setProperty('--team-bg', homeInfo.color);
+      if (homeLogo) { homeLogo.src = homeInfo.logo; homeLogo.alt = home; }
+      if (homeCity) homeCity.textContent = home;
+      if (homeMascot) homeMascot.textContent = (homeInfo.abbr || home).toUpperCase();
+      if (homeScore) homeScore.textContent = g.scoreHome ?? 0;
+
+      if (tvQuarter) tvQuarter.textContent = g.periodName || g.quarter || 'Q1';
+      if (tvClock) tvClock.textContent = g.clock || '15:00';
+      if (tvSituation) {
+        tvSituation.textContent = g.situation || 'EN VIVO';
+        tvSituation.classList.toggle('redzone', !!g.isRedZone);
+      }
     }
 
     // --- Winner Cards ---

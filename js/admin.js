@@ -497,15 +497,8 @@
     const homeInfo = window.getTeamInfo ? window.getTeamInfo(home) : { color: '#ffd100', logo: '' };
     const awayInfo = window.getTeamInfo ? window.getTeamInfo(away) : { color: '#ffd100', logo: '' };
 
-    // Update score area team names with color
-    if (verticalTeamName) {
-      verticalTeamName.style.color = awayInfo.color;
-      verticalTeamName.innerHTML = `<img src="${awayInfo.logo}" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:5px;filter:drop-shadow(0 0 4px ${awayInfo.color});" onerror="this.style.display='none'" alt="${away}"/> ${away}`;
-    }
-    if (horizontalTeamName) {
-      horizontalTeamName.style.color = homeInfo.color;
-      horizontalTeamName.innerHTML = `${home} <img src="${homeInfo.logo}" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-left:5px;filter:drop-shadow(0 0 4px ${homeInfo.color});" onerror="this.style.display='none'" alt="${home}"/>`;
-    }
+    // Update TV Scorebug banner in Admin
+    updateAdminScorebug(g);
 
     const wrapper = document.createElement('div');
     wrapper.className = 'grid-container-wrapper';
@@ -887,6 +880,49 @@
            (abbr && abbr === t);
   }
 
+  function updateAdminScorebug(g) {
+    if (!g) return;
+    const home = g.homeTeam || g.home || 'Local';
+    const away = g.awayTeam || g.away || 'Visitante';
+    const homeInfo = window.getTeamInfo ? window.getTeamInfo(home) : { color: '#0076B6', logo: '' };
+    const awayInfo = window.getTeamInfo ? window.getTeamInfo(away) : { color: '#5A1414', logo: '' };
+
+    const awayWing = document.getElementById('adminTvAwayWing');
+    const awayLogo = document.getElementById('adminTvAwayLogo');
+    const awayCity = document.getElementById('adminTvAwayCity');
+    const awayMascot = document.getElementById('adminTvAwayMascot');
+    const awayScore = document.getElementById('adminTvAwayScore');
+
+    const homeWing = document.getElementById('adminTvHomeWing');
+    const homeLogo = document.getElementById('adminTvHomeLogo');
+    const homeCity = document.getElementById('adminTvHomeCity');
+    const homeMascot = document.getElementById('adminTvHomeMascot');
+    const homeScore = document.getElementById('adminTvHomeScore');
+
+    const tvQuarter = document.getElementById('adminTvQuarter');
+    const tvClock = document.getElementById('adminTvClock');
+    const tvSituation = document.getElementById('adminTvSituation');
+
+    if (awayWing) awayWing.style.setProperty('--team-bg', awayInfo.color);
+    if (awayLogo) { awayLogo.src = awayInfo.logo; awayLogo.alt = away; }
+    if (awayCity) awayCity.textContent = away;
+    if (awayMascot) awayMascot.textContent = (awayInfo.abbr || away).toUpperCase();
+    if (awayScore) awayScore.textContent = g.scoreAway ?? 0;
+
+    if (homeWing) homeWing.style.setProperty('--team-bg', homeInfo.color);
+    if (homeLogo) { homeLogo.src = homeInfo.logo; homeLogo.alt = home; }
+    if (homeCity) homeCity.textContent = home;
+    if (homeMascot) homeMascot.textContent = (homeInfo.abbr || home).toUpperCase();
+    if (homeScore) homeScore.textContent = g.scoreHome ?? 0;
+
+    if (tvQuarter) tvQuarter.textContent = g.periodName || g.quarter || 'Q1';
+    if (tvClock) tvClock.textContent = g.clock || '15:00';
+    if (tvSituation) {
+      tvSituation.textContent = g.situation || 'EN VIVO';
+      tvSituation.classList.toggle('redzone', !!g.isRedZone);
+    }
+  }
+
   // Always-on ESPN auto-sync — starts automatically when a game is loaded
   let _lastSavedQuarter = null;
 
@@ -950,6 +986,14 @@
       const sAway = parseInt(matchedAwayComp.score || 0, 10);
       const statusText = matchedEvent.status?.type?.shortDetail || matchedEvent.status?.type?.detail || 'Q1';
       const isCompleted = matchedEvent.status?.type?.completed === true;
+      const displayClock = matchedEvent.status?.displayClock || (isCompleted ? '0:00' : '15:00');
+      const periodNum = matchedEvent.status?.period || 1;
+      const periodName = isCompleted ? 'FINAL' : (periodNum === 1 ? '1ST' : periodNum === 2 ? '2ND' : periodNum === 3 ? '3RD' : periodNum === 4 ? '4TH' : 'OT');
+
+      const comp = matchedEvent.competitions?.[0] || {};
+      const sit = comp.situation || {};
+      const downDist = sit.shortDownDistanceText || sit.downDistanceText || (isCompleted ? 'FINAL DEL JUEGO' : 'EN VIVO');
+      const isRedZone = !!sit.isRedZone;
 
       // Determine current quarter key
       let currentQuarterKey = null;
@@ -963,6 +1007,10 @@
         scoreHome: sHome,
         scoreAway: sAway,
         quarter: statusText,
+        clock: displayClock,
+        periodName: periodName,
+        situation: downDist,
+        isRedZone: isRedZone,
         lastEspnSync: Date.now()
       };
 

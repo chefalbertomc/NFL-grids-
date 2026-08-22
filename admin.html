@@ -6,8 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
+  <link rel="icon" type="image/jpeg" href="img/logo.jpg" />
   <title>Admin Dashboard — Wings & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=12.4"/>
+  <link rel="stylesheet" href="css/styles.css?v=13.0"/>
   <style>
     /* Styling overrides for admin features */
     .admin-tab-content {
@@ -29,9 +30,12 @@
     </div>
 
     <header class="header-bar" style="margin-bottom: 16px;">
-      <div>
-        <h1 class="header-title gradient-text">Panel de Administración</h1>
-        <p class="hint-text">Gestión Unificada de Juegos de Bar</p>
+      <div class="app-brand-header">
+        <img src="img/logo.jpg" alt="Wings & Wins by Beto" class="app-brand-logo" />
+        <div>
+          <h1 class="header-title gradient-text">Panel de Administración</h1>
+          <p class="hint-text">Wings & Wins by Beto — Gestión Unificada</p>
+        </div>
       </div>
     </header>
 
@@ -109,30 +113,58 @@
           <button id="btnHide" class="btn btn-secondary" style="flex: 1; min-width: 100px;">🙈 Ocultar Números</button>
         </div>
 
-        <!-- Scores & Quarter -->
-        <div class="card" style="background: rgba(0,0,0,0.15); border-color: rgba(255,255,255,0.03);">
-          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom: 12px;">
-            <h4 style="font-size: 14px; margin:0;">Marcador en Vivo</h4>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span id="espnSyncDot" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#00e676; box-shadow:0 0 8px #00e676; animation: pulse 1.5s infinite;"></span>
-              <span id="espnStatus" style="font-size:12px; color:var(--text-muted);">ESPN Auto-Sync activo</span>
+        <!-- TV Broadcast Scorebug Banner -->
+        <div class="tv-scorebug-wrapper">
+          <div class="tv-scorebug-top-tab">
+            <img src="img/logo.jpg" alt="Logo" />
+            <span class="tv-network-title">WINGS & WINS TV NETWORK</span>
+            <span class="tv-live-pill"><span class="live-dot"></span> LIVE</span>
+          </div>
+
+          <div class="tv-scorebug-main">
+            <!-- Away Team Wing -->
+            <div class="tv-team-wing tv-away" id="adminTvAwayWing" style="--team-bg: #5A1414;">
+              <div class="tv-team-identity">
+                <div class="tv-team-logo-frame">
+                  <img id="adminTvAwayLogo" src="https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png" alt="Away" />
+                </div>
+                <div class="tv-team-names">
+                  <span class="tv-team-city" id="adminTvAwayCity">Visitante</span>
+                  <span class="tv-team-mascot" id="adminTvAwayMascot">AWAY</span>
+                </div>
+              </div>
+              <div class="tv-team-score" id="adminTvAwayScore">0</div>
+            </div>
+
+            <!-- Center Segment -->
+            <div class="tv-center-segment">
+              <div class="tv-clock-quarter">
+                <span class="tv-quarter-text" id="adminTvQuarter">Q1</span>
+                <span class="tv-clock-text" id="adminTvClock">15:00</span>
+              </div>
+              <div class="tv-situation-bar" id="adminTvSituation">KICKOFF</div>
+            </div>
+
+            <!-- Home Team Wing -->
+            <div class="tv-team-wing tv-home" id="adminTvHomeWing" style="--team-bg: #0076B6;">
+              <div class="tv-team-identity">
+                <div class="tv-team-logo-frame">
+                  <img id="adminTvHomeLogo" src="https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png" alt="Home" />
+                </div>
+                <div class="tv-team-names">
+                  <span class="tv-team-city" id="adminTvHomeCity">Local</span>
+                  <span class="tv-team-mascot" id="adminTvHomeMascot">HOME</span>
+                </div>
+              </div>
+              <div class="tv-team-score" id="adminTvHomeScore">0</div>
             </div>
           </div>
 
-          <style>
-            @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
-          </style>
-
-          <div class="flex-row" style="justify-content: center; align-items: center; gap: 10px;">
-            <span id="nameAway" style="font-weight: 800; text-align: right; flex: 1;">Away</span>
-            <input id="scoreAway" type="number" value="0" style="width: 60px; text-align: center; font-size: 18px; padding: 6px;"/>
-            <span style="font-weight: 800; color: var(--text-muted);">vs</span>
-            <input id="scoreHome" type="number" value="0" style="width: 60px; text-align: center; font-size: 18px; padding: 6px;"/>
-            <span id="nameHome" style="font-weight: 800; text-align: left; flex: 1;">Home</span>
+          <!-- Sync status subtle caption -->
+          <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+            <span id="espnSyncDot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#00e676; box-shadow:0 0 6px #00e676;"></span>
+            <span id="espnStatus" style="font-size:11px; color:var(--text-muted);">ESPN Auto-Sync activo (cada 30s)</span>
           </div>
-          <p style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;">
-            El marcador y los ganadores de cada cuarto se actualizan solos desde ESPN cada 30 segundos.
-          </p>
         </div>
 
         <!-- Visual Grid -->
@@ -244,10 +276,10 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Script Modules -->
-  <script src="js/firebase-config.js?v=12.4"></script>
-  <script src="js/auth.js?v=12.4"></script>
-  <script src="js/team-logos.js?v=12.4"></script>
-  <script src="js/admin.js?v=12.4"></script>
+  <script src="js/firebase-config.js?v=13.0"></script>
+  <script src="js/auth.js?v=13.0"></script>
+  <script src="js/team-logos.js?v=13.0"></script>
+  <script src="js/admin.js?v=13.0"></script>
 
   <!-- Admin Tab Switching -->
   <script>

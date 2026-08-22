@@ -6,8 +6,9 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
+  <link rel="icon" type="image/jpeg" href="img/logo.jpg" />
   <title>Tablero NFL Grid — Wings & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=12.4"/>
+  <link rel="stylesheet" href="css/styles.css?v=13.0"/>
   <style>
     /* Custom zoom styles for mobile */
     .grid-view-header {
@@ -31,45 +32,66 @@
 
     <!-- Header info -->
     <header class="grid-view-header">
-      <div>
-        <h2 id="gameTitle" class="gradient-text" style="font-size: clamp(20px, 4vw, 32px);">Cargando partido...</h2>
-        <div style="display: flex; gap: 8px; margin-top: 6px; align-items: center; flex-wrap: wrap;">
-          <span id="lockBadge" class="badge danger" style="display: none;">Bloqueado</span>
-          <span id="whoami" class="badge accent" title="Tu Apodo">Cargando...</span>
-          <span id="quotaInfo" class="badge success">0/0 usados</span>
-          <select id="nickChooser" class="form-group" style="width: auto; display: none; margin: 0; padding: 4px 8px; border-radius: 12px; font-size: 12px;"></select>
+      <div class="app-brand-header">
+        <img src="img/logo.jpg" alt="Wings & Wins by Beto" class="app-brand-logo" />
+        <div>
+          <h2 id="gameTitle" class="gradient-text" style="font-size: clamp(18px, 3.5vw, 26px); margin:0;">Wings & Wins Grid</h2>
+          <div style="display: flex; gap: 8px; margin-top: 4px; align-items: center; flex-wrap: wrap;">
+            <span id="lockBadge" class="badge danger" style="display: none;">Bloqueado</span>
+            <span id="whoami" class="badge accent" title="Tu Apodo">Cargando...</span>
+            <span id="quotaInfo" class="badge success">0/0 usados</span>
+            <select id="nickChooser" class="form-group" style="width: auto; display: none; margin: 0; padding: 4px 8px; border-radius: 12px; font-size: 12px;"></select>
+          </div>
         </div>
       </div>
     </header>
 
-    <!-- Live Score Banner -->
-    <div id="live-score-banner" class="card" style="margin-bottom:12px; padding:14px 16px; background: linear-gradient(135deg, rgba(20,24,31,0.95), rgba(14,18,25,0.95)); border: 1px solid rgba(255,209,0,0.2); border-radius:16px; display:none;">
-      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-        <!-- Away team -->
-        <div id="score-away-block" style="display:flex; align-items:center; gap:8px; flex:1; min-width:100px;">
-          <img id="score-away-logo" src="" alt="" style="width:36px;height:36px;object-fit:contain;"/>
-          <div>
-            <div id="score-away-name" style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;"></div>
-            <div id="score-away-val" style="font-size:32px;font-weight:900;line-height:1;">0</div>
+    <!-- TV Broadcast Scorebug Banner -->
+    <div class="tv-scorebug-wrapper" id="playerTvScorebug" style="display:none;">
+      <div class="tv-scorebug-top-tab">
+        <img src="img/logo.jpg" alt="Logo" />
+        <span class="tv-network-title">WINGS & WINS TV NETWORK</span>
+        <span class="tv-live-pill"><span class="live-dot"></span> LIVE</span>
+      </div>
+
+      <div class="tv-scorebug-main">
+        <!-- Away Team Wing -->
+        <div class="tv-team-wing tv-away" id="playerTvAwayWing" style="--team-bg: #5A1414;">
+          <div class="tv-team-identity">
+            <div class="tv-team-logo-frame">
+              <img id="playerTvAwayLogo" src="https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png" alt="Away" />
+            </div>
+            <div class="tv-team-names">
+              <span class="tv-team-city" id="playerTvAwayCity">Visitante</span>
+              <span class="tv-team-mascot" id="playerTvAwayMascot">AWAY</span>
+            </div>
           </div>
+          <div class="tv-team-score" id="playerTvAwayScore">0</div>
         </div>
-        <!-- Quarter info -->
-        <div style="text-align:center; flex-shrink:0;">
-          <div id="score-quarter" style="font-size:13px;font-weight:800;color:var(--accent-color);">—</div>
-          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;display:flex;align-items:center;gap:4px;justify-content:center;">
-            <span style="width:7px;height:7px;border-radius:50%;background:#00e676;box-shadow:0 0 6px #00e676;display:inline-block;animation:livepulse 1.5s infinite;"></span> EN VIVO
+
+        <!-- Center Segment -->
+        <div class="tv-center-segment">
+          <div class="tv-clock-quarter">
+            <span class="tv-quarter-text" id="playerTvQuarter">Q1</span>
+            <span class="tv-clock-text" id="playerTvClock">15:00</span>
           </div>
+          <div class="tv-situation-bar" id="playerTvSituation">KICKOFF</div>
         </div>
-        <!-- Home team -->
-        <div id="score-home-block" style="display:flex; align-items:center; gap:8px; flex:1; min-width:100px; justify-content:flex-end;">
-          <div style="text-align:right;">
-            <div id="score-home-name" style="font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;"></div>
-            <div id="score-home-val" style="font-size:32px;font-weight:900;line-height:1;">0</div>
+
+        <!-- Home Team Wing -->
+        <div class="tv-team-wing tv-home" id="playerTvHomeWing" style="--team-bg: #0076B6;">
+          <div class="tv-team-identity">
+            <div class="tv-team-logo-frame">
+              <img id="playerTvHomeLogo" src="https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png" alt="Home" />
+            </div>
+            <div class="tv-team-names">
+              <span class="tv-team-city" id="playerTvHomeCity">Local</span>
+              <span class="tv-team-mascot" id="playerTvHomeMascot">HOME</span>
+            </div>
           </div>
-          <img id="score-home-logo" src="" alt="" style="width:36px;height:36px;object-fit:contain;"/>
+          <div class="tv-team-score" id="playerTvHomeScore">0</div>
         </div>
       </div>
-      <style>@keyframes livepulse{0%,100%{opacity:1}50%{opacity:.2}}</style>
     </div>
 
     <!-- Tarjeta de estado de selección (contador) -->
@@ -152,8 +174,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Initializer & View Logic -->
-  <script src="js/firebase-config.js?v=12.4"></script>
-  <script src="js/team-logos.js?v=12.4"></script>
-  <script src="js/player-view.js?v=12.4"></script>
+  <script src="js/firebase-config.js?v=13.0"></script>
+  <script src="js/team-logos.js?v=13.0"></script>
+  <script src="js/player-view.js?v=13.0"></script>
 </body>
 </html>
