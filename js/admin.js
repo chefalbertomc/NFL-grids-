@@ -79,6 +79,7 @@
   let user = null;
   let CAN_ADMIN = false;
   let currentGridCode = null;
+  let currentGame = null;
 
   // DOM Elements - Auth & Gate
   const adminStatusText = document.getElementById('adminStatusText');
@@ -469,6 +470,7 @@
 
   function renderAdminGrid(g) {
     if (!gridHost) return;
+    currentGame = g;
     gridHost.innerHTML = '';
 
     const reveal = !!g.showNumbers;
