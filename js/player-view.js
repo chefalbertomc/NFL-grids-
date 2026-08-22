@@ -344,14 +344,14 @@
       if (activePlayer) {
         const remaining = Math.max(0, quota - taken);
         if (remaining > 0) {
-          statusText.innerHTML = `<span class="badge" style="background:rgba(255,209,0,0.12); color:#ffd100; border:1px solid rgba(255,209,0,0.4); font-size:12.5px; padding:4px 10px;">🏈 Te quedan <strong style="font-size:14px; color:#ffffff;">${remaining}</strong> casillas por escoger</span>`;
+          statusText.innerHTML = `<span class="badge" style="background:rgba(255,209,0,0.15); color:#ffd100; border:1px solid rgba(255,209,0,0.4); font-size:11px; padding:2px 8px; font-weight:800;">🏈 Te quedan ${remaining} casillas</span>`;
         } else {
-          statusText.innerHTML = `<span class="badge" style="background:rgba(0,230,118,0.12); color:#00e676; border:1px solid rgba(0,230,118,0.4); font-size:12.5px; padding:4px 10px;">✅ ¡Listo! Has seleccionado tus <strong style="font-size:14px; color:#ffffff;">${quota}</strong> casillas</span>`;
+          statusText.innerHTML = `<span class="badge" style="background:rgba(0,230,118,0.15); color:#00e676; border:1px solid rgba(0,230,118,0.4); font-size:11px; padding:2px 8px; font-weight:800;">✅ ¡Listo! ${quota} casillas</span>`;
         }
       } else if (pendingPlayers.length > 0) {
-        statusText.innerHTML = `<span class="badge danger" style="font-size:12.5px; padding:4px 10px;">⏳ Tu registro está pendiente de aprobación por el administrador</span>`;
+        statusText.innerHTML = `<span class="badge danger" style="font-size:11px; padding:2px 8px;">⏳ Pendiente</span>`;
       } else {
-        statusText.innerHTML = `<span style="font-size:12.5px; color:var(--text-muted);">📌 Elige tu apodo arriba para seleccionar tus casillas</span>`;
+        statusText.innerHTML = `<span class="badge" style="font-size:11px; padding:2px 8px; color:var(--text-muted);">📌 Elige tu apodo</span>`;
       }
     }
 
