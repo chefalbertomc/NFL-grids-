@@ -131,41 +131,48 @@
 
     gridsList.innerHTML = '';
     filtered.forEach(g => {
+      const isSelected = SELECTED_GRID_CODE === g.code;
       const card = document.createElement('div');
       card.className = 'card';
-      card.style.padding = '12px 16px';
-      card.style.margin = '0 0 8px 0';
-      card.style.background = 'var(--card-bg-hover)';
-      card.style.borderColor = SELECTED_GRID_CODE === g.code ? 'var(--accent-color)' : 'var(--border-color)';
+      card.style.padding = '14px 16px';
+      card.style.margin = '0 0 12px 0';
+      card.style.background = isSelected ? 'rgba(255,209,0,0.06)' : 'var(--card-bg-hover)';
+      card.style.border = isSelected ? '2px solid var(--accent-color)' : '1px solid var(--border-color)';
+      card.style.borderRadius = '16px';
+      card.style.boxShadow = '0 4px 16px rgba(0,0,0,0.3)';
       
       card.innerHTML = `
-        <div class="flex-between">
-          <div>
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
-              <img src="${window.getTeamLogoURL(g.away)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${g.away}"/>
-              <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${g.away}</span>
-              <span style="font-size: 12px; color: var(--text-muted); font-weight: bold;">@</span>
-              <img src="${window.getTeamLogoURL(g.home)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${g.home}"/>
-              <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${g.home}</span>
+        <!-- Card Top: Matchup & WhatsApp Share -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1;">
+            <div style="display: inline-flex; align-items: center; gap: 6px;">
+              <img src="${window.getTeamLogoURL(g.away)}" style="width: 26px; height: 26px; object-fit: contain;" alt="${g.away}"/>
+              <span style="font-weight: 800; font-size: 15px; color: var(--text-color);">${g.away}</span>
             </div>
-            <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
-              <span class="badge">${g.code}</span>
-              ${g.store ? `<span class="badge accent">${g.store}</span>` : ''}
-              <span class="badge success">Libres: ${g.free}</span>
-              ${g.locked ? '<span class="badge danger">Bloqueado</span>' : ''}
+            <span style="font-size: 12px; color: var(--text-muted); font-weight: 900;">@</span>
+            <div style="display: inline-flex; align-items: center; gap: 6px;">
+              <img src="${window.getTeamLogoURL(g.home)}" style="width: 26px; height: 26px; object-fit: contain;" alt="${g.home}"/>
+              <span style="font-weight: 800; font-size: 15px; color: var(--text-color);">${g.home}</span>
             </div>
           </div>
-          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
-            <button class="btn btn-secondary" data-share-code="${g.code}" title="Compartir enlace de registro por WhatsApp" style="width: auto; padding: 6px 10px; font-size: 12px; background: rgba(37,211,102,0.12); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 4px;">
-              💬 WhatsApp
-            </button>
-            <a href="player-view.html?code=${g.code}" class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 13px; text-decoration: none;">
-              👁️ Ver Tablero
-            </a>
-            <button class="btn btn-primary" data-select-code="${g.code}" style="width: auto; padding: 6px 12px; font-size: 13px;">
-              ${SELECTED_GRID_CODE === g.code ? 'Seleccionado' : 'Unirse'}
-            </button>
-          </div>
+          <button class="btn btn-secondary" data-share-code="${g.code}" title="Compartir enlace por WhatsApp" style="width: auto; padding: 5px 10px; font-size: 12px; background: rgba(37,211,102,0.12); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 4px; border-radius: 8px; flex-shrink: 0;">
+            💬 WhatsApp
+          </button>
+        </div>
+
+        <!-- Card Middle: Badges Strip -->
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+          <span class="badge" style="font-weight: 800; letter-spacing: 0.04em;">${g.code}</span>
+          ${g.store ? `<span class="badge accent">${g.store}</span>` : ''}
+          <span class="badge success" style="font-weight: 700;">🟢 Libres: ${g.free}</span>
+          ${g.locked ? '<span class="badge danger">🔒 Bloqueado</span>' : ''}
+        </div>
+
+        <!-- Card Bottom: Direct Action Button -->
+        <div>
+          <button class="btn ${isSelected ? 'btn-secondary' : 'btn-primary'}" data-select-code="${g.code}" style="width: 100%; padding: 10px 16px; font-size: 14px; font-weight: 800; border-radius: 10px;">
+            ${isSelected ? '✓ Juego Seleccionado' : '🏈 Unirse a este Grid'}
+          </button>
         </div>
       `;
       gridsList.appendChild(card);
@@ -378,40 +385,43 @@
         card.style.borderRadius = '16px';
 
         card.innerHTML = `
-          <div class="flex-between" style="border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 8px;">
-            <div>
-              <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap;">
+          <!-- Top Row: Teams + Approval Badge -->
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+              <div style="display: inline-flex; align-items: center; gap: 6px;">
                 <img src="${window.getTeamLogoURL(g.away)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${g.away}"/>
-                <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${g.away}</span>
-                <span style="font-size: 12px; color: var(--text-muted); font-weight: bold;">@</span>
-                <img src="${window.getTeamLogoURL(g.home)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${g.home}"/>
-                <span style="font-weight: 700; font-size: 15px; color: var(--text-color);">${g.home}</span>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-color);">${g.away}</span>
               </div>
-              <div style="margin-top: 4px; display: flex; gap: 6px; align-items: center;">
-                <span class="badge">${g.code}</span>
-                ${g.store ? `<span class="badge accent">${g.store}</span>` : ''}
+              <span style="font-size: 12px; color: var(--text-muted); font-weight: 900;">@</span>
+              <div style="display: inline-flex; align-items: center; gap: 6px;">
+                <img src="${window.getTeamLogoURL(g.home)}" style="width: 24px; height: 24px; object-fit: contain;" alt="${g.home}"/>
+                <span style="font-weight: 800; font-size: 15px; color: var(--text-color);">${g.home}</span>
               </div>
             </div>
-            <span class="badge" style="${item.isApproved ? 'background:#00e676; color:#000; font-weight:900;' : 'background:rgba(255,209,0,0.1); color:#ffd100;'}">
+            <span class="badge" style="${item.isApproved ? 'background:#00e676; color:#000; font-weight:900;' : 'background:rgba(255,209,0,0.15); color:#ffd100; font-weight:800;'}">
               ${item.isApproved ? '✅ APROBADO' : '⏳ PENDIENTE'}
             </span>
           </div>
-          <div class="flex-between" style="margin-top: 10px; flex-wrap: wrap; gap: 8px;">
-            <div>
-              <span style="font-weight: 800; font-size: 15px; color: var(--accent-color);">${p.nickname || p.name}</span>
-              <span class="badge success" style="margin-left: 8px;">${taken}/${quota} casillas usadas</span>
-            </div>
-            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
-              <button class="btn btn-secondary" onclick="window.shareGridWhatsApp('${g.code}')" style="width: auto; padding: 6px 10px; font-size: 12px; background: rgba(37,211,102,0.12); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 4px;">
-                💬 WhatsApp
-              </button>
-              ${item.isApproved
-                ? `<a class="btn btn-primary" href="player-view.html?code=${encodeURIComponent(g.code)}&pid=${encodeURIComponent(item.docId)}&nick=${encodeURIComponent(p.nickname || p.name)}" style="width: auto; padding: 8px 14px; font-size: 13px; text-decoration: none; font-weight: 800;">
-                    ${remaining > 0 ? `🎲 Escoger ${remaining} Casillas` : '👁️ Ver Mi Grid'}
-                   </a>`
-                : `<span style="font-size: 12px; color: var(--text-muted);">Espera a que el admin te apruebe</span>`
-              }
-            </div>
+
+          <!-- Middle Row: Code + Store + Quota -->
+          <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+            <span class="badge" style="font-weight:800;">${g.code}</span>
+            ${g.store ? `<span class="badge accent">${g.store}</span>` : ''}
+            <span style="font-weight: 800; font-size: 14px; color: var(--accent-color); margin-left: 4px;">👤 ${p.nickname || p.name}</span>
+            <span class="badge success" style="font-weight: 700;">${taken}/${quota} usados</span>
+          </div>
+
+          <!-- Bottom Row: Action Buttons -->
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="btn btn-secondary" onclick="window.shareGridWhatsApp('${g.code}')" style="width: auto; padding: 10px 14px; font-size: 13px; background: rgba(37,211,102,0.12); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 4px; border-radius: 10px;">
+              💬 WhatsApp
+            </button>
+            ${item.isApproved
+              ? `<a class="btn btn-primary" href="player-view.html?code=${encodeURIComponent(g.code)}&pid=${encodeURIComponent(item.docId)}&nick=${encodeURIComponent(p.nickname || p.name)}" style="flex: 1; padding: 10px 16px; font-size: 14px; text-decoration: none; font-weight: 800; text-align: center; border-radius: 10px;">
+                  ${remaining > 0 ? `🎲 Escoger ${remaining} Casillas` : '👁️ Ver Mi Grid'}
+                 </a>`
+              : `<div style="flex: 1; font-size: 12px; color: var(--text-muted); text-align: right; font-weight: 600;">Espera a que el admin te apruebe</div>`
+            }
           </div>
         `;
         myGridsList.appendChild(card);
