@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=31.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=32.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -28,16 +28,18 @@
           <p class="hint-text">Juegos de Bar en tu Celular</p>
         </div>
       </div>
-      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-        <a href="admin.html" class="btn btn-secondary" style="width: auto; padding: 8px 14px; text-decoration: none; font-size: 13px;">
-          ⚙️ Panel Admin
-        </a>
-        <button id="btnGoogle" class="btn btn-primary" style="width: auto; padding: 8px 16px;">
-          Entrar con Google
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button onclick="window.location.reload(true)" class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 12px; border-radius: 12px; display: inline-flex; align-items: center; gap: 4px; font-weight: 700;" title="Actualizar aplicación">
+          🔄 Actualizar
         </button>
-        <div id="userBadge" class="user-badge hidden">
-          <img id="userAvatar" src="" alt="Avatar"/>
-          <span id="userName">Socio</span>
+        <div id="authContainer">
+          <button id="btnGoogle" class="btn btn-primary" style="width: auto; padding: 8px 16px;">
+            Entrar con Google
+          </button>
+          <div id="userBadge" class="user-badge hidden">
+            <img id="userAvatar" src="" alt="Avatar"/>
+            <span id="userName">Socio</span>
+          </div>
         </div>
       </div>
     </header>
@@ -224,13 +226,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=31.0"></script>
-  <script src="js/auth.js?v=31.0"></script>
-  <script src="js/team-logos.js?v=31.0"></script>
-  <script src="js/grids.js?v=31.0"></script>
-  <script src="js/pools.js?v=31.0"></script>
-  <script src="js/survivor.js?v=31.0"></script>
-  <script src="js/firstgoal.js?v=31.0"></script>
+  <script src="js/firebase-config.js?v=32.0"></script>
+  <script src="js/auth.js?v=32.0"></script>
+  <script src="js/team-logos.js?v=32.0"></script>
+  <script src="js/grids.js?v=32.0"></script>
+  <script src="js/pools.js?v=32.0"></script>
+  <script src="js/survivor.js?v=32.0"></script>
+  <script src="js/firstgoal.js?v=32.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>

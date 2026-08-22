@@ -55,17 +55,13 @@
     }
   }
 
-  async function loadGrids() {
-    if (!db) return;
-    try {
-      let snap;
-      try {
-        snap = await db.collection('games').orderBy('createdAt', 'desc').get();
-      } catch (err) {
-        // Fallback if index is not ready
-        snap = await db.collection('games').get();
-      }
+  let gridsUnsubscribe = null;
 
+  function loadGrids() {
+    if (!db) return;
+    if (gridsUnsubscribe) gridsUnsubscribe();
+
+    gridsUnsubscribe = db.collection('games').onSnapshot(snap => {
       ALL_GRIDS = [];
       const stores = new Set();
 
@@ -103,20 +99,28 @@
       }
 
       renderGrids();
-      await loadMyGrids();
+      loadMyGrids();
 
       // Check if URL has ?join=CODE
       const urlJoin = new URLSearchParams(window.location.search).get('join');
       if (urlJoin && ALL_GRIDS.some(x => x.code === urlJoin.toUpperCase())) {
         selectGrid(urlJoin.toUpperCase());
       }
-    } catch (e) {
-      console.error('[grids] Error loading grids:', e);
+    }, err => {
+      console.error('[grids] Realtime listener error:', err);
       if (gridsList) {
-        gridsList.innerHTML = `<div class="text-center hint-text py-4">Error al cargar grids: ${e.message}</div>`;
+        gridsList.innerHTML = `<div class="text-center hint-text py-4">Error al sincronizar: ${err.message}</div>`;
       }
-    }
+    });
   }
+
+  // Refresh when user returns to app
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      loadGrids();
+      loadMyGrids();
+    }
+  });
 
   function renderGrids() {
     if (!gridsList) return;
