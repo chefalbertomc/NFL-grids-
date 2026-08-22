@@ -491,11 +491,18 @@
 
     const verticalTeamName = document.getElementById('nameAway');
     const horizontalTeamName = document.getElementById('nameHome');
+
+    const homeInfo = window.getTeamInfo ? window.getTeamInfo(home) : { color: '#ffd100', logo: '' };
+    const awayInfo = window.getTeamInfo ? window.getTeamInfo(away) : { color: '#ffd100', logo: '' };
+
+    // Update score area team names with color
     if (verticalTeamName) {
-      verticalTeamName.innerHTML = `<img src="${window.getTeamLogoURL(away)}" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle; margin-right: 6px;" alt="${away}"/> ${away}`;
+      verticalTeamName.style.color = awayInfo.color;
+      verticalTeamName.innerHTML = `<img src="${awayInfo.logo}" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-right:5px;filter:drop-shadow(0 0 4px ${awayInfo.color});" onerror="this.style.display='none'" alt="${away}"/> ${away}`;
     }
     if (horizontalTeamName) {
-      horizontalTeamName.innerHTML = `${home} <img src="${window.getTeamLogoURL(home)}" style="width: 24px; height: 24px; object-fit: contain; vertical-align: middle; margin-left: 6px;" alt="${home}"/>`;
+      horizontalTeamName.style.color = homeInfo.color;
+      horizontalTeamName.innerHTML = `${home} <img src="${homeInfo.logo}" style="width:22px;height:22px;object-fit:contain;vertical-align:middle;margin-left:5px;filter:drop-shadow(0 0 4px ${homeInfo.color});" onerror="this.style.display='none'" alt="${home}"/>`;
     }
 
     const wrapper = document.createElement('div');
@@ -503,18 +510,39 @@
 
     const gridWrap = document.createElement('div');
     gridWrap.className = 'grid-wrapper';
+    // Apply team color CSS variables for axis labels
+    gridWrap.style.setProperty('--team-away-color', awayInfo.color);
+    gridWrap.style.setProperty('--team-home-color', homeInfo.color);
 
+    // Away team: vertical left axis with logo + name
     const sideLabel = document.createElement('div');
     sideLabel.className = 'vertical-label';
-    sideLabel.textContent = away;
+    const awayLogoEl = document.createElement('img');
+    awayLogoEl.src = awayInfo.logo;
+    awayLogoEl.alt = away;
+    awayLogoEl.className = 'axis-logo';
+    awayLogoEl.onerror = function() { this.style.display = 'none'; };
+    const awaySpan = document.createElement('span');
+    awaySpan.textContent = away;
+    sideLabel.appendChild(awayLogoEl);
+    sideLabel.appendChild(awaySpan);
     gridWrap.appendChild(sideLabel);
 
     const content = document.createElement('div');
     content.className = 'grid-content';
 
+    // Home team: horizontal top axis with logo + name
     const topLabel = document.createElement('div');
     topLabel.className = 'horizontal-label';
-    topLabel.textContent = home;
+    const homeLogoEl = document.createElement('img');
+    homeLogoEl.src = homeInfo.logo;
+    homeLogoEl.alt = home;
+    homeLogoEl.className = 'axis-logo';
+    homeLogoEl.onerror = function() { this.style.display = 'none'; };
+    const homeSpan = document.createElement('span');
+    homeSpan.textContent = home;
+    topLabel.appendChild(homeLogoEl);
+    topLabel.appendChild(homeSpan);
     content.appendChild(topLabel);
 
     const board = document.createElement('div');
