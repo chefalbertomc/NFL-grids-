@@ -862,6 +862,21 @@
       const topNums = g.numsTop || [];
       const leftNums = g.numsLeft || [];
       
+      // Build merged cell map from approved players' picks
+      let mergedCells = { ...(g.cells || {}) };
+      try {
+        const playersSnap = await ref.collection('players').get();
+        playersSnap.forEach(pdoc => {
+          const p = pdoc.data() || {};
+          if (!(p.approved || p.status === 'approved')) return;
+          const pName = p.nickname || p.name || '';
+          if (!pName) return;
+          (Array.isArray(p.picks) ? p.picks : []).forEach(cellKey => {
+            mergedCells[cellKey] = { name: pName, playerDocId: pdoc.id };
+          });
+        });
+      } catch (err) {}
+
       let winnerName = 'Nadie';
       if (topNums.length && leftNums.length) {
         const lastDigitHome = scoreHomeVal % 10;
@@ -874,7 +889,7 @@
         upd.winRow = winRow;
 
         const cellKey = `${winRow}-${winCol}`;
-        const winningCell = g.cells ? g.cells[cellKey] : null;
+        const winningCell = mergedCells[cellKey];
         if (winningCell && winningCell.name) {
           winnerName = winningCell.name;
         }
@@ -896,7 +911,7 @@
       }
 
       await ref.update(upd);
-      alert('Marcador y ganador calculado guardado.');
+      alert(`✅ Ganador calculado: ${winnerName}`);
       loadGameDetail();
     } catch (err) {
       alert('Error al guardar marcador: ' + err.message);
@@ -1051,8 +1066,25 @@
       };
 
       // Calculate quarter winner function
-      const topNums = g.numsTop || [];
-      const leftNums = g.numsLeft || [];
+      // Build merged cell map from approved players' picks so we can find the actual winner name
+      const topNums = g.numsTop || [];\n      const leftNums = g.numsLeft || [];
+      let mergedCells = { ...(g.cells || {}) };
+      try {
+        const playersSnap = await ref.collection('players').get();
+        playersSnap.forEach(pdoc => {
+          const p = pdoc.data() || {};
+          if (!(p.approved || p.status === 'approved')) return;
+          const pName = p.nickname || p.name || '';
+          if (!pName) return;
+          const pPicks = Array.isArray(p.picks) ? p.picks : [];
+          pPicks.forEach(cellKey => {
+            mergedCells[cellKey] = { name: pName, playerDocId: pdoc.id };
+          });
+        });
+      } catch (err) {
+        console.warn('[winner] Could not load players for winner detection:', err);
+      }
+
       function calcQuarterWinner(aScore, hScore) {
         if (!topNums.length || !leftNums.length) return 'Nadie';
         const lastDigitHome = Number(hScore) % 10;
@@ -1061,7 +1093,7 @@
         const winRow = leftNums.indexOf(lastDigitAway);
         if (winCol === -1 || winRow === -1) return 'Nadie';
         const cellKey = `${winRow}-${winCol}`;
-        const winningCell = g.cells ? g.cells[cellKey] : null;
+        const winningCell = mergedCells[cellKey];
         return (winningCell && winningCell.name) ? winningCell.name : 'Nadie';
       }
 
