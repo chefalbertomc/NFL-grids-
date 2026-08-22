@@ -298,89 +298,134 @@ input:focus, select:focus, textarea:focus {
   margin-bottom: 2px;
 }
 
-/* Grid Specific Styles */
+/* =============================================
+   Grid — Mobile-First Responsive Layout
+   ============================================= */
 .grid-container-wrapper {
   overflow-x: auto;
-  margin: 16px 0;
+  -webkit-overflow-scrolling: touch;
+  margin: 12px 0;
   border-radius: 12px;
   border: 1px solid var(--border-color);
-  background-color: rgba(0,0,0,0.15);
+  background-color: rgba(0,0,0,0.2);
 }
 
 .grid-wrapper {
   display: flex;
-  align-items: center;
-  padding: 16px;
-  min-width: 680px; /* Prevent shrinking too much */
+  align-items: stretch;
+  padding: 10px;
+  /* Minimum size so grid is usable: 11 cols * 28px + label + gaps */
+  min-width: min(360px, 100%);
 }
 
+/* ---- Team Axis Labels ---- */
 .vertical-label {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   transform: rotate(180deg);
   font-weight: 900;
-  color: var(--accent-color);
-  font-size: 28px;
-  margin-right: 12px;
+  font-size: clamp(13px, 3vw, 22px);
+  margin-right: 8px;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /* Team color applied via JS via --team-away-color */
+  color: var(--team-away-color, var(--accent-color));
+  text-shadow: 0 0 20px var(--team-away-color, var(--accent-color));
+  white-space: nowrap;
+  padding: 4px 0;
+}
+
+.vertical-label img.axis-logo {
+  width: clamp(20px, 4vw, 32px);
+  height: clamp(20px, 4vw, 32px);
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px var(--team-away-color, var(--accent-color)));
 }
 
 .grid-content {
   flex-grow: 1;
+  min-width: 0;
 }
 
 .horizontal-label {
   text-align: center;
   font-weight: 900;
-  color: var(--accent-color);
-  font-size: 28px;
-  margin-bottom: 8px;
+  font-size: clamp(13px, 3vw, 22px);
+  margin-bottom: 6px;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /* Team color applied via JS via --team-home-color */
+  color: var(--team-home-color, var(--accent-color));
+  text-shadow: 0 0 20px var(--team-home-color, var(--accent-color));
 }
 
+.horizontal-label img.axis-logo {
+  width: clamp(20px, 4vw, 32px);
+  height: clamp(20px, 4vw, 32px);
+  object-fit: contain;
+  filter: drop-shadow(0 0 6px var(--team-home-color, var(--accent-color)));
+}
+
+/* ---- Grid Board ---- */
 .grid-board {
   display: grid;
-  grid-template-columns: 60px repeat(10, 1fr);
-  gap: 4px;
+  /* Side label col fixed, 10 data cols fluid */
+  grid-template-columns: clamp(24px, 6vw, 52px) repeat(10, 1fr);
+  gap: clamp(2px, 0.5vw, 4px);
 }
 
 .grid-header-cell, .grid-side-cell {
-  background: var(--bg-color);
+  background: rgba(255,255,255,0.04);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 6px;
   font-weight: 800;
   color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   user-select: none;
-  font-size: 14px;
+  font-size: clamp(10px, 2.2vw, 15px);
 }
 
 .grid-header-cell {
-  height: 36px;
+  height: clamp(22px, 5vw, 38px);
 }
 
 .grid-side-cell {
-  height: 48px;
+  height: clamp(28px, 6.5vw, 50px);
 }
 
 .grid-cell {
   background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
-  height: 48px;
+  border-radius: 6px;
+  height: clamp(28px, 6.5vw, 50px);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: clamp(7px, 1.6vw, 11px);
   font-weight: 600;
   text-align: center;
   cursor: pointer;
-  transition: all var(--transition-speed);
+  transition: background var(--transition-speed), border-color var(--transition-speed);
   padding: 2px;
-  word-break: break-all;
+  word-break: break-word;
   overflow: hidden;
+  line-height: 1.2;
+  /* Ensure minimum tap target on mobile */
+  min-height: 28px;
+}
+
+.grid-cell:active {
+  transform: scale(0.94);
 }
 
 .grid-cell:hover {
@@ -389,13 +434,14 @@ input:focus, select:focus, textarea:focus {
 }
 
 .grid-cell.own {
-  background: rgba(255, 209, 0, 0.1);
+  background: rgba(255, 209, 0, 0.12);
   border-color: var(--accent-color);
   color: var(--accent-color);
+  box-shadow: inset 0 0 8px rgba(255,209,0,0.08);
 }
 
 .grid-cell.taken {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
   color: var(--text-muted);
   cursor: not-allowed;
 }

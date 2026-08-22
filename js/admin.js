@@ -214,23 +214,97 @@
     });
   }
 
-  // --- NFL Grids Management ---
+  // --- NFL/NCAA Game Search via ESPN API ---
+  let selectedEspnGame = null;
+
   function fillTeamSelects() {
-    if (!selectLocal || !selectVisit) return;
-    selectLocal.innerHTML = '<option value="" disabled selected>— Local —</option>';
-    selectVisit.innerHTML = '<option value="" disabled selected>— Visitante —</option>';
+    // No-op: team selects replaced by ESPN game picker
+  }
 
-    TEAMS.forEach(team => {
-      const optL = document.createElement('option');
-      optL.value = team;
-      optL.textContent = team;
-      selectLocal.appendChild(optL);
+  async function searchEspnGames() {
+    const league = (document.getElementById('selectLeague') || {}).value || 'nfl';
+    const pickerContainer = document.getElementById('gamePickerContainer');
+    const pickerList = document.getElementById('gamePickerList');
+    const preview = document.getElementById('selectedGamePreview');
+    const btnSearch = document.getElementById('btnSearchGames');
 
-      const optV = document.createElement('option');
-      optV.value = team;
-      optV.textContent = team;
-      selectVisit.appendChild(optV);
-    });
+    if (!pickerContainer || !pickerList) return;
+
+    if (btnSearch) { btnSearch.disabled = true; btnSearch.textContent = 'Buscando...'; }
+    pickerContainer.style.display = 'none';
+    if (preview) preview.style.display = 'none';
+    selectedEspnGame = null;
+
+    try {
+      const url = `https://site.api.espn.com/apis/site/v2/sports/football/${league}/scoreboard`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const events = data.events || [];
+
+      pickerList.innerHTML = '';
+
+      if (!events.length) {
+        pickerList.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:8px;">No se encontraron partidos esta semana para esta liga.</div>';
+        pickerContainer.style.display = 'block';
+        return;
+      }
+
+      events.forEach(ev => {
+        const comps = ev.competitions?.[0]?.competitors || [];
+        const homeComp = comps.find(c => c.homeAway === 'home');
+        const awayComp = comps.find(c => c.homeAway === 'away');
+        if (!homeComp || !awayComp) return;
+
+        const homeName = homeComp.team?.displayName || homeComp.team?.name || 'Local';
+        const awayName = awayComp.team?.displayName || awayComp.team?.name || 'Visitante';
+        const homeLogo = homeComp.team?.logo || window.getTeamLogoURL(homeName);
+        const awayLogo = awayComp.team?.logo || window.getTeamLogoURL(awayName);
+        const homeColor = '#' + (homeComp.team?.color || 'ffd100');
+        const awayColor = '#' + (awayComp.team?.color || 'ffd100');
+        const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-MX', { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+        const status = ev.status?.type?.shortDetail || ev.status?.type?.description || '';
+        const gameId = ev.id || '';
+
+        const card = document.createElement('div');
+        card.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px; cursor:pointer; transition:border-color 0.2s;';
+        card.innerHTML = `
+          <img src="${awayLogo}" style="width:32px;height:32px;object-fit:contain;filter:drop-shadow(0 0 4px ${awayColor})" onerror="this.src='https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png'" />
+          <div style="flex:1;">
+            <div style="font-weight:800;font-size:13px;">
+              <span style="color:${awayColor}">${awayName}</span>
+              <span style="color:var(--text-muted);margin:0 4px;">@</span>
+              <span style="color:${homeColor}">${homeName}</span>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${dateStr} &nbsp;•&nbsp; ${status}</div>
+          </div>
+          <img src="${homeLogo}" style="width:32px;height:32px;object-fit:contain;filter:drop-shadow(0 0 4px ${homeColor})" onerror="this.src='https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png'" />
+        `;
+
+        card.addEventListener('click', () => {
+          // Deselect others
+          pickerList.querySelectorAll('div').forEach(c => c.style.borderColor = 'var(--border-color)');
+          card.style.borderColor = 'var(--accent-color)';
+
+          selectedEspnGame = { homeName, awayName, homeColor, awayColor, homeLogo, awayLogo, gameId, league };
+
+          const previewInfo = document.getElementById('selectedGameInfo');
+          if (previewInfo) {
+            previewInfo.innerHTML = `<span style="color:${awayColor}">${awayName}</span> <span style="color:var(--text-muted)">vs</span> <span style="color:${homeColor}">${homeName}</span>`;
+          }
+          if (preview) preview.style.display = 'block';
+        });
+
+        pickerList.appendChild(card);
+      });
+
+      pickerContainer.style.display = 'block';
+    } catch (err) {
+      console.error('[admin] ESPN game search error:', err);
+      if (pickerList) pickerList.innerHTML = '<div style="color:var(--danger-color);font-size:13px;padding:8px;">Error al buscar partidos. Verifica tu conexión.</div>';
+      if (pickerContainer) pickerContainer.style.display = 'block';
+    } finally {
+      if (btnSearch) { btnSearch.disabled = false; btnSearch.textContent = '🔍 Buscar Partidos'; }
+    }
   }
 
   async function loadGamesDropdown() {
@@ -277,6 +351,9 @@
     if (btnCleanOrphans) btnCleanOrphans.addEventListener('click', cleanOrphanPicks);
     if (btnDeleteGame) btnDeleteGame.addEventListener('click', deleteGridGame);
 
+    const btnSearchGames = document.getElementById('btnSearchGames');
+    if (btnSearchGames) btnSearchGames.addEventListener('click', searchEspnGames);
+
     // Quarter Selection Handler
     document.querySelectorAll('.btn-q').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -287,27 +364,25 @@
   }
 
   async function createGridGame() {
-    const store = selectStore.value;
-    const home = selectLocal.value;
-    const away = selectVisit.value;
+    const store = (selectStore || {}).value;
+    if (!store) { alert('Por favor selecciona una sucursal.'); return; }
 
-    if (!store || !home || !away) {
-      alert('Por favor selecciona sucursal y ambos equipos.');
-      return;
-    }
-    if (home === away) {
-      alert('El equipo local y visitante deben ser diferentes.');
+    if (!selectedEspnGame) {
+      alert('Primero busca y selecciona un partido de la lista de ESPN.');
       return;
     }
 
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase(); // 6 chars random code
-    
+    const { homeName, awayName, gameId, league } = selectedEspnGame;
+    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+
     try {
       await db.collection('games').doc(code).set({
-        code: code,
-        store: store,
-        homeTeam: home,
-        awayTeam: away,
+        code,
+        store,
+        homeTeam: homeName,
+        awayTeam: awayName,
+        espnGameId: gameId,
+        espnLeague: league,
         createdAt: Date.now(),
         locked: false,
         showNumbers: false,
@@ -319,14 +394,20 @@
         cells: {}
       });
 
-      alert(`Grid creado exitosamente con el código: ${code}`);
+      alert(`✅ Grid creado: ${awayName} vs ${homeName}\nCódigo: ${code}`);
+      selectedEspnGame = null;
+      const preview = document.getElementById('selectedGamePreview');
+      const pickerContainer = document.getElementById('gamePickerContainer');
+      if (preview) preview.style.display = 'none';
+      if (pickerContainer) pickerContainer.style.display = 'none';
+
       await loadGamesDropdown();
       selectGame.value = code;
       currentGridCode = code;
       loadGameDetail();
     } catch (err) {
-      if (err.code === 'permission-denied' || String(err).includes('permission') || String(err).includes('denied')) {
-        alert(`Error de Permisos en Firebase:\n\nTu cuenta de Google no está registrada como administrador en tu base de datos Firestore.\n\nCopia tu UID e ingresa a tu Firebase Console para agregarlo en la colección 'admins':\n\nTu UID: ${user ? user.uid : 'No autenticado'}`);
+      if (err.code === 'permission-denied' || String(err).includes('permission')) {
+        alert(`Error de Permisos en Firebase.\n\nTu UID: ${user ? user.uid : 'No autenticado'}`);
       } else {
         alert('Error al crear el grid: ' + err.message);
       }

@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Tablero NFL Grid — Wings & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=3.5"/>
+  <link rel="stylesheet" href="css/styles.css?v=11.0"/>
   <style>
     /* Custom zoom styles for mobile */
     .grid-view-header {
@@ -54,10 +54,17 @@
       <!-- Interactive Grid Component -->
       <div class="grid-container-wrapper">
         <div class="grid-wrapper">
-          <!-- Horizontal team name will go top of columns, vertical left of rows -->
-          <div class="vertical-label" id="verticalTeam">Visitante</div>
+          <!-- Away team: vertical left axis -->
+          <div class="vertical-label" id="verticalTeam">
+            <img class="axis-logo" id="awayLogo" src="" alt="" style="display:none;"/>
+            <span id="awayTeamName">Visitante</span>
+          </div>
           <div class="grid-content">
-            <div class="horizontal-label" id="horizontalTeam">Local</div>
+            <!-- Home team: horizontal top axis -->
+            <div class="horizontal-label" id="horizontalTeam">
+              <img class="axis-logo" id="homeLogo" src="" alt="" style="display:none;"/>
+              <span id="homeTeamName">Local</span>
+            </div>
             <div class="grid-board" id="gridBoard">
               <!-- Loaded dynamically -->
             </div>
@@ -115,8 +122,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Initializer & View Logic -->
-  <script src="js/firebase-config.js?v=9.0"></script>
-  <script src="js/team-logos.js?v=9.0"></script>
-  <script src="js/player-view.js?v=9.0"></script>
+  <script src="js/firebase-config.js?v=11.0"></script>
+  <script src="js/team-logos.js?v=11.0"></script>
+  <script src="js/player-view.js?v=11.0"></script>
 </body>
 </html>

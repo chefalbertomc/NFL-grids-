@@ -191,28 +191,58 @@
     const sa = two(g.scoreAway || 0);
     const q = g.quarter || 'Q1';
 
+    const homeInfo = window.getTeamInfo ? window.getTeamInfo(home) : { color: '#ffd100', logo: '' };
+    const awayInfo = window.getTeamInfo ? window.getTeamInfo(away) : { color: '#ffd100', logo: '' };
+
     gameTitle.innerHTML = `
       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-        <img src="${window.getTeamLogoURL(away)}" style="width: 32px; height: 32px; object-fit: contain;" alt="${away}"/>
-        <span>${away} ${sa}</span>
-        <span style="color: var(--text-muted); font-size: 0.8em; margin: 0 4px;">vs</span>
-        <span>${sh} ${home}</span>
-        <img src="${window.getTeamLogoURL(home)}" style="width: 32px; height: 32px; object-fit: contain;" alt="${home}"/>
+        <img src="${awayInfo.logo}" style="width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 0 6px ${awayInfo.color});" alt="${away}"/>
+        <span style="color:${awayInfo.color}; font-weight:800;">${away}</span>
+        <span style="color:${awayInfo.color}; font-size:1.1em; font-weight:900;">${sa}</span>
+        <span style="color: var(--text-muted); font-size: 0.85em; margin: 0 2px;">vs</span>
+        <span style="color:${homeInfo.color}; font-size:1.1em; font-weight:900;">${sh}</span>
+        <span style="color:${homeInfo.color}; font-weight:800;">${home}</span>
+        <img src="${homeInfo.logo}" style="width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 0 6px ${homeInfo.color});" alt="${home}"/>
       </div>
-      <div style="font-size: 13px; font-weight: normal; color: var(--text-muted); margin-top: 4px;">
-        Código del Grid: <strong style="color: var(--accent-color);">${g.code || code}</strong> | Estado: <strong>${q}</strong>
+      <div style="font-size: 12px; font-weight: normal; color: var(--text-muted); margin-top: 4px;">
+        Código: <strong style="color: var(--accent-color);">${g.code || code}</strong> &nbsp;|&nbsp; <strong>${q}</strong>
       </div>
     `;
-    
-    if (verticalTeam) verticalTeam.textContent = away;
-    if (horizontalTeam) horizontalTeam.textContent = home;
+
+    // Apply team colors to CSS variables on the grid wrapper
+    const gridWrapper = document.querySelector('.grid-wrapper');
+    if (gridWrapper) {
+      gridWrapper.style.setProperty('--team-home-color', homeInfo.color);
+      gridWrapper.style.setProperty('--team-away-color', awayInfo.color);
+    }
+
+    // Update axis labels with logos
+    const awayLogoEl = document.getElementById('awayLogo');
+    const awayNameEl = document.getElementById('awayTeamName');
+    const homeLogoEl = document.getElementById('homeLogo');
+    const homeNameEl = document.getElementById('homeTeamName');
+
+    if (awayLogoEl && awayInfo.logo) {
+      awayLogoEl.src = awayInfo.logo;
+      awayLogoEl.alt = away;
+      awayLogoEl.style.display = 'block';
+    }
+    if (awayNameEl) awayNameEl.textContent = away;
+
+    if (homeLogoEl && homeInfo.logo) {
+      homeLogoEl.src = homeInfo.logo;
+      homeLogoEl.alt = home;
+      homeLogoEl.style.display = 'block';
+    }
+    if (homeNameEl) homeNameEl.textContent = home;
+
     if (lockBadge) {
       if (g.locked) {
         lockBadge.textContent = '🔒 BLOQUEADO';
-        lockBadge.className = 'badge badge-danger';
+        lockBadge.className = 'badge danger';
+        lockBadge.style.display = 'inline-flex';
       } else {
-        lockBadge.textContent = '⚡ ABIERTO';
-        lockBadge.className = 'badge badge-success';
+        lockBadge.style.display = 'none';
       }
     }
 

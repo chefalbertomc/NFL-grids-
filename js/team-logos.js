@@ -1,4 +1,4 @@
-// Shared NFL Team Logos Utility for Wings & Wins
+// Shared NFL Team Logos & Colors Utility for Wings & Wins
 (function() {
   'use strict';
 
@@ -37,14 +37,43 @@
     'commanders': 'wsh', 'washington': 'wsh'
   };
 
-  window.getTeamLogoURL = function(teamName) {
-    if (!teamName) return 'https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png';
+  const TEAM_COLORS = {
+    'ari': '#97233F', 'atl': '#A71930', 'bal': '#241773', 'buf': '#00338D',
+    'car': '#0085CA', 'chi': '#0B162A', 'cin': '#FB4F14', 'cle': '#FF3C00',
+    'dal': '#003594', 'den': '#FB4F14', 'det': '#0076B6', 'gb':  '#203731',
+    'hou': '#03202F', 'ind': '#002C5F', 'jax': '#006778', 'kc':  '#E31837',
+    'lv':  '#222222', 'lac': '#0080C6', 'lar': '#003594', 'mia': '#008E97',
+    'min': '#4F2683', 'ne':  '#002244', 'no':  '#A08A4A', 'nyg': '#0B2265',
+    'nyj': '#125740', 'phi': '#004C54', 'pit': '#FFB612', 'sf':  '#AA0000',
+    'sea': '#002244', 'tb':  '#D50A0A', 'ten': '#0C2340', 'wsh': '#5A1414'
+  };
+
+  function resolve(teamName) {
+    if (!teamName) return null;
     const clean = teamName.toLowerCase().trim();
     for (const [key, val] of Object.entries(TEAM_MAP)) {
-      if (clean.includes(key)) {
-        return `https://a.espncdn.com/i/teamlogos/nfl/500/${val}.png`;
-      }
+      if (clean.includes(key)) return val;
     }
+    return null;
+  }
+
+  window.getTeamLogoURL = function(teamName) {
+    const abbr = resolve(teamName);
+    if (abbr) return 'https://a.espncdn.com/i/teamlogos/nfl/500/' + abbr + '.png';
     return 'https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png';
+  };
+
+  window.getTeamColor = function(teamName) {
+    const abbr = resolve(teamName);
+    return abbr ? (TEAM_COLORS[abbr] || '#ffd100') : '#ffd100';
+  };
+
+  window.getTeamInfo = function(teamName) {
+    const abbr = resolve(teamName);
+    const color = abbr ? (TEAM_COLORS[abbr] || '#ffd100') : '#ffd100';
+    const logo = abbr
+      ? 'https://a.espncdn.com/i/teamlogos/nfl/500/' + abbr + '.png'
+      : 'https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png';
+    return { abbr, color, logo };
   };
 })();
