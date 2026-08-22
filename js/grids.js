@@ -53,6 +53,27 @@
     if (btnJoinGrid) {
       btnJoinGrid.addEventListener('click', joinGrid);
     }
+
+    const btnMyNick = document.getElementById('btnMyNickSearch');
+    const inpMyNick = document.getElementById('inpMyNickSearch');
+    if (btnMyNick && inpMyNick) {
+      btnMyNick.addEventListener('click', () => {
+        const val = inpMyNick.value.trim();
+        if (val) {
+          localStorage.setItem('player_nick', val.toUpperCase());
+          loadMyGrids();
+        }
+      });
+      inpMyNick.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          const val = inpMyNick.value.trim();
+          if (val) {
+            localStorage.setItem('player_nick', val.toUpperCase());
+            loadMyGrids();
+          }
+        }
+      });
+    }
   }
 
   async function loadGrids() {
@@ -297,41 +318,19 @@
   async function loadMyGrids() {
     if (!db || !myGridsList) return;
 
+    const inpMyNick = document.getElementById('inpMyNickSearch');
     let savedNick = (localStorage.getItem('player_nick') || '').trim();
+    
+    if (inpMyNick && savedNick && !inpMyNick.value) {
+      inpMyNick.value = savedNick.toUpperCase();
+    }
+
+    if (!savedNick && inpMyNick && inpMyNick.value) {
+      savedNick = inpMyNick.value.trim();
+    }
 
     if (!savedNick) {
-      myGridsList.innerHTML = `
-        <div style="background: rgba(255,255,255,0.02); border: 1px dashed var(--border-color); border-radius: 14px; padding: 16px; text-align: center;">
-          <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
-            🔍 ¿Ya tienes registro o fuiste aprobado? Escribe tu apodo:
-          </div>
-          <div style="display: flex; gap: 8px; justify-content: center; max-width: 340px; margin: 0 auto; flex-wrap: wrap;">
-            <input type="text" id="inpMyNickSearch" placeholder="Tu Apodo (ej. BETO)" style="margin: 0; padding: 8px 12px; font-size: 13px; border-radius: 10px; flex: 1; min-width: 140px;" />
-            <button id="btnMyNickSearch" class="btn btn-primary" style="width: auto; padding: 8px 16px; font-size: 13px;">Buscar</button>
-          </div>
-        </div>
-      `;
-
-      const inpSearch = document.getElementById('inpMyNickSearch');
-      const btnSearch = document.getElementById('btnMyNickSearch');
-      if (btnSearch && inpSearch) {
-        btnSearch.addEventListener('click', () => {
-          const val = inpSearch.value.trim();
-          if (val) {
-            localStorage.setItem('player_nick', val);
-            loadMyGrids();
-          }
-        });
-        inpSearch.addEventListener('keypress', (e) => {
-          if (e.key === 'Enter') {
-            const val = inpSearch.value.trim();
-            if (val) {
-              localStorage.setItem('player_nick', val);
-              loadMyGrids();
-            }
-          }
-        });
-      }
+      myGridsList.innerHTML = '<div class="text-center hint-text py-3">👆 Escribe tu apodo arriba y toca <strong>Buscar</strong> para ver tus grids.</div>';
       return;
     }
 
@@ -362,45 +361,14 @@
 
       if (activeRegistrations.length === 0) {
         myGridsList.innerHTML = `
-          <div style="background: rgba(255,255,255,0.02); border: 1px dashed var(--border-color); border-radius: 14px; padding: 14px; text-align: center;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-              <span style="font-size: 13px; color: var(--text-muted);">👤 Buscando como: <strong style="color: #ffd100;">${savedNick}</strong></span>
-              <button id="btnChangeNick" class="btn btn-secondary" style="width: auto; padding: 2px 8px; font-size: 11px;">Cambiar</button>
-            </div>
-            <div class="hint-text py-2">— No se encontraron registros con este apodo todavía —</div>
+          <div class="text-center hint-text py-3" style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 12px;">
+            — No se encontraron registros con el apodo <strong style="color:#ffd100;">"${savedNick}"</strong>. Si acabas de unirte, espera a que el mesero te apruebe. —
           </div>
         `;
-        const btnChange = document.getElementById('btnChangeNick');
-        if (btnChange) {
-          btnChange.addEventListener('click', () => {
-            localStorage.removeItem('player_nick');
-            localStorage.removeItem('bww_player_id');
-            loadMyGrids();
-          });
-        }
         return;
       }
 
-      myGridsList.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 4px;">
-          <span style="font-size: 12px; color: var(--text-muted);">
-            👤 Registrado como: <strong style="color: #ffd100; font-size: 13px;">${savedNick || activeRegistrations[0].player.nickname}</strong>
-          </span>
-          <button id="btnChangeNick" class="btn btn-secondary" style="width: auto; padding: 3px 8px; font-size: 11px;" title="Cambiar apodo">
-            Cambiar
-          </button>
-        </div>
-      `;
-
-      const btnChange = document.getElementById('btnChangeNick');
-      if (btnChange) {
-        btnChange.addEventListener('click', () => {
-          localStorage.removeItem('player_nick');
-          localStorage.removeItem('bww_player_id');
-          loadMyGrids();
-        });
-      }
-
+      myGridsList.innerHTML = '';
       activeRegistrations.forEach(item => {
         const g = item.game;
         const p = item.player;
