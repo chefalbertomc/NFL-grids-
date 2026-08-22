@@ -209,14 +209,23 @@
   }
 
   function updateGameHeader(g) {
-    if (!gameTitle) return;
     const home = g.homeTeam || g.home || 'Local';
     const away = g.awayTeam || g.away || 'Visitante';
 
     const homeInfo = window.getTeamInfo ? window.getTeamInfo(home) : { color: '#ffd100', logo: '' };
     const awayInfo = window.getTeamInfo ? window.getTeamInfo(away) : { color: '#ffd100', logo: '' };
 
-    gameTitle.innerHTML = `<span style="color:#ffffff; font-weight:900; letter-spacing:0.04em;">FOOTBALL GRIDS</span> <span style="color:#ffd100; font-weight:900;">${g.code || code}</span> ${g.store ? `<span class="badge accent" style="font-size:11px; vertical-align:middle; margin-left:6px;">${g.store}</span>` : ''}`;
+    const gameCodeDisplay = document.getElementById('gameCodeDisplay');
+    const gameStoreDisplay = document.getElementById('gameStoreDisplay');
+    if (gameCodeDisplay) gameCodeDisplay.textContent = g.code || code;
+    if (gameStoreDisplay) {
+      if (g.store) {
+        gameStoreDisplay.textContent = g.store;
+        gameStoreDisplay.style.display = 'inline-block';
+      } else {
+        gameStoreDisplay.style.display = 'none';
+      }
+    }
 
     // Apply team colors to CSS variables on the grid wrapper
     const gridWrapper = document.querySelector('.grid-wrapper');
@@ -323,50 +332,46 @@
   }
 
   function updatePlayerUI() {
-    if (whoamiEl) {
-      if (activePlayer) {
-        whoamiEl.textContent = `Jugador: ${activePlayer.nickname}`;
-        whoamiEl.style.color = 'var(--accent-color)';
-      } else if (pendingPlayers.length > 0) {
-        whoamiEl.textContent = `Solicitud Pendiente (${pendingPlayers[0].nickname})`;
-        whoamiEl.style.color = 'var(--text-muted)';
-      } else {
-        whoamiEl.textContent = 'Selecciona tu Apodo';
-        whoamiEl.style.color = 'var(--text-muted)';
-      }
-    }
-
     const quota = activePlayer ? Number(activePlayer.quota || 0) : 0;
     const taken = activePlayer ? Number(activePlayer.taken || 0) : 0;
+
+    if (quotaInfo) {
+      quotaInfo.textContent = `${taken}/${quota} usados`;
+    }
 
     const statusText = document.getElementById('selection-status-text');
     if (statusText) {
       if (activePlayer) {
         const remaining = Math.max(0, quota - taken);
         if (remaining > 0) {
-          statusText.innerHTML = `<span class="badge" style="background:rgba(255,209,0,0.12); color:#ffd100; border:1px solid rgba(255,209,0,0.4); font-size:12px; padding:4px 10px;">🏈 Te quedan <strong style="font-size:14px; color:#ffffff;">${remaining}</strong> casillas por escoger</span>`;
+          statusText.innerHTML = `<span class="badge" style="background:rgba(255,209,0,0.12); color:#ffd100; border:1px solid rgba(255,209,0,0.4); font-size:12.5px; padding:4px 10px;">🏈 Te quedan <strong style="font-size:14px; color:#ffffff;">${remaining}</strong> casillas por escoger</span>`;
         } else {
-          statusText.innerHTML = `<span class="badge" style="background:rgba(0,230,118,0.12); color:#00e676; border:1px solid rgba(0,230,118,0.4); font-size:12px; padding:4px 10px;">✅ ¡Listo! Has seleccionado tus <strong style="font-size:14px; color:#ffffff;">${quota}</strong> casillas</span>`;
+          statusText.innerHTML = `<span class="badge" style="background:rgba(0,230,118,0.12); color:#00e676; border:1px solid rgba(0,230,118,0.4); font-size:12.5px; padding:4px 10px;">✅ ¡Listo! Has seleccionado tus <strong style="font-size:14px; color:#ffffff;">${quota}</strong> casillas</span>`;
         }
       } else if (pendingPlayers.length > 0) {
-        statusText.innerHTML = `<span class="badge danger" style="font-size:12px; padding:4px 10px;">⏳ Tu registro está pendiente de aprobación por el administrador</span>`;
+        statusText.innerHTML = `<span class="badge danger" style="font-size:12.5px; padding:4px 10px;">⏳ Tu registro está pendiente de aprobación por el administrador</span>`;
       } else {
-        statusText.innerHTML = `<span style="font-size:12px; color:var(--text-muted);">📌 Elige tu apodo arriba para seleccionar tus casillas</span>`;
+        statusText.innerHTML = `<span style="font-size:12.5px; color:var(--text-muted);">📌 Elige tu apodo arriba para seleccionar tus casillas</span>`;
       }
     }
 
     // Toggle dropdown if approved players exist
-    if (approvedPlayers.length > 0 && nickChooser) {
-      nickChooser.style.display = 'inline-block';
-      nickChooser.innerHTML = '<option value="">-- Elige tu Apodo --</option>';
-      approvedPlayers.forEach(p => {
-        const o = document.createElement('option');
-        o.value = p.id;
-        o.textContent = `${p.nickname} (${p.taken}/${p.quota} cuadros)`;
-        nickChooser.appendChild(o);
-      });
-      if (activePlayer) {
-        nickChooser.value = activePlayer.id;
+    if (nickChooser) {
+      if (approvedPlayers.length > 0) {
+        nickChooser.innerHTML = '';
+        approvedPlayers.forEach(p => {
+          const o = document.createElement('option');
+          o.value = p.id;
+          o.textContent = `${p.nickname} (${p.taken}/${p.quota} cuadros)`;
+          nickChooser.appendChild(o);
+        });
+        if (activePlayer) {
+          nickChooser.value = activePlayer.id;
+        }
+      } else if (pendingPlayers.length > 0) {
+        nickChooser.innerHTML = `<option value="">${pendingPlayers[0].nickname} (Pendiente)</option>`;
+      } else {
+        nickChooser.innerHTML = '<option value="">Sin registros</option>';
       }
       
       // Update handler
@@ -374,11 +379,12 @@
         const selectedId = nickChooser.value;
         if (selectedId) {
           activePlayer = approvedPlayers.find(p => p.id === selectedId) || null;
-          localStorage.setItem('bww_player_id', selectedId);
-          
           if (activePlayer) {
+            localStorage.setItem('bww_player_id', activePlayer.id);
+            localStorage.setItem('player_nick', activePlayer.nickname);
             const newUrl = new URL(window.location.href);
             newUrl.searchParams.set('pid', activePlayer.id);
+            newUrl.searchParams.set('nick', activePlayer.nickname);
             window.history.replaceState(null, '', newUrl.toString());
           }
         } else {
@@ -388,8 +394,6 @@
         updatePlayerUI();
         if (game) renderGrid(game);
       };
-    } else if (nickChooser) {
-      nickChooser.style.display = 'none';
     }
   }
 
