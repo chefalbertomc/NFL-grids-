@@ -312,6 +312,11 @@
     ];
     quarters.forEach(({ key, nameId, scoreId, cardId }) => {
       const winner = g[`${key}_winner`];
+      const score  = g[`${key}_score`];
+      const nameEl  = document.getElementById(nameId);
+      const scoreEl = document.getElementById(scoreId);
+      const card    = document.getElementById(cardId);
+
       if (nameEl) {
         if (winner && winner !== 'Nadie' && winner !== '—') {
           nameEl.innerHTML = `<span style="color:#ffd100; font-size:17px; font-weight:900;">🏆 ${winner}</span>`;
