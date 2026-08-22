@@ -1065,9 +1065,9 @@
         lastEspnSync: Date.now()
       };
 
-      // Calculate quarter winner function
-      // Build merged cell map from approved players' picks so we can find the actual winner name
-      const topNums = g.numsTop || [];\n      const leftNums = g.numsLeft || [];
+      // Build merged cell map from approved players' picks to find actual winner name
+      const topNums = g.numsTop || [];
+      const leftNums = g.numsLeft || [];
       let mergedCells = { ...(g.cells || {}) };
       try {
         const playersSnap = await ref.collection('players').get();
