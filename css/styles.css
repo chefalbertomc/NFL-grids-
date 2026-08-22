@@ -624,70 +624,14 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* =============================================
-   NFL TV Broadcast Scorebug Banner
+   NFL TV Broadcast Scorebug Banner (Modern Sleek Edition)
    ============================================= */
 .tv-scorebug-wrapper {
-  margin: 14px 0 18px 0;
+  margin: 12px 0 16px 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   width: 100%;
-}
-
-.tv-scorebug-top-tab {
-  background: linear-gradient(180deg, #1b263b 0%, #0d1b2a 100%);
-  border: 1px solid #415a77;
-  border-bottom: none;
-  border-radius: 8px 8px 0 0;
-  padding: 4px 16px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.4);
-  z-index: 2;
-  margin-bottom: -1px;
-}
-
-.tv-scorebug-top-tab img {
-  height: 18px;
-  width: auto;
-  object-fit: contain;
-  border-radius: 4px;
-}
-
-.tv-scorebug-top-tab .tv-network-title {
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  color: #ffd100;
-  text-transform: uppercase;
-}
-
-.tv-scorebug-top-tab .tv-live-pill {
-  background: #d90429;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 900;
-  padding: 1px 6px;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  letter-spacing: 0.05em;
-}
-
-.tv-live-pill .live-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #fff;
-  display: inline-block;
-  animation: tvPulse 1.5s infinite;
-}
-
-@keyframes tvPulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.3; transform: scale(0.85); }
 }
 
 .tv-scorebug-main {
@@ -695,11 +639,12 @@ input:focus, select:focus, textarea:focus {
   align-items: stretch;
   justify-content: center;
   width: 100%;
+  max-width: 680px;
   background: #0b0f19;
   border: 2px solid #2b3a4a;
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.15);
   position: relative;
 }
 
@@ -709,7 +654,7 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 8px 14px;
   background: linear-gradient(135deg, var(--team-bg, #1a2230) 0%, rgba(10, 14, 22, 0.95) 100%);
   position: relative;
   transition: all 0.3s ease;
@@ -737,8 +682,8 @@ input:focus, select:focus, textarea:focus {
 }
 
 .tv-team-logo-frame {
-  width: clamp(34px, 5vw, 48px);
-  height: clamp(34px, 5vw, 48px);
+  width: clamp(36px, 5.5vw, 48px);
+  height: clamp(36px, 5.5vw, 48px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -752,44 +697,35 @@ input:focus, select:focus, textarea:focus {
   object-fit: contain;
 }
 
-.tv-team-names {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-.tv-team-wing.tv-home .tv-team-names {
-  text-align: right;
-}
-
-.tv-team-mascot {
-  font-size: clamp(13px, 2.8vw, 18px);
+/* Huge Abbreviation */
+.tv-team-abbr-huge {
+  font-size: clamp(20px, 4.5vw, 30px);
   font-weight: 900;
-  color: #fff;
+  color: #ffffff;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.9);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
 }
 
 .tv-team-score {
-  font-size: clamp(26px, 6vw, 42px);
+  font-size: clamp(28px, 6.5vw, 44px);
   font-weight: 900;
   color: #ffffff;
-  min-width: 40px;
+  min-width: 44px;
   text-align: center;
   font-family: 'Outfit', sans-serif;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.9);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.95);
   padding: 0 4px;
   flex-shrink: 0;
+  line-height: 1;
 }
 
 /* Center Clock & Game Status Segment */
 .tv-center-segment {
   flex: 0.9;
-  min-width: 100px;
+  min-width: 110px;
   max-width: 150px;
   background: linear-gradient(180deg, #161f2e 0%, #0d131d 100%);
   display: flex;
@@ -800,6 +736,7 @@ input:focus, select:focus, textarea:focus {
   text-align: center;
   border-left: 1px solid rgba(255, 255, 255, 0.08);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
 }
 
 .tv-clock-quarter {
@@ -808,13 +745,14 @@ input:focus, select:focus, textarea:focus {
   justify-content: center;
   gap: 6px;
   font-weight: 900;
+  line-height: 1.1;
 }
 
 .tv-quarter-text {
   font-size: clamp(12px, 2.2vw, 15px);
   color: #ffd100;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
 }
 
 .tv-clock-text {
@@ -832,7 +770,7 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid rgba(0, 230, 118, 0.3);
   border-radius: 4px;
   padding: 2px 6px;
-  margin-top: 4px;
+  margin-top: 3px;
   white-space: nowrap;
   text-transform: uppercase;
 }
@@ -844,10 +782,20 @@ input:focus, select:focus, textarea:focus {
   animation: tvPulse 1s infinite;
 }
 
-.tv-possession-football {
-  display: inline-block;
-  font-size: 11px;
-  margin-left: 4px;
+.tv-center-brand {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+
+.tv-center-brand img {
+  height: 20px;
+  width: auto;
+  object-fit: contain;
+  border-radius: 4px;
+  filter: drop-shadow(0 0 6px rgba(255, 209, 0, 0.4));
+}
+
 
 

@@ -255,14 +255,12 @@
 
       const awayWing = document.getElementById('playerTvAwayWing');
       const awayLogo = document.getElementById('playerTvAwayLogo');
-      const awayCity = document.getElementById('playerTvAwayCity');
-      const awayMascot = document.getElementById('playerTvAwayMascot');
+      const awayAbbr = document.getElementById('playerTvAwayAbbr');
       const awayScore = document.getElementById('playerTvAwayScore');
 
       const homeWing = document.getElementById('playerTvHomeWing');
       const homeLogo = document.getElementById('playerTvHomeLogo');
-      const homeCity = document.getElementById('playerTvHomeCity');
-      const homeMascot = document.getElementById('playerTvHomeMascot');
+      const homeAbbr = document.getElementById('playerTvHomeAbbr');
       const homeScore = document.getElementById('playerTvHomeScore');
 
       const tvQuarter = document.getElementById('playerTvQuarter');
@@ -271,14 +269,12 @@
 
       if (awayWing) awayWing.style.setProperty('--team-bg', awayInfo.color);
       if (awayLogo) { awayLogo.src = awayInfo.logo; awayLogo.alt = away; }
-      if (awayCity) awayCity.textContent = away;
-      if (awayMascot) awayMascot.textContent = (awayInfo.abbr || away).toUpperCase();
+      if (awayAbbr) awayAbbr.textContent = (awayInfo.abbr || away.substring(0, 3)).toUpperCase();
       if (awayScore) awayScore.textContent = g.scoreAway ?? 0;
 
       if (homeWing) homeWing.style.setProperty('--team-bg', homeInfo.color);
       if (homeLogo) { homeLogo.src = homeInfo.logo; homeLogo.alt = home; }
-      if (homeCity) homeCity.textContent = home;
-      if (homeMascot) homeMascot.textContent = (homeInfo.abbr || home).toUpperCase();
+      if (homeAbbr) homeAbbr.textContent = (homeInfo.abbr || home.substring(0, 3)).toUpperCase();
       if (homeScore) homeScore.textContent = g.scoreHome ?? 0;
 
       if (tvQuarter) tvQuarter.textContent = g.periodName || g.quarter || 'Q1';
