@@ -82,7 +82,9 @@
           away: away,
           store: d.store || d.tienda || '',
           locked: !!d.locked,
-          free: free
+          cells: d.cells || {},
+          size: d.size || 10,
+          free: typeof d.free !== 'undefined' ? d.free : (d.size || 100) - Object.keys(d.cells || {}).length
         });
 
         if (d.store || d.tienda) {
