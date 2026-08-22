@@ -298,10 +298,8 @@
     if (!db || !myGridsList) return;
 
     let savedNick = (localStorage.getItem('player_nick') || '').trim();
-    const savedPlayerId = localStorage.getItem('bww_player_id');
-    const userUid = user ? user.uid : null;
 
-    if (!savedNick && !savedPlayerId && !userUid) {
+    if (!savedNick) {
       myGridsList.innerHTML = `
         <div style="background: rgba(255,255,255,0.02); border: 1px dashed var(--border-color); border-radius: 14px; padding: 16px; text-align: center;">
           <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 10px;">
@@ -348,13 +346,8 @@
           playersSnap.forEach(pdoc => {
             const p = pdoc.data() || {};
             const pNick = (p.nickname || p.name || '').trim().toLowerCase();
-            const pId = p.playerId || '';
 
-            const isMatch = (matchNickLower && pNick === matchNickLower) ||
-                            (savedPlayerId && (pdoc.id === savedPlayerId || pId === savedPlayerId)) ||
-                            (userUid && (pId === userUid || pdoc.id === userUid));
-
-            if (isMatch) {
+            if (pNick === matchNickLower) {
               activeRegistrations.push({
                 code: g.code,
                 game: g,
@@ -371,7 +364,7 @@
         myGridsList.innerHTML = `
           <div style="background: rgba(255,255,255,0.02); border: 1px dashed var(--border-color); border-radius: 14px; padding: 14px; text-align: center;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
-              <span style="font-size: 13px; color: var(--text-muted);">👤 Apodo actual: <strong style="color: #ffd100;">${savedNick}</strong></span>
+              <span style="font-size: 13px; color: var(--text-muted);">👤 Buscando como: <strong style="color: #ffd100;">${savedNick}</strong></span>
               <button id="btnChangeNick" class="btn btn-secondary" style="width: auto; padding: 2px 8px; font-size: 11px;">Cambiar</button>
             </div>
             <div class="hint-text py-2">— No se encontraron registros con este apodo todavía —</div>
