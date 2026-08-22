@@ -56,20 +56,6 @@
 
     <!-- 1. ADMIN GRIDS -->
     <main id="admin-grids" class="admin-tab-content">
-      <!-- Real-time Global Pending Inbound Requests (Across all games) -->
-      <section class="card" style="border: 2px solid var(--accent-color); background: rgba(255,209,0,0.03); margin-bottom: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
-          <h3 class="card-title" style="margin: 0; display: inline-flex; align-items: center; gap: 8px; color: var(--accent-color);">
-            ⚡ Bandeja de Solicitudes Entrantes (Tiempo Real)
-          </h3>
-          <span id="pendingCountBadge" class="badge accent" style="font-weight: 800; font-size: 13px;">0 Pendientes</span>
-        </div>
-        <p class="card-subtitle">Cualquier persona que solicite unirse desde su celular aparecerá aquí de inmediato sin importar qué juego tengas seleccionado.</p>
-        <div id="globalPendingList" class="flex-row" style="flex-direction: column; gap: 8px;">
-          <div class="text-center hint-text py-3">— No hay solicitudes pendientes en ningún juego —</div>
-        </div>
-      </section>
-
       <!-- Create Grid Game -->
       <section class="card highlight">
         <h3 class="card-title">Crear Nuevo Grid</h3>
@@ -290,10 +276,10 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=39.0"></script>
-  <script src="js/auth.js?v=39.0"></script>
-  <script src="js/team-logos.js?v=39.0"></script>
-  <script src="js/admin.js?v=39.0"></script>
+  <script src="js/firebase-config.js?v=40.0"></script>
+  <script src="js/auth.js?v=40.0"></script>
+  <script src="js/team-logos.js?v=40.0"></script>
+  <script src="js/admin.js?v=40.0"></script>
 
   <!-- Admin Tab Switching -->
   <script>

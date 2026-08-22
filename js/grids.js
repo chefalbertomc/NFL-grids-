@@ -419,22 +419,56 @@
           </div>
 
           <!-- Bottom Row: Action Buttons -->
-          <div style="display: flex; gap: 8px; align-items: center;">
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <button class="btn btn-secondary" onclick="window.shareGridWhatsApp('${g.code}')" style="width: auto; padding: 10px 14px; font-size: 13px; background: rgba(37,211,102,0.12); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 4px; border-radius: 10px;">
               💬 WhatsApp
             </button>
-            <a class="btn btn-primary" href="player-view.html?code=${encodeURIComponent(g.code)}&pid=${encodeURIComponent(item.docId)}&nick=${encodeURIComponent(p.nickname || p.name)}" style="flex: 1; padding: 10px 16px; font-size: 14px; text-decoration: none; font-weight: 800; text-align: center; border-radius: 10px;">
+            <a class="btn btn-primary" href="player-view.html?code=${encodeURIComponent(g.code)}&pid=${encodeURIComponent(item.docId)}&nick=${encodeURIComponent(p.nickname || p.name)}" style="flex: 1; min-width: 140px; padding: 10px 16px; font-size: 14px; text-decoration: none; font-weight: 800; text-align: center; border-radius: 10px;">
               ${remaining > 0 ? `🎲 Escoger ${remaining} Casillas` : '👁️ Ver Mi Grid'}
             </a>
+            <button class="btn btn-danger" onclick="window.deleteUserGridRegistration('${g.code}', '${item.docId}')" style="width: auto; padding: 10px 12px; font-size: 13px; border-radius: 10px;" title="Borrar este grid de mi celular">
+              🗑️
+            </button>
           </div>
         `;
         myGridsList.appendChild(card);
       });
+
+      const resetBar = document.createElement('div');
+      resetBar.style.cssText = 'text-align: center; margin-top: 10px;';
+      resetBar.innerHTML = `
+        <button class="btn btn-secondary" onclick="window.clearAllMyGrids()" style="font-size: 12px; padding: 6px 14px; width: auto; color: var(--text-muted); border-radius: 20px;">
+          🗑️ Desvincular todos mis grids de este celular
+        </button>
+      `;
+      myGridsList.appendChild(resetBar);
     } catch (e) {
       console.error('[grids] Error loading my grids:', e);
       if (myGridsList) myGridsList.innerHTML = '<div class="text-center hint-text py-2">— Error al cargar tus grids —</div>';
     }
   }
+
+  // Allow user to delete their grid registration
+  window.deleteUserGridRegistration = async function(gameCode, docId) {
+    if (!confirm('¿Deseas eliminar este juego de tus grids aprobados?')) return;
+    try {
+      if (db) {
+        await db.collection('games').doc(gameCode).collection('players').doc(docId).delete();
+      }
+      localStorage.removeItem('bww_player_id');
+      loadMyGrids();
+    } catch (e) {
+      alert('Error al borrar: ' + e.message);
+    }
+  };
+
+  // Allow user to clear their device nickname binding
+  window.clearAllMyGrids = function() {
+    if (!confirm('¿Deseas desvincular tus registros de este dispositivo?')) return;
+    localStorage.removeItem('player_nick');
+    localStorage.removeItem('bww_player_id');
+    loadMyGrids();
+  };
 
   // Expose global share function
   window.shareGridWhatsApp = shareGridWhatsApp;
