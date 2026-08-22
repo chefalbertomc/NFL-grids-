@@ -90,6 +90,19 @@
   }
 
   function startListeners() {
+    const btnSharePlayerWhatsApp = document.getElementById('btnSharePlayerWhatsApp');
+    if (btnSharePlayerWhatsApp) {
+      btnSharePlayerWhatsApp.addEventListener('click', () => {
+        const g = game || {};
+        const home = g.homeTeam || g.home || 'Local';
+        const away = g.awayTeam || g.away || 'Visitante';
+        const host = window.location.origin + window.location.pathname.replace('player-view.html', '').replace('admin.html', '');
+        const joinUrl = `${host}?join=${encodeURIComponent(code || '')}`;
+        const text = `🏈 *¡Únete a nuestro Grid de Drinks & Wins!*\n\n🏆 *Partido:* ${away} @ ${home}\n🔑 *Código:* ${code}\n\n👉 *Toca aquí para registrarte y escoger tus casillas:*\n${joinUrl}`;
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+      });
+    }
+
     firebase.auth().onAuthStateChanged((u) => {
       user = u || null;
       startGameListener();

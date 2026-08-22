@@ -377,14 +377,17 @@
               ${item.isApproved ? '✅ APROBADO' : '⏳ PENDIENTE'}
             </span>
           </div>
-          <div class="flex-between" style="margin-top: 10px;">
+          <div class="flex-between" style="margin-top: 10px; flex-wrap: wrap; gap: 8px;">
             <div>
               <span style="font-weight: 800; font-size: 15px; color: var(--accent-color);">${p.nickname || p.name}</span>
               <span class="badge success" style="margin-left: 8px;">${taken}/${quota} casillas usadas</span>
             </div>
-            <div>
+            <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+              <button class="btn btn-secondary" onclick="window.shareGridWhatsApp('${g.code}')" style="width: auto; padding: 6px 10px; font-size: 12px; background: rgba(37,211,102,0.12); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 4px;">
+                💬 WhatsApp
+              </button>
               ${item.isApproved
-                ? `<a class="btn btn-primary" href="player-view.html?code=${encodeURIComponent(g.code)}&pid=${encodeURIComponent(item.docId)}&nick=${encodeURIComponent(p.nickname || p.name)}" style="width: auto; padding: 8px 16px; font-size: 13px; text-decoration: none; font-weight: 800;">
+                ? `<a class="btn btn-primary" href="player-view.html?code=${encodeURIComponent(g.code)}&pid=${encodeURIComponent(item.docId)}&nick=${encodeURIComponent(p.nickname || p.name)}" style="width: auto; padding: 8px 14px; font-size: 13px; text-decoration: none; font-weight: 800;">
                     ${remaining > 0 ? `🎲 Escoger ${remaining} Casillas` : '👁️ Ver Mi Grid'}
                    </a>`
                 : `<span style="font-size: 12px; color: var(--text-muted);">Espera a que el admin te apruebe</span>`
@@ -399,6 +402,9 @@
       if (myGridsList) myGridsList.innerHTML = '<div class="text-center hint-text py-2">— Error al cargar tus grids —</div>';
     }
   }
+
+  // Expose global share function
+  window.shareGridWhatsApp = shareGridWhatsApp;
 
   // Start initialization
   initGrids();
