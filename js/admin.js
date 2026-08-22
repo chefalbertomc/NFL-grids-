@@ -707,8 +707,7 @@
       const upd = {
         scoreHome: scoreHomeVal,
         scoreAway: scoreAwayVal,
-        quarter: quarter,
-        locked: true // Bloquea automáticamente al guardar el marcador
+        quarter: quarter
       };
 
       // Calculate winner coordinates
@@ -831,7 +830,6 @@
         scoreHome: sHome,
         scoreAway: sAway,
         quarter: statusText,
-        locked: true,
         lastEspnSync: Date.now()
       };
 
