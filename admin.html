@@ -7,8 +7,15 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <link rel="icon" type="image/jpeg" href="img/logo.jpg" />
+  <link rel="apple-touch-icon" href="img/logo.jpg" />
+  <link rel="apple-touch-icon" sizes="180x180" href="img/logo.jpg" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
+  <meta name="theme-color" content="#ffd100" />
   <title>Admin Dashboard — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=17.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=18.0"/>
   <style>
     /* Styling overrides for admin features */
     .admin-tab-content {
@@ -139,10 +146,20 @@
             </div>
           </div>
 
-          <!-- Sync status subtle caption -->
-          <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
-            <span id="espnSyncDot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#00e676; box-shadow:0 0 6px #00e676;"></span>
-            <span id="espnStatus" style="font-size:11px; color:var(--text-muted);">ESPN Auto-Sync activo (cada 30s)</span>
+          <!-- Sync status bar and quick action buttons -->
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%; max-width:650px; margin-top:10px; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span id="espnSyncDot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#00e676; box-shadow:0 0 6px #00e676;"></span>
+              <span id="espnStatus" style="font-size:11px; color:var(--text-muted);">ESPN Auto-Sync activo (cada 15s)</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button id="btnAdminManualSync" class="btn btn-secondary" style="width:auto; padding:4px 10px; font-size:12px;" title="Forzar sincronización inmediata de ESPN">
+                🔄 Sincronizar Ahora
+              </button>
+              <button id="btnAdminShareWhatsApp" class="btn btn-secondary" style="width:auto; padding:4px 10px; font-size:12px; background: rgba(37,211,102,0.15); border-color:#25D366; color:#25D366;" title="Enviar enlace de este Grid por WhatsApp">
+                💬 Compartir por WhatsApp
+              </button>
+            </div>
           </div>
         </div>
 

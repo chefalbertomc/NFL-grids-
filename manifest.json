@@ -1,0 +1,18 @@
+{
+  "name": "Drinks & Wins by Beto",
+  "short_name": "Drinks&Wins",
+  "description": "Juegos de Bar en tu Celular — NFL Grids, Quinielas y Más",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0a0e17",
+  "theme_color": "#ffd100",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "img/logo.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

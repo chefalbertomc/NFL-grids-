@@ -103,6 +103,12 @@
       }
 
       renderGrids();
+
+      // Check if URL has ?join=CODE
+      const urlJoin = new URLSearchParams(window.location.search).get('join');
+      if (urlJoin && ALL_GRIDS.some(x => x.code === urlJoin.toUpperCase())) {
+        selectGrid(urlJoin.toUpperCase());
+      }
     } catch (e) {
       console.error('[grids] Error loading grids:', e);
       if (gridsList) {
@@ -148,7 +154,10 @@
               ${g.locked ? '<span class="badge danger">Bloqueado</span>' : ''}
             </div>
           </div>
-          <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <div style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center;">
+            <button class="btn btn-secondary" data-share-code="${g.code}" title="Compartir enlace de registro por WhatsApp" style="width: auto; padding: 6px 10px; font-size: 12px; background: rgba(37,211,102,0.12); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 4px;">
+              💬 WhatsApp
+            </button>
             <a href="player-view.html?code=${g.code}" class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 13px; text-decoration: none;">
               👁️ Ver Tablero
             </a>
@@ -168,6 +177,23 @@
         selectGrid(code);
       });
     });
+
+    gridsList.querySelectorAll('[data-share-code]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const code = btn.getAttribute('data-share-code');
+        shareGridWhatsApp(code);
+      });
+    });
+  }
+
+  function shareGridWhatsApp(code) {
+    const g = ALL_GRIDS.find(x => x.code === code);
+    const host = window.location.origin + window.location.pathname.replace('admin.html', '').replace('player-view.html', '');
+    const joinUrl = `${host}?join=${encodeURIComponent(code)}`;
+    const matchName = g ? `${g.away} @ ${g.home}` : 'NFL Grid';
+    const text = `🏈 *¡Únete a nuestro Grid de Drinks & Wins!*\n\n🏆 *Partido:* ${matchName}\n🔑 *Código:* ${code}\n\n👉 *Toca aquí para registrarte y escoger tus casillas:*\n${joinUrl}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   }
 
   function selectGrid(code) {

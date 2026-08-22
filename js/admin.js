@@ -352,6 +352,33 @@
     const btnSearchGames = document.getElementById('btnSearchGames');
     if (btnSearchGames) btnSearchGames.addEventListener('click', searchEspnGames);
 
+    const btnAdminManualSync = document.getElementById('btnAdminManualSync');
+    if (btnAdminManualSync) {
+      btnAdminManualSync.addEventListener('click', async () => {
+        btnAdminManualSync.disabled = true;
+        btnAdminManualSync.textContent = '🔄 Sincronizando...';
+        await syncEspnScore(true);
+        btnAdminManualSync.disabled = false;
+        btnAdminManualSync.textContent = '🔄 Sincronizar Ahora';
+      });
+    }
+
+    const btnAdminShareWhatsApp = document.getElementById('btnAdminShareWhatsApp');
+    if (btnAdminShareWhatsApp) {
+      btnAdminShareWhatsApp.addEventListener('click', () => {
+        if (!currentGridCode) {
+          alert('Primero carga un juego en el menú desplegable para compartir su enlace.');
+          return;
+        }
+        const host = window.location.origin + window.location.pathname.replace('admin.html', '').replace('player-view.html', '');
+        const joinUrl = `${host}?join=${encodeURIComponent(currentGridCode)}`;
+        const home = (currentGame && (currentGame.homeTeam || currentGame.home)) || 'Local';
+        const away = (currentGame && (currentGame.awayTeam || currentGame.away)) || 'Visitante';
+        const text = `🏈 *¡Únete a nuestro Grid de Drinks & Wins!*\n\n🏆 *Partido:* ${away} @ ${home}\n🔑 *Código:* ${currentGridCode}\n\n👉 *Toca aquí para registrarte y escoger tus casillas:*\n${joinUrl}`;
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+      });
+    }
+
     // Quarter Selection Handler
     document.querySelectorAll('.btn-q').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -1071,7 +1098,7 @@
     if (espnTimer) clearInterval(espnTimer);
     _lastSavedQuarter = null;
     syncEspnScore(false);
-    espnTimer = setInterval(() => syncEspnScore(false), 30000); // every 30 seconds
+    espnTimer = setInterval(() => syncEspnScore(false), 15000); // every 15 seconds
   }
 
   function stopAutoSync() {
