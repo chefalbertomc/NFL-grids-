@@ -111,14 +111,17 @@
 
         <!-- Scores & Quarter -->
         <div class="card" style="background: rgba(0,0,0,0.15); border-color: rgba(255,255,255,0.03);">
-          <h4 style="font-size: 14px; margin-bottom: 8px;">Actualizar Marcador de Juego</h4>
-          
-          <div class="flex-row" style="margin-bottom: 12px; flex-wrap: wrap; gap: 6px;">
-            <button class="btn btn-secondary btn-q active" data-q="Q1" style="width: auto; padding: 6px 12px; font-size: 12px;">Q1</button>
-            <button class="btn btn-secondary btn-q" data-q="HT" style="width: auto; padding: 6px 12px; font-size: 12px;">HT (Medio T.)</button>
-            <button class="btn btn-secondary btn-q" data-q="Q3" style="width: auto; padding: 6px 12px; font-size: 12px;">Q3</button>
-            <button class="btn btn-secondary btn-q" data-q="FT" style="width: auto; padding: 6px 12px; font-size: 12px;">FT (Final)</button>
+          <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom: 12px;">
+            <h4 style="font-size: 14px; margin:0;">Marcador en Vivo</h4>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span id="espnSyncDot" style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#00e676; box-shadow:0 0 8px #00e676; animation: pulse 1.5s infinite;"></span>
+              <span id="espnStatus" style="font-size:12px; color:var(--text-muted);">ESPN Auto-Sync activo</span>
+            </div>
           </div>
+
+          <style>
+            @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+          </style>
 
           <div class="flex-row" style="justify-content: center; align-items: center; gap: 10px;">
             <span id="nameAway" style="font-weight: 800; text-align: right; flex: 1;">Away</span>
@@ -127,18 +130,9 @@
             <input id="scoreHome" type="number" value="0" style="width: 60px; text-align: center; font-size: 18px; padding: 6px;"/>
             <span id="nameHome" style="font-weight: 800; text-align: left; flex: 1;">Home</span>
           </div>
-
-          <button id="btnSaveScore" class="btn btn-primary mt-4">Guardar Marcador y Calcular Ganador</button>
-
-          <div class="flex-row" style="margin-top:12px; background: rgba(255, 209, 0, 0.08); padding: 10px 14px; border-radius: 8px; border: 1px solid var(--primary-color); justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-            <span style="font-weight: bold; color: #ffd100;">⚡ ESPN Live:</span>
-            <button id="btnSyncEspn" class="btn btn-primary" style="width: auto; padding: 6px 14px; font-size: 13px;">Sincronizar ESPN ahora</button>
-            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:13px; color: var(--text-color);">
-              <input type="checkbox" id="chkAutoSyncEspn" style="width:16px; height:16px; cursor:pointer" />
-              Auto-sincronizar en vivo (cada 2s)
-            </label>
-            <span id="espnStatus" class="hint-text" style="font-size: 12px; color: var(--text-muted);"></span>
-          </div>
+          <p style="font-size:11px; color:var(--text-muted); margin-top:8px; text-align:center;">
+            El marcador y los ganadores de cada cuarto se actualizan solos desde ESPN cada 30 segundos.
+          </p>
         </div>
 
         <!-- Visual Grid -->

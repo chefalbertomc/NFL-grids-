@@ -246,26 +246,53 @@
       }
     }
 
-    // Update Winners History Widgets
-    const q1Name = document.getElementById('q1-winner-name');
-    const q1Score = document.getElementById('q1-winner-score');
-    if (q1Name) q1Name.textContent = g.q1_winner || 'Nadie';
-    if (q1Score) q1Score.textContent = g.q1_score ? 'Score: ' + g.q1_score : 'Score: —';
+    // --- Live Score Banner ---
+    const banner = document.getElementById('live-score-banner');
+    if (banner) {
+      banner.style.display = 'block';
+      const awayLogo = document.getElementById('score-away-logo');
+      const awayName = document.getElementById('score-away-name');
+      const awayVal  = document.getElementById('score-away-val');
+      const homeLogo = document.getElementById('score-home-logo');
+      const homeName = document.getElementById('score-home-name');
+      const homeVal  = document.getElementById('score-home-val');
+      const quarterEl = document.getElementById('score-quarter');
 
-    const q2Name = document.getElementById('q2-winner-name');
-    const q2Score = document.getElementById('q2-winner-score');
-    if (q2Name) q2Name.textContent = g.q2_winner || 'Nadie';
-    if (q2Score) q2Score.textContent = g.q2_score ? 'Score: ' + g.q2_score : 'Score: —';
+      if (awayLogo) { awayLogo.src = awayInfo.logo; awayLogo.style.filter = `drop-shadow(0 0 8px ${awayInfo.color})`; }
+      if (awayName) { awayName.textContent = away; awayName.style.color = awayInfo.color; }
+      if (awayVal)  { awayVal.textContent = sa; awayVal.style.color = awayInfo.color; }
+      if (homeLogo) { homeLogo.src = homeInfo.logo; homeLogo.style.filter = `drop-shadow(0 0 8px ${homeInfo.color})`; }
+      if (homeName) { homeName.textContent = home; homeName.style.color = homeInfo.color; }
+      if (homeVal)  { homeVal.textContent = sh; homeVal.style.color = homeInfo.color; }
+      if (quarterEl) quarterEl.textContent = q;
+    }
 
-    const q3Name = document.getElementById('q3-winner-name');
-    const q3Score = document.getElementById('q3-winner-score');
-    if (q3Name) q3Name.textContent = g.q3_winner || 'Nadie';
-    if (q3Score) q3Score.textContent = g.q3_score ? 'Score: ' + g.q3_score : 'Score: —';
+    // --- Winner Cards ---
+    const quarters = [
+      { key: 'q1', nameId: 'q1-winner-name', scoreId: 'q1-winner-score', cardId: 'q1-card', label: '1er Cuarto' },
+      { key: 'q2', nameId: 'q2-winner-name', scoreId: 'q2-winner-score', cardId: 'q2-card', label: 'Medio Tiempo' },
+      { key: 'q3', nameId: 'q3-winner-name', scoreId: 'q3-winner-score', cardId: 'q3-card', label: '3er Cuarto' },
+      { key: 'q4', nameId: 'q4-winner-name', scoreId: 'q4-winner-score', cardId: 'q4-card', label: 'Final' },
+    ];
+    quarters.forEach(({ key, nameId, scoreId, cardId }) => {
+      const winner = g[`${key}_winner`];
+      const score  = g[`${key}_score`];
+      const nameEl  = document.getElementById(nameId);
+      const scoreEl = document.getElementById(scoreId);
+      const card    = document.getElementById(cardId);
 
-    const q4Name = document.getElementById('q4-winner-name');
-    const q4Score = document.getElementById('q4-winner-score');
-    if (q4Name) q4Name.textContent = g.q4_winner || 'Nadie';
-    if (q4Score) q4Score.textContent = g.q4_score ? 'Score: ' + g.q4_score : 'Score: —';
+      if (nameEl) nameEl.textContent = winner || '—';
+      if (scoreEl) scoreEl.textContent = score ? score : '';
+
+      if (card) {
+        const hasWinner = winner && winner !== 'Nadie' && winner !== '—';
+        card.style.borderColor = hasWinner ? 'var(--accent-color)' : 'var(--border-color)';
+        card.style.background = hasWinner
+          ? 'rgba(255,209,0,0.07)'
+          : 'rgba(255,255,255,0.02)';
+        if (nameEl) nameEl.style.color = hasWinner ? 'var(--accent-color)' : 'var(--text-muted)';
+      }
+    });
   }
 
   function updatePlayerUI() {

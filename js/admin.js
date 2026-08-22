@@ -345,9 +345,6 @@
     if (btnGen) btnGen.addEventListener('click', generateGridNumbers);
     if (btnShow) btnShow.addEventListener('click', () => toggleNumbersVisibility(true));
     if (btnHide) btnHide.addEventListener('click', () => toggleNumbersVisibility(false));
-    if (btnSaveScore) btnSaveScore.addEventListener('click', saveGridScore);
-    if (btnSyncEspn) btnSyncEspn.addEventListener('click', () => syncEspnScore(true));
-    if (chkAutoSyncEspn) chkAutoSyncEspn.addEventListener('change', toggleEspnAutoSync);
     if (btnCleanOrphans) btnCleanOrphans.addEventListener('click', cleanOrphanPicks);
     if (btnDeleteGame) btnDeleteGame.addEventListener('click', deleteGridGame);
 
@@ -425,11 +422,14 @@
         alert('El grid seleccionado no existe.');
         return;
       }
-      
+
       const g = doc.data() || {};
       renderAdminGrid(g);
       attachPlayersListener(code);
       fixApprovedPlayersAuth(code);
+
+      // Start auto ESPN sync whenever a game is loaded
+      startAutoSync();
     } catch (err) {
       console.error('[admin] Error loading grid detail:', err);
     }
@@ -853,59 +853,77 @@
            (abbr && abbr === t);
   }
 
-  async function syncEspnScore(showToast = true) {
-    if (!currentGridCode) {
-      if (showToast) alert('Primero carga un juego');
-      return;
-    }
-    if (espnStatus) espnStatus.textContent = 'Consultando ESPN...';
+  // Always-on ESPN auto-sync — starts automatically when a game is loaded
+  let _lastSavedQuarter = null;
+
+  async function syncEspnScore(showToast = false) {
+    if (!currentGridCode) return;
 
     try {
-      const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
-      const data = await res.json();
+      const syncDot = document.getElementById('espnSyncDot');
+
       const ref = db.collection('games').doc(currentGridCode);
       const snap = await ref.get();
-      if (!snap.exists) {
-        if (espnStatus) espnStatus.textContent = 'Error: Juego no existe';
-        return;
-      }
+      if (!snap.exists) return;
       const g = snap.data() || {};
+
+      const espnLeague = g.espnLeague || 'nfl';
+      const espnRes = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/${espnLeague}/scoreboard`);
+      const espnData = await espnRes.json();
+
       const homeTarget = g.homeTeam || g.home || '';
       const awayTarget = g.awayTeam || g.away || '';
 
-      let matchedEvent = null;
-      let matchedHomeComp = null;
-      let matchedAwayComp = null;
+      let matchedEvent = null, matchedHomeComp = null, matchedAwayComp = null;
 
-      for (const ev of (data.events || [])) {
-        const comps = ev.competitions?.[0]?.competitors || [];
-        const hComp = comps.find(c => c.homeAway === 'home');
-        const aComp = comps.find(c => c.homeAway === 'away');
-        if (!hComp || !aComp) continue;
-
-        const isHomeMatch = isTeamMatch(homeTarget, hComp.team);
-        const isAwayMatch = isTeamMatch(awayTarget, aComp.team);
-        const isSwappedHome = isTeamMatch(homeTarget, aComp.team);
-        const isSwappedAway = isTeamMatch(awayTarget, hComp.team);
-
-        if ((isHomeMatch && isAwayMatch) || (isSwappedHome && isSwappedAway)) {
+      // First try matching by espnGameId if we have it
+      for (const ev of (espnData.events || [])) {
+        if (g.espnGameId && ev.id === g.espnGameId) {
+          const comps = ev.competitions?.[0]?.competitors || [];
+          matchedHomeComp = comps.find(c => c.homeAway === 'home');
+          matchedAwayComp = comps.find(c => c.homeAway === 'away');
           matchedEvent = ev;
-          matchedHomeComp = isHomeMatch ? hComp : aComp;
-          matchedAwayComp = isAwayMatch ? aComp : hComp;
           break;
         }
       }
 
+      // Fallback to name matching
+      if (!matchedEvent) {
+        for (const ev of (espnData.events || [])) {
+          const comps = ev.competitions?.[0]?.competitors || [];
+          const hComp = comps.find(c => c.homeAway === 'home');
+          const aComp = comps.find(c => c.homeAway === 'away');
+          if (!hComp || !aComp) continue;
+          const isHomeMatch = isTeamMatch(homeTarget, hComp.team);
+          const isAwayMatch = isTeamMatch(awayTarget, aComp.team);
+          const isSwappedHome = isTeamMatch(homeTarget, aComp.team);
+          const isSwappedAway = isTeamMatch(awayTarget, hComp.team);
+          if ((isHomeMatch && isAwayMatch) || (isSwappedHome && isSwappedAway)) {
+            matchedEvent = ev;
+            matchedHomeComp = isHomeMatch ? hComp : aComp;
+            matchedAwayComp = isAwayMatch ? aComp : hComp;
+            break;
+          }
+        }
+      }
+
       if (!matchedEvent || !matchedHomeComp || !matchedAwayComp) {
-        const msg = `No encontrado en ESPN (${awayTarget} vs ${homeTarget})`;
-        if (espnStatus) espnStatus.textContent = msg;
-        if (showToast) alert(msg);
+        if (espnStatus) espnStatus.textContent = 'Partido no encontrado en ESPN aún';
         return;
       }
 
       const sHome = parseInt(matchedHomeComp.score || 0, 10);
       const sAway = parseInt(matchedAwayComp.score || 0, 10);
       const statusText = matchedEvent.status?.type?.shortDetail || matchedEvent.status?.type?.detail || 'Q1';
+      const isCompleted = matchedEvent.status?.type?.completed === true;
+
+      // Determine current quarter key
+      let currentQuarterKey = null;
+      const st = statusText.toLowerCase();
+      if (st.includes('final') || st.includes('ft') || isCompleted) currentQuarterKey = 'q4';
+      else if (st.includes('half') || st.includes('ht') || st.includes('2nd')) currentQuarterKey = 'q2';
+      else if (st.includes('3rd')) currentQuarterKey = 'q3';
+      else if (st.includes('1st') || st.includes('q1')) currentQuarterKey = 'q1';
 
       const upd = {
         scoreHome: sHome,
@@ -914,6 +932,7 @@
         lastEspnSync: Date.now()
       };
 
+      // Calculate current winner cell
       const topNums = g.numsTop || [];
       const leftNums = g.numsLeft || [];
       let winnerName = 'Nadie';
@@ -924,22 +943,32 @@
         const winRow = leftNums.indexOf(lastDigitAway);
         upd.winCol = winCol;
         upd.winRow = winRow;
+
+        // Look in game cells object for the winning cell name
         const cellKey = `${winRow}-${winCol}`;
         const winningCell = g.cells ? g.cells[cellKey] : null;
-        if (winningCell && winningCell.name) {
-          winnerName = winningCell.name;
-        }
+        if (winningCell && winningCell.name) winnerName = winningCell.name;
       }
 
       const scoreStr = `${sAway} - ${sHome}`;
-      if (statusText.includes('1st') || statusText.includes('Q1')) {
-        upd.q1_winner = winnerName; upd.q1_score = scoreStr;
-      } else if (statusText.includes('2nd') || statusText.includes('HT') || statusText.includes('Q2')) {
-        upd.q2_winner = winnerName; upd.q2_score = scoreStr;
-      } else if (statusText.includes('3rd') || statusText.includes('Q3')) {
-        upd.q3_winner = winnerName; upd.q3_score = scoreStr;
-      } else if (statusText.includes('4th') || statusText.includes('FT') || statusText.includes('Q4')) {
-        upd.q4_winner = winnerName; upd.q4_score = scoreStr;
+
+      // Save snapshot when quarter changes for the first time
+      if (currentQuarterKey && currentQuarterKey !== _lastSavedQuarter) {
+        // When we enter a new quarter, save the PREVIOUS quarter's final score
+        const prevMap = { q2: 'q1', q3: 'q2', q4: 'q3' };
+        const prevKey = prevMap[currentQuarterKey];
+        if (prevKey && !g[`${prevKey}_winner`]) {
+          upd[`${prevKey}_winner`] = winnerName;
+          upd[`${prevKey}_score`] = scoreStr;
+        }
+        // Also always update current quarter running snapshot
+        upd[`${currentQuarterKey}_winner`] = winnerName;
+        upd[`${currentQuarterKey}_score`] = scoreStr;
+        _lastSavedQuarter = currentQuarterKey;
+      } else if (currentQuarterKey) {
+        // Keep updating current quarter's running winner
+        upd[`${currentQuarterKey}_winner`] = winnerName;
+        upd[`${currentQuarterKey}_score`] = scoreStr;
       }
 
       await ref.update(upd);
@@ -947,28 +976,31 @@
       if (scoreHome) scoreHome.value = sHome;
       if (scoreAway) scoreAway.value = sAway;
 
-      const msg = `ESPN: ${sHome} - ${sAway} (${statusText})`;
-      if (espnStatus) espnStatus.textContent = msg;
+      const timeStr = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      if (espnStatus) espnStatus.textContent = `Sync ${timeStr} — ${sAway}:${sHome} ${statusText}`;
+      if (syncDot) { syncDot.style.background = '#00e676'; syncDot.style.boxShadow = '0 0 8px #00e676'; }
 
-      loadGameDetail();
+      if (currentGame) renderAdminGrid({ ...currentGame, ...upd });
     } catch (err) {
-      console.error('[ESPN Sync Error]', err);
-      if (espnStatus) espnStatus.textContent = 'Error al consultar ESPN';
+      console.error('[ESPN Auto-Sync]', err);
+      const syncDot = document.getElementById('espnSyncDot');
+      if (syncDot) { syncDot.style.background = '#ff5252'; syncDot.style.boxShadow = '0 0 8px #ff5252'; }
+      if (espnStatus) espnStatus.textContent = 'Error ESPN — reintentando...';
     }
   }
 
-  function toggleEspnAutoSync(e) {
-    if (e.target.checked) {
-      syncEspnScore(false);
-      if (espnTimer) clearInterval(espnTimer);
-      espnTimer = setInterval(() => syncEspnScore(false), 2000);
-      if (espnStatus) espnStatus.textContent = 'Auto-sync en vivo activado (2s)';
-    } else {
-      if (espnTimer) clearInterval(espnTimer);
-      espnTimer = null;
-      if (espnStatus) espnStatus.textContent = 'Auto-sync desactivado';
-    }
+  function startAutoSync() {
+    if (espnTimer) clearInterval(espnTimer);
+    _lastSavedQuarter = null;
+    syncEspnScore(false);
+    espnTimer = setInterval(() => syncEspnScore(false), 30000); // every 30 seconds
   }
+
+  function stopAutoSync() {
+    if (espnTimer) { clearInterval(espnTimer); espnTimer = null; }
+  }
+
+  function toggleEspnAutoSync() {} // kept as no-op for compatibility
 
   async function cleanOrphanPicks() {
     if (!currentGridCode) return;
