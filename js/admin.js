@@ -523,6 +523,7 @@
     awayLogoEl.className = 'axis-logo';
     awayLogoEl.onerror = function() { this.style.display = 'none'; };
     const awaySpan = document.createElement('span');
+    awaySpan.className = 'axis-text';
     awaySpan.textContent = away;
     sideLabel.appendChild(awayLogoEl);
     sideLabel.appendChild(awaySpan);
@@ -540,6 +541,7 @@
     homeLogoEl.className = 'axis-logo';
     homeLogoEl.onerror = function() { this.style.display = 'none'; };
     const homeSpan = document.createElement('span');
+    homeSpan.className = 'axis-text';
     homeSpan.textContent = home;
     topLabel.appendChild(homeLogoEl);
     topLabel.appendChild(homeSpan);

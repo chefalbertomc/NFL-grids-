@@ -319,31 +319,40 @@ input:focus, select:focus, textarea:focus {
 }
 
 /* ---- Team Axis Labels ---- */
+
+/* Vertical axis: column flex so logo stays upright, only text rotates */
 .vertical-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-right: 10px;
+  padding: 4px 0;
+  color: var(--team-away-color, var(--accent-color));
+  text-shadow: 0 0 20px var(--team-away-color, var(--accent-color));
+  flex-shrink: 0;
+}
+
+/* Logo inside vertical label stays upright */
+.vertical-label img.axis-logo {
+  width: clamp(32px, 6vw, 52px);
+  height: clamp(32px, 6vw, 52px);
+  object-fit: contain;
+  filter: drop-shadow(0 0 8px var(--team-away-color, var(--accent-color)));
+  flex-shrink: 0;
+}
+
+/* Only the text span gets the rotation */
+.vertical-label .axis-text {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   transform: rotate(180deg);
   font-weight: 900;
-  font-size: clamp(13px, 3vw, 22px);
-  margin-right: 8px;
+  font-size: clamp(14px, 3vw, 24px);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  /* Team color applied via JS via --team-away-color */
-  color: var(--team-away-color, var(--accent-color));
-  text-shadow: 0 0 20px var(--team-away-color, var(--accent-color));
+  letter-spacing: 0.06em;
   white-space: nowrap;
-  padding: 4px 0;
-}
-
-.vertical-label img.axis-logo {
-  width: clamp(20px, 4vw, 32px);
-  height: clamp(20px, 4vw, 32px);
-  object-fit: contain;
-  filter: drop-shadow(0 0 6px var(--team-away-color, var(--accent-color)));
 }
 
 .grid-content {
@@ -351,27 +360,27 @@ input:focus, select:focus, textarea:focus {
   min-width: 0;
 }
 
+/* Horizontal axis: row flex, logo + name side by side */
 .horizontal-label {
   text-align: center;
   font-weight: 900;
-  font-size: clamp(13px, 3vw, 22px);
-  margin-bottom: 6px;
+  font-size: clamp(15px, 3.5vw, 26px);
+  margin-bottom: 8px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  /* Team color applied via JS via --team-home-color */
+  gap: 10px;
   color: var(--team-home-color, var(--accent-color));
   text-shadow: 0 0 20px var(--team-home-color, var(--accent-color));
 }
 
 .horizontal-label img.axis-logo {
-  width: clamp(20px, 4vw, 32px);
-  height: clamp(20px, 4vw, 32px);
+  width: clamp(32px, 6vw, 52px);
+  height: clamp(32px, 6vw, 52px);
   object-fit: contain;
-  filter: drop-shadow(0 0 6px var(--team-home-color, var(--accent-color)));
+  filter: drop-shadow(0 0 8px var(--team-home-color, var(--accent-color)));
 }
 
 /* ---- Grid Board ---- */
