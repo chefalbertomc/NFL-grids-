@@ -339,6 +339,7 @@
   }
 
   function setupGridUI() {
+    if (selectGame) selectGame.addEventListener('change', loadGameDetail);
     if (btnCreateGame) btnCreateGame.addEventListener('click', createGridGame);
     if (btnLoadGame) btnLoadGame.addEventListener('click', loadGameDetail);
     if (btnLock) btnLock.addEventListener('click', () => toggleGridLock(true));
@@ -370,11 +371,6 @@
           alert('Primero carga un juego en el menú desplegable para compartir su enlace.');
           return;
         }
-        const host = window.location.origin + window.location.pathname.replace('admin.html', '').replace('player-view.html', '');
-        const joinUrl = `${host}?join=${encodeURIComponent(currentGridCode)}`;
-        const home = (currentGame && (currentGame.homeTeam || currentGame.home)) || 'Local';
-        const away = (currentGame && (currentGame.awayTeam || currentGame.away)) || 'Visitante';
-        const text = `🏈 *¡Únete a nuestro Grid de Drinks & Wins!*\n\n🏆 *Partido:* ${away} @ ${home}\n🔑 *Código:* ${currentGridCode}\n\n👉 *Toca aquí para registrarte y escoger tus casillas:*\n${joinUrl}`;
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
       });
     }
@@ -454,26 +450,12 @@
       const g = doc.data() || {};
       renderAdminGrid(g);
       attachPlayersListener(code);
-      fixApprovedPlayersAuth(code);
 
       // Start auto ESPN sync whenever a game is loaded
       startAutoSync();
     } catch (err) {
       console.error('[admin] Error loading grid detail:', err);
     }
-  }
-
-  async function fixApprovedPlayersAuth(code) {
-    if (!code || !db) return;
-    try {
-      const snap = await db.collection('games').doc(code).collection('players').get();
-      snap.forEach(async pdoc => {
-        const d = pdoc.data() || {};
-        if (d.approved && d.playerId !== 'kp5hfSSEUqRtze3g7S9LG2EIOel1') {
-          await pdoc.ref.update({ playerId: 'kp5hfSSEUqRtze3g7S9LG2EIOel1' });
-        }
-      });
-    } catch (e) {}
   }
 
   let currentApprovedPlayersList = [];
@@ -728,8 +710,7 @@
           approved: true, 
           status: 'approved',
           quota: updatedQuota,
-          pack: updatedQuota,
-          playerId: 'kp5hfSSEUqRtze3g7S9LG2EIOel1'
+          pack: updatedQuota
         });
       } else if (action === 'update-quota') {
         await pref.update({ 
