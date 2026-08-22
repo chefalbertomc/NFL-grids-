@@ -203,7 +203,7 @@
     const homeInfo = window.getTeamInfo ? window.getTeamInfo(home) : { color: '#ffd100', logo: '' };
     const awayInfo = window.getTeamInfo ? window.getTeamInfo(away) : { color: '#ffd100', logo: '' };
 
-    gameTitle.innerHTML = `<span class="gradient-text">Tablero Grid ${g.code || code}</span> ${g.store ? `<span class="badge accent" style="font-size:11px; vertical-align:middle; margin-left:6px;">${g.store}</span>` : ''}`;
+    gameTitle.innerHTML = `<span style="color:#ffffff; font-weight:900; letter-spacing:0.04em;">FOOTBALL GRIDS</span> <span style="color:#ffd100; font-weight:900;">${g.code || code}</span> ${g.store ? `<span class="badge accent" style="font-size:11px; vertical-align:middle; margin-left:6px;">${g.store}</span>` : ''}`;
 
     // Apply team colors to CSS variables on the grid wrapper
     const gridWrapper = document.querySelector('.grid-wrapper');
@@ -326,36 +326,19 @@
     const quota = activePlayer ? Number(activePlayer.quota || 0) : 0;
     const taken = activePlayer ? Number(activePlayer.taken || 0) : 0;
 
-    const statusCard = document.getElementById('selection-status-card');
     const statusText = document.getElementById('selection-status-text');
     if (statusText) {
       if (activePlayer) {
         const remaining = Math.max(0, quota - taken);
         if (remaining > 0) {
-          statusText.innerHTML = `🏈 Te quedan <strong style="font-size:18px; color: var(--accent-color);">${remaining}</strong> casillas por escoger.`;
-          if (statusCard) {
-            statusCard.style.background = 'rgba(255,193,7,0.02)';
-            statusCard.style.borderColor = 'var(--border-color)';
-          }
+          statusText.innerHTML = `<span class="badge" style="background:rgba(255,209,0,0.12); color:#ffd100; border:1px solid rgba(255,209,0,0.4); font-size:12px; padding:4px 10px;">🏈 Te quedan <strong style="font-size:14px; color:#ffffff;">${remaining}</strong> casillas por escoger</span>`;
         } else {
-          statusText.innerHTML = `✅ ¡Listo! Has seleccionado tus <strong style="font-size:18px; color: #28a745;">${quota}</strong> casillas.`;
-          if (statusCard) {
-            statusCard.style.background = 'rgba(40,167,69,0.02)';
-            statusCard.style.borderColor = '#28a745';
-          }
+          statusText.innerHTML = `<span class="badge" style="background:rgba(0,230,118,0.12); color:#00e676; border:1px solid rgba(0,230,118,0.4); font-size:12px; padding:4px 10px;">✅ ¡Listo! Has seleccionado tus <strong style="font-size:14px; color:#ffffff;">${quota}</strong> casillas</span>`;
         }
       } else if (pendingPlayers.length > 0) {
-        statusText.innerHTML = `⏳ Tu registro está pendiente de aprobación por el administrador.`;
-        if (statusCard) {
-          statusCard.style.background = 'rgba(220,53,69,0.02)';
-          statusCard.style.borderColor = 'var(--danger-color)';
-        }
+        statusText.innerHTML = `<span class="badge danger" style="font-size:12px; padding:4px 10px;">⏳ Tu registro está pendiente de aprobación por el administrador</span>`;
       } else {
-        statusText.innerHTML = `📌 Selecciona tu apodo en la lista desplegable abajo para comenzar.`;
-        if (statusCard) {
-          statusCard.style.background = 'rgba(255,255,255,0.01)';
-          statusCard.style.borderColor = 'var(--border-color)';
-        }
+        statusText.innerHTML = `<span style="font-size:12px; color:var(--text-muted);">📌 Elige tu apodo arriba para seleccionar tus casillas</span>`;
       }
     }
 
