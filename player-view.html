@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Tablero NFL Grid — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=20.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=21.0"/>
   <style>
     /* Custom zoom styles for mobile */
     .grid-view-header {
@@ -55,9 +55,10 @@
             <span id="quotaInfo" class="badge success">0/0 usados</span>
             <select id="nickChooser" class="form-group" style="width: auto; display: none; margin: 0; padding: 4px 8px; border-radius: 12px; font-size: 12px;"></select>
           </div>
-          <!-- Integrated Selection Status Message -->
-          <div id="selection-status-container" style="margin-top: 6px;">
-            <span id="selection-status-text" style="font-size: 13px; font-weight: 700; color: var(--text-color);">Cargando tus cuadros...</span>
+          <!-- Integrated Selection Status Message & Instructions -->
+          <div id="selection-status-container" style="margin-top: 6px; display: flex; flex-direction: column; gap: 4px;">
+            <div id="selection-status-text" style="font-size: 13px; font-weight: 700; color: var(--text-color);">Cargando tus cuadros...</div>
+            <div id="gridMsg" style="font-size: 12px; color: #00e676; font-weight: 600;">⚡ Toca una casilla vacía para marcarla, o toca tu casilla para desmarcarla.</div>
           </div>
         </div>
       </div>
@@ -97,8 +98,6 @@
     
     <!-- Grid Container -->
     <div class="card" style="padding: 12px;">
-      <div id="gridMsg" class="hint-text mb-2 text-center" style="font-size: 12px; color: #00e676; font-weight: 600;">⚡ Toca una casilla vacía para marcarla, o toca tu casilla para desmarcarla.</div>
-      
       <!-- Interactive Grid Component -->
       <div class="grid-container-wrapper">
         <div class="grid-wrapper">
@@ -170,8 +169,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Initializer & View Logic -->
-  <script src="js/firebase-config.js?v=20.0"></script>
-  <script src="js/team-logos.js?v=20.0"></script>
-  <script src="js/player-view.js?v=20.0"></script>
+  <script src="js/firebase-config.js?v=21.0"></script>
+  <script src="js/team-logos.js?v=21.0"></script>
+  <script src="js/player-view.js?v=21.0"></script>
 </body>
 </html>
