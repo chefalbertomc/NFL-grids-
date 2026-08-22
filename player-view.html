@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <link rel="icon" type="image/jpeg" href="img/logo.jpg" />
   <title>Tablero NFL Grid — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=16.3"/>
+  <link rel="stylesheet" href="css/styles.css?v=17.0"/>
   <style>
     /* Custom zoom styles for mobile */
     .grid-view-header {
@@ -49,14 +49,12 @@
     <!-- TV Broadcast Scorebug Banner -->
     <div class="tv-scorebug-wrapper" id="playerTvScorebug" style="display:none;">
       <div class="tv-scorebug-main">
-        <!-- Away Team Wing -->
+        <!-- Away Team Wing: [Logo] [Abbr] [Score] -->
         <div class="tv-team-wing tv-away" id="playerTvAwayWing" style="--team-bg: #5A1414;">
-          <div class="tv-team-identity">
-            <div class="tv-team-logo-frame">
-              <img id="playerTvAwayLogo" src="https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png" alt="Away" />
-            </div>
-            <span class="tv-team-abbr-huge" id="playerTvAwayAbbr">AWAY</span>
+          <div class="tv-team-logo-frame">
+            <img id="playerTvAwayLogo" src="https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png" alt="Away" />
           </div>
+          <span class="tv-team-abbr-huge" id="playerTvAwayAbbr">AWAY</span>
           <div class="tv-team-score" id="playerTvAwayScore">0</div>
         </div>
 
@@ -67,20 +65,15 @@
             <span class="tv-clock-text" id="playerTvClock">15:00</span>
           </div>
           <div class="tv-situation-bar" id="playerTvSituation">EN VIVO</div>
-          <div class="tv-center-brand">
-            <img src="img/logo.jpg" alt="Wings & Wins" />
-          </div>
         </div>
 
-        <!-- Home Team Wing -->
+        <!-- Home Team Wing: [Score] [Abbr] [Logo] -->
         <div class="tv-team-wing tv-home" id="playerTvHomeWing" style="--team-bg: #0076B6;">
-          <div class="tv-team-identity">
-            <div class="tv-team-logo-frame">
-              <img id="playerTvHomeLogo" src="https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png" alt="Home" />
-            </div>
-            <span class="tv-team-abbr-huge" id="playerTvHomeAbbr">HOME</span>
-          </div>
           <div class="tv-team-score" id="playerTvHomeScore">0</div>
+          <span class="tv-team-abbr-huge" id="playerTvHomeAbbr">HOME</span>
+          <div class="tv-team-logo-frame">
+            <img id="playerTvHomeLogo" src="https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png" alt="Home" />
+          </div>
         </div>
       </div>
     </div>
@@ -165,8 +158,8 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Initializer & View Logic -->
-  <script src="js/firebase-config.js?v=16.3"></script>
-  <script src="js/team-logos.js?v=16.3"></script>
-  <script src="js/player-view.js?v=16.3"></script>
+  <script src="js/firebase-config.js?v=17.0"></script>
+  <script src="js/team-logos.js?v=17.0"></script>
+  <script src="js/player-view.js?v=17.0"></script>
 </body>
 </html>
