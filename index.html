@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=29.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=30.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -77,19 +77,13 @@
         <p class="card-subtitle" id="selectedGridLabel">Selecciona un juego arriba para registrarte.</p>
         
         <div class="form-group">
-          <label>Apodo / Nickname (visible en la tabla)</label>
-          <input type="text" id="inpGridNick" placeholder="Ej. El Rompequinielas"/>
+          <label>Apodo / Nickname (visible en la tabla y único)</label>
+          <input type="text" id="inpGridNick" placeholder="Ej. BETO" style="font-weight: 800; color: #ffd100; text-transform: uppercase;" />
         </div>
         
-        <div class="flex-row">
-          <div class="form-group" style="flex: 1;">
-            <label>Mesa</label>
-            <input type="text" id="inpGridTable" placeholder="Ej. B4"/>
-          </div>
-          <div class="form-group" style="flex: 1;">
-            <label>Mesero</label>
-            <input type="text" id="inpGridWaiter" placeholder="Ej. Carlos"/>
-          </div>
+        <div class="form-group">
+          <label>Mesero que te atendió <span style="font-size: 11px; color: var(--text-muted);">(Opcional)</span></label>
+          <input type="text" id="inpGridWaiter" placeholder="Ej. Carlos"/>
         </div>
 
         <div class="form-group">
@@ -109,20 +103,9 @@
         <h3 class="card-title">Mis Grids Aprobados</h3>
         <p class="card-subtitle">Grids donde tu registro ha sido verificado y aprobado.</p>
 
-        <!-- Permanent Nickname Input Bar -->
-        <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,209,0,0.3); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap;">
-          <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 180px;">
-            <span style="font-size: 13px; font-weight: 700; color: var(--text-muted); white-space: nowrap;">👤 Apodo:</span>
-            <input type="text" id="inpMyNickSearch" placeholder="Escribe tu apodo (ej. BETO)" style="margin: 0; padding: 6px 12px; font-size: 13px; border-radius: 8px; flex: 1; min-width: 120px; font-weight: 800; color: #ffd100; text-transform: uppercase;" />
-          </div>
-          <button id="btnMyNickSearch" class="btn btn-primary" style="width: auto; padding: 6px 16px; font-size: 13px; font-weight: 800;">
-            🔍 Buscar Mis Grids
-          </button>
-        </div>
-
         <div id="myGridsList" class="flex-row" style="flex-direction: column; gap: 10px;">
           <!-- Loaded dynamically -->
-          <div class="text-center hint-text py-2">Escribe tu apodo arriba para ver tus grids</div>
+          <div class="text-center hint-text py-3">Cargando tus grids...</div>
         </div>
       </section>
     </main>
@@ -241,13 +224,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=29.0"></script>
-  <script src="js/auth.js?v=29.0"></script>
-  <script src="js/team-logos.js?v=29.0"></script>
-  <script src="js/grids.js?v=29.0"></script>
-  <script src="js/pools.js?v=29.0"></script>
-  <script src="js/survivor.js?v=29.0"></script>
-  <script src="js/firstgoal.js?v=29.0"></script>
+  <script src="js/firebase-config.js?v=30.0"></script>
+  <script src="js/auth.js?v=30.0"></script>
+  <script src="js/team-logos.js?v=30.0"></script>
+  <script src="js/grids.js?v=30.0"></script>
+  <script src="js/pools.js?v=30.0"></script>
+  <script src="js/survivor.js?v=30.0"></script>
+  <script src="js/firstgoal.js?v=30.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>

@@ -53,27 +53,6 @@
     if (btnJoinGrid) {
       btnJoinGrid.addEventListener('click', joinGrid);
     }
-
-    const btnMyNick = document.getElementById('btnMyNickSearch');
-    const inpMyNick = document.getElementById('inpMyNickSearch');
-    if (btnMyNick && inpMyNick) {
-      btnMyNick.addEventListener('click', () => {
-        const val = inpMyNick.value.trim();
-        if (val) {
-          localStorage.setItem('player_nick', val.toUpperCase());
-          loadMyGrids();
-        }
-      });
-      inpMyNick.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-          const val = inpMyNick.value.trim();
-          if (val) {
-            localStorage.setItem('player_nick', val.toUpperCase());
-            loadMyGrids();
-          }
-        }
-      });
-    }
   }
 
   async function loadGrids() {
@@ -246,7 +225,6 @@
     if (!SELECTED_GRID_CODE || !db) return;
 
     const nick = (inpNick ? inpNick.value : '').trim();
-    const table = (inpTable ? inpTable.value : '').trim();
     const waiter = (inpWaiter ? inpWaiter.value : '').trim();
     const pack = Number(selPack ? selPack.value : 5);
 
@@ -259,7 +237,7 @@
     }
 
     if (gridJoinStatus) {
-      gridJoinStatus.textContent = 'Enviando solicitud...';
+      gridJoinStatus.textContent = 'Verificando y enviando solicitud...';
       gridJoinStatus.style.color = 'var(--text-muted)';
     }
 
@@ -268,21 +246,40 @@
         await window.ensurePlayerAuth();
       }
 
+      // Check if nickname is already registered in this grid
+      const playersSnap = await db.collection('games').doc(SELECTED_GRID_CODE).collection('players').get();
+      let nickTaken = false;
+      playersSnap.forEach(doc => {
+        const d = doc.data() || {};
+        const pNick = (d.nickname || d.name || '').trim().toLowerCase();
+        if (pNick === nick.toLowerCase()) {
+          nickTaken = true;
+        }
+      });
+
+      if (nickTaken) {
+        if (gridJoinStatus) {
+          gridJoinStatus.textContent = `❌ El apodo "${nick}" ya está ocupado en este juego. Por favor elige otro apodo.`;
+          gridJoinStatus.style.color = 'var(--danger-color)';
+        }
+        return;
+      }
+
       const activeUser = firebase.auth() ? firebase.auth().currentUser : null;
       const grid = ALL_GRIDS.find(x => x.code === SELECTED_GRID_CODE);
       
-      // Auto-generate a unique document ID for this registration so no player ever overwrites another
+      // Auto-generate a unique document ID for this registration
       const playerRef = db.collection('games').doc(SELECTED_GRID_CODE).collection('players').doc();
       const pDocId = playerRef.id;
       localStorage.setItem('bww_player_id', pDocId);
+      localStorage.setItem('player_nick', nick);
 
       await playerRef.set({
         id: pDocId,
         playerId: activeUser ? activeUser.uid : pDocId,
         name: nick,
         nickname: nick,
-        table: table,
-        waiter: waiter,
+        waiter: waiter || 'Sin mesero',
         pack: pack,
         quota: pack,
         taken: 0,
@@ -294,17 +291,15 @@
         updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
       });
 
-      localStorage.setItem('player_nick', nick);
       if (gridJoinStatus) {
-        gridJoinStatus.textContent = '¡Solicitud enviada! Espera a que el mesero o administrador te apruebe.';
+        gridJoinStatus.textContent = '✅ ¡Solicitud enviada! Espera a que el mesero o administrador te apruebe.';
         gridJoinStatus.style.color = 'var(--success-color)';
       }
-      alert(`¡Solicitud enviada exitosamente para ${nick}! Ahora revisa la pantalla de Admin para aprobarla.`);
+      alert(`¡Solicitud enviada exitosamente para ${nick}! En cuanto te apruebe el administrador o mesero podrás escoger tus cuadros.`);
       
-      if (inpTable) inpTable.value = '';
       if (inpWaiter) inpWaiter.value = '';
 
-      loadMyGrids(); // Refresh player's grids list
+      await loadMyGrids(); // Refresh player's grids list
     } catch (err) {
       console.error('[grids] Error joining grid:', err);
       if (gridJoinStatus) {
@@ -314,23 +309,16 @@
     }
   }
 
-  // Fetch grids where player has an approved registration
+  // Fetch grids where player has a registration (approved or pending)
   async function loadMyGrids() {
     if (!db || !myGridsList) return;
 
-    const inpMyNick = document.getElementById('inpMyNickSearch');
-    let savedNick = (localStorage.getItem('player_nick') || '').trim();
-    
-    if (inpMyNick && savedNick && !inpMyNick.value) {
-      inpMyNick.value = savedNick.toUpperCase();
-    }
+    const savedNick = (localStorage.getItem('player_nick') || '').trim();
+    const savedPlayerId = localStorage.getItem('bww_player_id');
+    const userUid = user ? user.uid : null;
 
-    if (!savedNick && inpMyNick && inpMyNick.value) {
-      savedNick = inpMyNick.value.trim();
-    }
-
-    if (!savedNick) {
-      myGridsList.innerHTML = '<div class="text-center hint-text py-3">👆 Escribe tu apodo arriba y toca <strong>Buscar</strong> para ver tus grids.</div>';
+    if (!savedNick && !savedPlayerId && !userUid) {
+      myGridsList.innerHTML = '<div class="text-center hint-text py-3">— Aún no te has registrado en ningún juego. Toca <strong>Unirse</strong> en algún partido arriba para comenzar. —</div>';
       return;
     }
 
@@ -345,8 +333,13 @@
           playersSnap.forEach(pdoc => {
             const p = pdoc.data() || {};
             const pNick = (p.nickname || p.name || '').trim().toLowerCase();
+            const pId = p.playerId || '';
 
-            if (pNick === matchNickLower) {
+            const isMatch = (matchNickLower && pNick === matchNickLower) ||
+                            (savedPlayerId && (pdoc.id === savedPlayerId || pId === savedPlayerId)) ||
+                            (userUid && (pId === userUid || pdoc.id === userUid));
+
+            if (isMatch) {
               activeRegistrations.push({
                 code: g.code,
                 game: g,
@@ -362,7 +355,7 @@
       if (activeRegistrations.length === 0) {
         myGridsList.innerHTML = `
           <div class="text-center hint-text py-3" style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 12px;">
-            — No se encontraron registros con el apodo <strong style="color:#ffd100;">"${savedNick}"</strong>. Si acabas de unirte, espera a que el mesero te apruebe. —
+            — Registro enviado como <strong style="color:#ffd100;">"${savedNick}"</strong>. Espera la aprobación del mesero o admin. —
           </div>
         `;
         return;
