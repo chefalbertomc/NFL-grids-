@@ -47,7 +47,7 @@
     <!-- Admin Game Switching Tabs -->
     <div class="tabs-container">
       <button class="tab-btn active" data-target="admin-grids">🏈 Grids</button>
-      <button class="tab-btn" data-target="admin-pools">📋 Quinielas</button>
+      <button class="tab-btn" data-target="admin-pools">📋 Quinielas & Pick'em</button>
       <button class="tab-btn" data-target="admin-survivor">🏆 Survivor</button>
       <button class="tab-btn" data-target="admin-firstgoal">⚽ Primer Gol</button>
     </div>
@@ -206,15 +206,24 @@
         <h3 class="card-title">📋 Crear Nueva Quiniela</h3>
         <p class="card-subtitle">Busca partidos por deporte/liga. Puedes elegir partidos de <strong>múltiples ligas</strong> (Liga MX, La Liga, NFL, etc.) antes de guardar.</p>
 
-        <!-- Name + Sport/League row -->
+        <!-- Name + Sport/League + Range row -->
         <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
           <div class="form-group" style="flex:2; min-width:160px; margin:0;">
-            <label>Nombre de la Quiniela</label>
-            <input type="text" id="qName" placeholder="Ej. Quiniela Fin de Semana — Drinks & Wins"/>
+            <label>Nombre de la Quiniela / Pick'em</label>
+            <input type="text" id="qName" placeholder="Ej. Quiniela Liga MX & Pick'em NFL — Fin de Semana"/>
           </div>
-          <div class="form-group" style="flex:1; min-width:140px; margin:0;">
+          <div class="form-group" style="flex:1.5; min-width:160px; margin:0;">
             <label>Deporte / Liga</label>
             <select id="qSportSelect"></select>
+          </div>
+          <div class="form-group" style="flex:1; min-width:120px; margin:0;">
+            <label>Rango de Fechas</label>
+            <select id="qDaysRange">
+              <option value="7">Próximos 7 días</option>
+              <option value="14">Próximos 14 días</option>
+              <option value="21" selected>Próximos 21 días</option>
+              <option value="30">Próximos 30 días</option>
+            </select>
           </div>
           <div style="display:flex; align-items:flex-end;">
             <button id="btnQSearchGames" class="btn btn-primary" style="width:auto; padding:10px 18px; font-size:13px;">
@@ -322,11 +331,11 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=48.0"></script>
-  <script src="js/auth.js?v=48.0"></script>
-  <script src="js/team-logos.js?v=48.0"></script>
-  <script src="js/admin.js?v=48.0"></script>
-  <script src="js/quiniela-admin.js?v=48.0"></script>
+  <script src="js/firebase-config.js?v=49.0"></script>
+  <script src="js/auth.js?v=49.0"></script>
+  <script src="js/team-logos.js?v=49.0"></script>
+  <script src="js/admin.js?v=49.0"></script>
+  <script src="js/quiniela-admin.js?v=49.0"></script>
 
   <!-- Admin Tab Switching -->
   <script>

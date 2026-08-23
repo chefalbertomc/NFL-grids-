@@ -1,18 +1,30 @@
-// Quiniela Admin Module — Wings & Wins v48
+// Quiniela & Pick'em Admin Module — Wings & Wins v49
 (function () {
   'use strict';
 
   let db = null;
 
   const LEAGUES = {
-    'nfl':              { sport: 'football',   slug: 'nfl',                label: 'NFL 🏈' },
-    'college-football': { sport: 'football',   slug: 'college-football',   label: 'NCAA Football 🎓' },
-    'nba':              { sport: 'basketball', slug: 'nba',                label: 'NBA 🏀' },
-    'mls':              { sport: 'soccer',     slug: 'usa.1',              label: 'MLS ⚽' },
-    'liga-mx':          { sport: 'soccer',     slug: 'mex.1',              label: 'Liga MX ⚽' },
-    'premier':          { sport: 'soccer',     slug: 'eng.1',              label: 'Premier League ⚽' },
-    'champions':        { sport: 'soccer',     slug: 'uefa.champions',     label: 'Champions League ⚽' },
-    'laliga':           { sport: 'soccer',     slug: 'esp.1',              label: 'La Liga ⚽' },
+    // ⚽ QUINIELAS (Fútbol / Soccer)
+    'liga-mx':          { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'mex.1',                 label: '🇲🇽 Liga MX' },
+    'liga-mx-fem':      { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'mex.w.1',               label: '🇲🇽 Liga MX Femenil' },
+    'premier':          { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'eng.1',                 label: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League' },
+    'laliga':           { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'esp.1',                 label: '🇪🇸 La Liga Española' },
+    'champions':        { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'uefa.champions',        label: '🏆 Champions League' },
+    'europa':           { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'uefa.europa',           label: '🏆 Europa League' },
+    'serie-a':          { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'ita.1',                 label: '🇮🇹 Serie A Italia' },
+    'bundesliga':       { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'ger.1',                 label: '🇩🇪 Bundesliga' },
+    'ligue-1':          { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'fra.1',                 label: '🇫🇷 Ligue 1 Francia' },
+    'mls':              { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'usa.1',                 label: '🇺🇸 MLS' },
+    'libertadores':     { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'conmebol.libertadores', label: '🌎 Copa Libertadores' },
+
+    // 🏈 ⚾ 🏀 PICK'EM (US Sports)
+    'nfl':              { group: "🏈 ⚾ 🏀 PICK'EM (US Sports)", sport: 'football',   slug: 'nfl',                     label: '🏈 NFL' },
+    'mlb':              { group: "🏈 ⚾ 🏀 PICK'EM (US Sports)", sport: 'baseball',   slug: 'mlb',                     label: '⚾ MLB Béisbol' },
+    'nba':              { group: "🏈 ⚾ 🏀 PICK'EM (US Sports)", sport: 'basketball', slug: 'nba',                     label: '🏀 NBA Basquetbol' },
+    'wnba':             { group: "🏈 ⚾ 🏀 PICK'EM (US Sports)", sport: 'basketball', slug: 'wnba',                    label: '🏀 WNBA' },
+    'college-football': { group: "🏈 ⚾ 🏀 PICK'EM (US Sports)", sport: 'football',   slug: 'college-football',        label: '🎓 NCAA Football' },
+    'ncaab':            { group: "🏈 ⚾ 🏀 PICK'EM (US Sports)", sport: 'basketball', slug: 'mens-college-basketball', label: '🎓 NCAA Basketball' },
   };
 
   let qSelectedMatches = {}; // Persists across searches
@@ -33,11 +45,24 @@
     const sel = document.getElementById('qSportSelect');
     if (!sel) return;
     sel.innerHTML = '';
+
+    const groups = {};
     Object.entries(LEAGUES).forEach(([key, val]) => {
-      const opt = document.createElement('option');
-      opt.value = key;
-      opt.textContent = val.label;
-      sel.appendChild(opt);
+      const gName = val.group || 'Otras';
+      if (!groups[gName]) groups[gName] = [];
+      groups[gName].push({ key, ...val });
+    });
+
+    Object.entries(groups).forEach(([groupName, items]) => {
+      const optGroup = document.createElement('optgroup');
+      optGroup.label = groupName;
+      items.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.key;
+        opt.textContent = item.label;
+        optGroup.appendChild(opt);
+      });
+      sel.appendChild(optGroup);
     });
   }
 
@@ -52,7 +77,6 @@
     const btnClearSel = document.getElementById('btnQClearSelected');
     if (btnClearSel) btnClearSel.addEventListener('click', () => {
       qSelectedMatches = {};
-      // Re-render picker to uncheck all visible cards
       document.querySelectorAll('.q-game-pick-card.selected').forEach(card => {
         card.classList.remove('selected');
         const chk = card.querySelector('.q-pick-check');
@@ -102,8 +126,7 @@
     const sel = document.getElementById('selectActiveQuiniela');
     const name = sel?.options[sel.selectedIndex]?.text || 'Quiniela';
     const baseUrl = window.location.origin + window.location.pathname.replace('admin.html', 'index.html');
-    const url = `${baseUrl}#tab-pools`;
-    const text = `🏆 *¡Únete a nuestra Quiniela "${name}"!*\n\n🎯 Pronostica el marcador de los partidos\n✅ +3 pts marcador exacto | +1 pt solo ganador\n\n📱 *Entra aquí para registrar tus pronósticos:*\n${baseUrl}`;
+    const text = `🏆 *¡Únete a nuestra Quiniela & Pick'em "${name}"!*\n\n🎯 Pronostica el marcador de los partidos\n✅ +3 pts marcador exacto | +1 pt solo ganador\n\n📱 *Entra aquí para registrar tus pronósticos:*\n${baseUrl}#tab-pools`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   }
 
@@ -118,39 +141,42 @@
     const resultsEl = document.getElementById('qGamePickerList');
     const container = document.getElementById('qGamePickerContainer');
     const btnSearch = document.getElementById('btnQSearchGames');
+    const daysRange = parseInt(document.getElementById('qDaysRange')?.value || '21', 10);
 
     if (btnSearch) { btnSearch.disabled = true; btnSearch.textContent = '⏳ Buscando...'; }
     if (resultsEl) resultsEl.innerHTML = '<div class="text-center hint-text py-3">Buscando partidos en ESPN...</div>';
     if (container) container.style.display = 'block';
 
-    // NOTE: DO NOT reset qSelectedMatches here — preserve selections from other leagues!
-
     try {
       const today = new Date();
+      // Start 1 day in the past so live/today's games appear
+      const start = new Date();
+      start.setDate(today.getDate() - 1);
       const end = new Date();
-      end.setDate(today.getDate() + 14);
+      end.setDate(today.getDate() + daysRange);
+
       const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-      const url = `https://site.api.espn.com/apis/site/v2/sports/${league.sport}/${league.slug}/scoreboard?dates=${fmt(today)}-${fmt(end)}&limit=50`;
+      const url = `https://site.api.espn.com/apis/site/v2/sports/${league.sport}/${league.slug}/scoreboard?dates=${fmt(start)}-${fmt(end)}&limit=100`;
 
       const res = await fetch(url);
       const data = await res.json();
       const events = data.events || [];
 
       if (events.length === 0) {
-        if (resultsEl) resultsEl.innerHTML = '<div class="text-center hint-text py-3">No se encontraron partidos. Prueba con otra liga o fechas distintas.</div>';
+        if (resultsEl) resultsEl.innerHTML = `<div class="text-center hint-text py-3">No se encontraron partidos próximos para ${league.label} en los próximos ${daysRange} días. Prueba ampliar el rango de fechas o elegir otra liga.</div>`;
         return;
       }
 
-      renderQGamePicker(events);
+      renderQGamePicker(events, league);
     } catch (err) {
       console.error('[QAdmin]', err);
-      if (resultsEl) resultsEl.innerHTML = '<div class="text-center hint-text py-3" style="color:var(--danger-color);">Error al conectar con ESPN.</div>';
+      if (resultsEl) resultsEl.innerHTML = '<div class="text-center hint-text py-3" style="color:var(--danger-color);">Error al conectar con ESPN. Intenta de nuevo.</div>';
     } finally {
       if (btnSearch) { btnSearch.disabled = false; btnSearch.textContent = '🔍 Buscar Partidos'; }
     }
   }
 
-  function renderQGamePicker(events) {
+  function renderQGamePicker(events, league) {
     const el = document.getElementById('qGamePickerList');
     if (!el) return;
     el.innerHTML = '';
@@ -168,7 +194,6 @@
       const isLive = ev.status?.type?.state === 'in';
       const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-MX', { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
 
-      // Check if already selected from previous search
       const alreadySelected = !!qSelectedMatches[ev.id];
 
       const card = document.createElement('div');
@@ -188,6 +213,7 @@
           </div>
         </div>
         <div class="q-pick-meta">
+          <span style="font-size:10px; color:var(--accent-color); font-weight:800;">${league.label}</span>
           <span style="font-size:11px;color:var(--text-muted);">${dateStr}</span>
           ${isLive ? '<span class="badge danger" style="font-size:10px; margin-left:6px;">🔴 EN VIVO</span>' : ''}
           ${isCompleted ? '<span class="badge" style="font-size:10px; background:rgba(255,255,255,0.1); margin-left:6px;">TERMINADO</span>' : ''}
@@ -202,7 +228,11 @@
           if (chk) chk.textContent = '☐';
         } else {
           qSelectedMatches[ev.id] = {
-            espnEventId: ev.id, date: dateStr,
+            espnEventId: ev.id,
+            sport: league.sport,
+            slug: league.slug,
+            leagueLabel: league.label,
+            date: dateStr,
             home: { name: homeName, logo: homeLogo, id: home.team?.id || '', abbr: home.team?.abbreviation || homeName.substring(0,3) },
             away: { name: awayName, logo: awayLogo, id: away.team?.id || '', abbr: away.team?.abbreviation || awayName.substring(0,3) }
           };
@@ -219,7 +249,6 @@
     renderSelectedSummary();
   }
 
-  // Show all selected games across leagues as a summary strip
   function renderSelectedSummary() {
     let summaryEl = document.getElementById('qSelectedSummary');
     if (!summaryEl) {
@@ -239,6 +268,7 @@
     summaryEl.innerHTML = '<div style="width:100%; font-size:11px; color:var(--text-muted); margin-bottom:4px; font-weight:700;">✅ PARTIDOS SELECCIONADOS (de todas las ligas):</div>' +
       entries.map(m => `
         <div style="display:inline-flex; align-items:center; gap:4px; background:rgba(255,209,0,0.1); border:1px solid rgba(255,209,0,0.4); border-radius:20px; padding:4px 10px; font-size:11px; font-weight:700;">
+          <span style="font-size:9px; color:var(--accent-color);">${m.leagueLabel || ''}</span>
           <img src="${m.away.logo}" onerror="this.src='img/logo.jpg'" style="width:16px;height:16px;object-fit:contain;"/>
           ${m.away.abbr} vs ${m.home.abbr}
           <img src="${m.home.logo}" onerror="this.src='img/logo.jpg'" style="width:16px;height:16px;object-fit:contain;"/>
@@ -251,7 +281,7 @@
     const countEl = document.getElementById('qSelectedCount');
     const btn = document.getElementById('btnCreateQuiniela');
     const clearBtn = document.getElementById('btnQClearSelected');
-    if (countEl) countEl.textContent = count > 0 ? `✅ ${count} partido${count > 1 ? 's' : ''} seleccionado${count > 1 ? 's' : ''} (de todas las ligas)` : '';
+    if (countEl) countEl.textContent = count > 0 ? `✅ ${count} partido${count > 1 ? 's' : ''} seleccionado${count > 1 ? 's' : ''}` : '';
     if (btn) btn.disabled = count === 0;
     if (clearBtn) clearBtn.style.display = count > 0 ? 'inline-flex' : 'none';
     renderSelectedSummary();
@@ -262,12 +292,15 @@
     const name = (document.getElementById('qName')?.value || '').trim();
     const matchCount = Object.keys(qSelectedMatches).length;
 
-    if (!name) { alert('Escribe un nombre para la quiniela.'); return; }
+    if (!name) { alert('Escribe un nombre para la quiniela o pick\'em.'); return; }
     if (matchCount === 0) { alert('Selecciona al menos un partido.'); return; }
 
     const matches = Object.values(qSelectedMatches).map((m, i) => ({
       id: `m${i + 1}`,
       espnEventId: m.espnEventId,
+      sport: m.sport || 'soccer',
+      slug: m.slug || 'mex.1',
+      leagueLabel: m.leagueLabel || '',
       home: m.home.name,
       away: m.away.name,
       homeLogo: m.home.logo,
@@ -281,18 +314,12 @@
       completed: false
     }));
 
-    // Determine espnSlug from the first match's event or just use 'mixed'
-    const leagueKey = document.getElementById('qSportSelect')?.value || 'nfl';
-    const league = LEAGUES[leagueKey] || LEAGUES['nfl'];
-
     try {
       const ref = db.collection('quinielas').doc();
       await ref.set({
         id: ref.id,
         name,
         sport: 'mixed',
-        leagueKey: 'mixed',
-        espnSlug: league.slug,
         matches,
         active: true,
         createdAt: firebase.firestore.FieldValue.serverTimestamp
@@ -300,7 +327,7 @@
           : Date.now()
       });
 
-      alert(`✅ Quiniela "${name}" creada con ${matchCount} partidos de ${Object.values(qSelectedMatches).map(m => m.away.abbr + ' vs ' + m.home.abbr).join(', ')}`);
+      alert(`✅ Quiniela / Pick'em "${name}" creada con ${matchCount} partidos.`);
       if (document.getElementById('qName')) document.getElementById('qName').value = '';
       qSelectedMatches = {};
       updateSelectedCount();
@@ -326,7 +353,6 @@
         if (panel) panel.style.display = 'none';
         return;
       }
-      // Sort client-side
       const docs = [];
       snap.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
       docs.sort((a, b) => (b.createdAt?.seconds || b.createdAt || 0) - (a.createdAt?.seconds || a.createdAt || 0));
@@ -461,24 +487,24 @@
       const q = snap.data() || {};
       const matches = q.matches || [];
 
-      // Group matches by espnSlug for efficient fetching
-      // For mixed quinielas, we fetch all main leagues
-      const sportsToFetch = new Set();
-      // Try to map espnEventId prefixes or just fetch common leagues
-      const fetchLeagues = [
-        { sport: 'football', slug: 'nfl' },
-        { sport: 'soccer', slug: 'mex.1' },
-        { sport: 'soccer', slug: 'eng.1' },
-        { sport: 'soccer', slug: 'esp.1' },
-        { sport: 'soccer', slug: 'usa.1' },
-        { sport: 'soccer', slug: 'uefa.champions' },
-        { sport: 'basketball', slug: 'nba' },
-      ];
+      // Collect all distinct sport/slug pairs from matches
+      const endpoints = new Map();
+      matches.forEach(m => {
+        if (m.sport && m.slug) {
+          endpoints.set(`${m.sport}/${m.slug}`, { sport: m.sport, slug: m.slug });
+        }
+      });
+      // Fallback if none set
+      if (endpoints.size === 0) {
+        endpoints.set('soccer/mex.1', { sport: 'soccer', slug: 'mex.1' });
+        endpoints.set('football/nfl', { sport: 'football', slug: 'nfl' });
+        endpoints.set('baseball/mlb', { sport: 'baseball', slug: 'mlb' });
+      }
 
       const allEvents = {};
-      for (const lg of fetchLeagues) {
+      for (const ep of endpoints.values()) {
         try {
-          const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${lg.sport}/${lg.slug}/scoreboard`);
+          const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?limit=100`);
           const data = await res.json();
           (data.events || []).forEach(ev => { allEvents[ev.id] = ev; });
         } catch (e) {}
@@ -506,7 +532,7 @@
       });
 
       await ref.update({ matches: updatedMatches, lastSync: Date.now() });
-      alert(`✅ Sincronizado: ${updated} partidos encontrados y actualizados.`);
+      alert(`✅ Sincronizado: ${updated} partidos actualizados con marcadores ESPN.`);
       loadQuinielaStandings(quinielaId);
     } catch (err) {
       alert('Error al sincronizar: ' + err.message);
