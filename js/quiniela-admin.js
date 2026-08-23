@@ -233,7 +233,10 @@
       const awayName = away.team?.displayName || away.team?.shortDisplayName || 'Visitante';
       const homeLogo = home.team?.logo || 'img/logo.jpg';
       const awayLogo = away.team?.logo || 'img/logo.jpg';
-      const isCompleted = ev.status?.type?.completed;
+      const isCompleted = ev.status?.type?.completed === true || ev.status?.type?.state === 'post';
+      // Skip completed / finished games so only upcoming and live games appear for selection
+      if (isCompleted) return;
+
       const isLive = ev.status?.type?.state === 'in';
       const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-MX', { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
 

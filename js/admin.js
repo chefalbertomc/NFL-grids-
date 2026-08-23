@@ -251,6 +251,10 @@
       }
 
       events.forEach(ev => {
+        // Skip games that have already finished (Final / Completed)
+        const isDone = ev.status?.type?.completed === true || ev.status?.type?.state === 'post';
+        if (isDone) return;
+
         const comps = ev.competitions?.[0]?.competitors || [];
         const homeComp = comps.find(c => c.homeAway === 'home');
         const awayComp = comps.find(c => c.homeAway === 'away');

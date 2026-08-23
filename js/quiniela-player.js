@@ -961,74 +961,89 @@
       }
     }
 
-    // 2. Render Quiniela PRO Live Matrix Table
-    standingsListEl.innerHTML = `
-      <div class="q-matrix-container">
-        <table class="q-matrix-table">
-          <thead>
-            <tr>
-              <th class="q-matrix-th-fixed" style="min-width:145px;">POS • PARTICIPANTE</th>
-              ${matches.map(m => `
-                <th class="q-matrix-th-match">
-                  <div style="font-size:9.5px; color:var(--text-muted); font-weight:800; margin-bottom:2px;">${(m.awayAbbr || m.away.substring(0,3)).toUpperCase()} vs ${(m.homeAbbr || m.home.substring(0,3)).toUpperCase()}</div>
-                  <div style="display:flex; justify-content:center; align-items:center; gap:3px;">
-                    <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:14px; height:14px; object-fit:contain;"/>
-                    <span style="font-size:8.5px; color:#777;">vs</span>
-                    <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:14px; height:14px; object-fit:contain;"/>
-                  </div>
-                  ${m.homeScore !== null && m.awayScore !== null && m.status !== 'pre'
-                    ? `<div class="q-matrix-real-score">${m.awayScore} - ${m.homeScore}</div>`
-                    : (m.status === 'in' ? `<div class="q-matrix-real-score" style="background:#ff4444; color:#fff;">🔴 VIVO</div>` : `<div class="q-matrix-real-score pending">Pendiente</div>`)
-                  }
-                </th>
-              `).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${players.map((p, idx) => {
-              const isMe = (activeUser && (p.id === activeUser.uid || p.userUid === activeUser.uid)) || p.id === deviceId;
-              const photo = p.photoURL || 'img/logo.jpg';
-              const name = p.playerName || 'Participante';
-              const rankStr = idx === 0 ? '🥇 1' : idx === 1 ? '🥈 2' : idx === 2 ? '🥉 3' : `${idx + 1}.-`;
+    // 2. Render Authentic Quiniela Table (Exact Bar Format)
+    standingsListEl.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'overflow-x:auto; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:#0e131d; box-shadow:0 8px 30px rgba(0,0,0,0.6); position:relative;';
 
-              return `
-                <tr class="q-matrix-row ${isMe ? 'is-me' : ''}">
-                  <td class="q-matrix-td-fixed">
-                    <div style="display:flex; align-items:center; gap:5px;">
-                      <span style="font-weight:900; font-size:11px; color:#aaa; min-width:20px;">${rankStr}</span>
-                      <span style="font-weight:900; font-size:12px; color:#ffd100; background:rgba(255,209,0,0.15); padding:1px 4px; border-radius:4px; border:1px solid rgba(255,209,0,0.3);">${p.totalPoints} pts</span>
-                      <img src="${photo}" alt="${name}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width:22px; height:22px; border-radius:50%; object-fit:cover; border:1.5px solid ${isMe ? '#ffd100' : '#444'};" />
-                      <span style="font-weight:800; font-size:11.5px; color:${isMe ? '#ffd100' : '#ffffff'}; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name} ${isMe ? '(Tú)' : ''}</span>
-                    </div>
-                  </td>
-                  ${matches.map(m => {
-                    const pick = p.picks?.[m.id];
-                    const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
-                    if (!pick) return `<td class="q-matrix-cell-pick" style="color:#555;">—</td>`;
+    const table = document.createElement('table');
+    table.className = 'q-standings-table';
 
-                    let pickClass = 'q-pick-pending';
-                    if (hasScore) {
-                      const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
-                      const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-                      const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
-                      if (exact) pickClass = 'q-pick-exact';
-                      else if (realWin === pickWin) pickClass = 'q-pick-winner';
-                      else pickClass = 'q-pick-miss';
-                    }
+    const thead = table.createTHead();
+    const hr = thead.insertRow();
+    hr.innerHTML = `<th style="text-align:left; padding:12px 14px; min-width:150px; position:sticky; left:0; background:#161d2a; z-index:5; border-bottom:1px solid rgba(255,255,255,0.12); color:#ffd100; font-weight:900;">JUGADOR</th>` +
+      matches.map(m => {
+        const isLive = m.status === 'in';
+        const isDone = m.completed || m.status === 'post';
+        const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
 
-                    return `
-                      <td class="q-matrix-cell-pick">
-                        <span class="${pickClass}">${pick.awayScore} - ${pick.homeScore}</span>
-                      </td>
-                    `;
-                  }).join('')}
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
+        let scoreHtml = '<span style="font-size:9px; color:var(--text-muted); font-weight:800; display:inline-block; margin-top:2px;">PENDIENTE</span>';
+        if (isLive && hasScore) {
+          scoreHtml = `<div style="background:rgba(255,68,68,0.25); border:1px solid #ff4444; border-radius:6px; padding:2px 5px; margin-top:2px;">
+            <span style="font-size:11px; font-weight:900; color:#ff4444; animation:tvPulse 1s infinite;">🔴 ${m.awayScore}-${m.homeScore}</span>
+            <div style="font-size:8.5px; color:#fff; font-weight:800;">${m.statusStr || 'EN VIVO'}</div>
+          </div>`;
+        } else if (hasScore) {
+          scoreHtml = `<div style="margin-top:2px;"><span style="font-size:12px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore}</span><div style="font-size:8.5px; color:var(--text-muted); font-weight:800;">FINAL</div></div>`;
+        }
+
+        return `<th style="text-align:center; padding:8px 6px; min-width:85px; border-left:1px solid rgba(255,255,255,0.06); border-bottom:1px solid rgba(255,255,255,0.12); background:#121824;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
+            <div style="display:flex; align-items:center; gap:3px;">
+              <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:18px; height:18px; object-fit:contain;"/>
+              <span style="font-size:8.5px; font-weight:800; color:#aaa;">vs</span>
+              <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:18px; height:18px; object-fit:contain;"/>
+            </div>
+            <span style="font-size:9px; color:var(--text-muted); font-weight:800; text-transform:uppercase;">${m.awayAbbr || m.away.substring(0,3)} v ${m.homeAbbr || m.home.substring(0,3)}</span>
+            ${scoreHtml}
+          </div>
+        </th>`;
+      }).join('') +
+      `<th style="text-align:center; padding:10px; min-width:55px; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.12); background:#161d2a; color:#ffd100; font-weight:900;">PTS</th>`;
+
+    const tbody = table.createTBody();
+    players.forEach((p, idx) => {
+      const isMe = (activeUser && (p.id === activeUser.uid || p.userUid === activeUser.uid)) || p.id === deviceId;
+      const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
+      const photo = p.photoURL || 'img/logo.jpg';
+      const name = p.playerName || 'Anónimo';
+
+      const tr = tbody.insertRow();
+      tr.className = `q-matrix-row ${isMe ? 'is-me' : ''}`;
+
+      let cells = `<td style="padding:10px 12px; font-weight:800; white-space:nowrap; position:sticky; left:0; background:${isMe ? '#1c1d18' : '#0e131d'}; z-index:4; border-bottom:1px solid rgba(255,255,255,0.05); box-shadow:2px 0 8px rgba(0,0,0,0.3);">
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:12px;">${rankEmoji}</span>
+          <img src="${photo}" alt="${name}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1.5px solid ${isMe ? '#ffd100' : '#444'};" />
+          <span style="color:${isMe ? '#ffd100' : '#ffffff'}; font-size:13px; max-width:95px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name} ${isMe ? '(Tú)' : ''}</span>
+        </div>
+      </td>`;
+
+      matches.forEach(m => {
+        const pick = p.picks?.[m.id];
+        if (!pick) {
+          cells += `<td class="q-s-cell q-cell-gray" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);">—</td>`;
+          return;
+        }
+        const pickStr = `${pick.awayScore}-${pick.homeScore}`;
+        if (m.homeScore === null || m.status === 'pre') {
+          cells += `<td class="q-s-cell q-cell-gray" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);">${pickStr}</td>`;
+          return;
+        }
+        const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
+        const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
+        const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
+        if (exact) cells += `<td class="q-s-cell q-cell-green" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="+3 pts">🎯 ${pickStr}</td>`;
+        else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-yellow" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="+1 pt">✓ ${pickStr}</td>`;
+        else cells += `<td class="q-s-cell q-cell-red" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="0 pts">✗ ${pickStr}</td>`;
+      });
+
+      cells += `<td style="text-align:center; font-weight:900; color:${p.totalPoints > 0 ? '#ffd100' : 'var(--text-muted)'}; font-size:14px; padding:8px; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.05);">${p.totalPoints}</td>`;
+      tr.innerHTML = cells;
+    });
+
+    wrap.appendChild(table);
+    standingsListEl.appendChild(wrap);
   }
 
   function norm(str) {
