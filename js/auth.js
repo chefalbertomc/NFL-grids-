@@ -1,4 +1,4 @@
-// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v77.0)
+// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v78.0)
 (function() {
   'use strict';
 
@@ -8,6 +8,7 @@
 
   const authCallbacks = [];
   let pendingAuthAction = null;
+  let tempCroppedPhotoData = null;
 
   window.onAuthChange = function(cb) {
     if (typeof cb === 'function') {
@@ -109,141 +110,43 @@
     }
   }
 
-  // --- Clean User Profile Menu Dropdown ---
-  window.toggleUserMenu = function(e) {
+  // --- Direct User Profile & Photo Uploader Modal ---
+  window.openUserProfileModal = function(e) {
     if (e) e.stopPropagation();
-    let menu = document.getElementById('userProfileMenuDropdown');
-    if (menu) {
-      menu.remove();
-      return;
-    }
     if (!window.currentUser) {
       window.showLoginModal();
       return;
     }
 
+    const modal = document.getElementById('userProfileModal');
+    if (!modal) return;
+
     const user = window.currentUser;
-    const userPhoto = getUserActivePhoto(user);
+    const photo = getUserActivePhoto(user);
     const name = user.displayName || 'Usuario';
     const email = user.email || '';
 
-    menu = document.createElement('div');
-    menu.id = 'userProfileMenuDropdown';
-    menu.className = 'user-profile-menu-dropdown';
-    menu.innerHTML = `
-      <div class="user-profile-menu-header">
-        <img src="${userPhoto}" class="user-profile-menu-avatar" alt="Avatar" onerror="this.onerror=null;this.src='img/logo.jpg'" />
-        <div style="flex:1; min-width:0;">
-          <div style="font-weight:900; font-size:13px; color:#ffffff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${name}</div>
-          <div style="font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${email}</div>
-        </div>
-      </div>
-      <button type="button" class="user-profile-menu-item" onclick="window.openPhotoUploaderModal(event)">
-        📷 Cambiar Foto de Perfil
-      </button>
-      <button type="button" class="user-profile-menu-item danger" onclick="window.logoutUser(event)">
-        🚪 Cerrar Sesión
-      </button>
-    `;
+    const preview = document.getElementById('userModalPhotoPreview');
+    const nameEl = document.getElementById('userModalDisplayName');
+    const emailEl = document.getElementById('userModalEmail');
 
-    const target = (e && e.currentTarget) ? e.currentTarget : (document.getElementById('userBadge') || document.body);
-    if (target && target.style) {
-      target.style.position = 'relative';
-      target.appendChild(menu);
-    } else {
-      document.body.appendChild(menu);
-    }
-
-    setTimeout(() => {
-      window.addEventListener('click', closeUserMenuOnClickOutside);
-    }, 10);
-  };
-
-  function closeUserMenuOnClickOutside(e) {
-    const menu = document.getElementById('userProfileMenuDropdown');
-    if (menu && !menu.contains(e.target)) {
-      menu.remove();
-      window.removeEventListener('click', closeUserMenuOnClickOutside);
-    }
-  }
-
-  window.logoutUser = async function(e) {
-    if (e) e.stopPropagation();
-    const menu = document.getElementById('userProfileMenuDropdown');
-    if (menu) menu.remove();
-
-    if (confirm('¿Deseas cerrar sesión de Drinks & Wins?')) {
-      try {
-        if (firebase.auth && firebase.auth()) {
-          await firebase.auth().signOut();
-        }
-        localStorage.removeItem('user_custom_avatar');
-        window.location.reload();
-      } catch (err) {
-        console.error('Logout error:', err);
-      }
-    }
-  };
-
-  // --- Real Photo Uploader / Camera & Gallery Picker Modal ---
-  let tempCroppedPhotoData = null;
-
-  window.openPhotoUploaderModal = function(e) {
-    if (e) e.stopPropagation();
-    const menu = document.getElementById('userProfileMenuDropdown');
-    if (menu) menu.remove();
-
-    let modal = document.getElementById('photoUploaderModalGlobal');
-    if (!modal) {
-      modal = document.createElement('div');
-      modal.id = 'photoUploaderModalGlobal';
-      modal.className = 'login-modal-overlay';
-      modal.innerHTML = `
-        <div class="login-modal-card" style="max-width: 400px; text-align: center;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h3 style="margin:0; font-size:16px; font-weight:900; color:#ffd100;">📷 Cambiar Foto de Perfil</h3>
-            <button type="button" class="login-modal-close" onclick="document.getElementById('photoUploaderModalGlobal').style.display='none'">✕</button>
-          </div>
-          <p style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Sube cualquier foto desde tu galería o cámara para tus casillas.</p>
-
-          <!-- Photo Circular Preview Frame -->
-          <div style="position:relative; width:90px; height:90px; margin:0 auto 16px auto;">
-            <img id="photoUploadPreviewImg" src="img/logo.jpg" alt="Preview" style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:3px solid #ffd100; box-shadow:0 0 16px rgba(255,209,0,0.4);" />
-          </div>
-
-          <!-- Hidden File Input -->
-          <input type="file" id="inpPhotoFileInput" accept="image/*" style="display:none;" onchange="window.handlePhotoFileSelected(event)" />
-
-          <!-- Action Button: Choose Photo from Gallery / Camera -->
-          <button type="button" class="btn btn-secondary" onclick="document.getElementById('inpPhotoFileInput').click()" style="width:100%; padding:12px; font-size:13px; font-weight:900; border-radius:12px; background:rgba(255,255,255,0.08); border:1.5px solid rgba(255,255,255,0.25); color:#ffffff; display:inline-flex; align-items:center; justify-content:center; gap:8px; margin-bottom:14px;">
-            📁 Elegir Foto de mi Celular o Cámara
-          </button>
-
-          <!-- Save and Restore Buttons -->
-          <div style="display:flex; gap:8px;">
-            <button type="button" id="btnSaveUploadedPhoto" class="btn btn-primary" onclick="window.saveUploadedPhoto()" style="flex:1; padding:11px; font-size:13px; font-weight:900; border-radius:10px;">
-              💾 Guardar Mi Foto
-            </button>
-            <button type="button" class="btn btn-secondary" onclick="window.resetToGooglePhoto()" style="width:auto; padding:11px 14px; font-size:12px; font-weight:800; border-radius:10px;" title="Restaurar foto original de Google">
-              Google
-            </button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-    }
-
-    const user = window.currentUser;
-    const currentPhoto = getUserActivePhoto(user);
-    const previewImg = document.getElementById('photoUploadPreviewImg');
-    if (previewImg) previewImg.src = currentPhoto;
+    if (preview) preview.src = photo;
+    if (nameEl) nameEl.textContent = name;
+    if (emailEl) emailEl.textContent = email;
     tempCroppedPhotoData = null;
 
     modal.style.display = 'flex';
   };
 
-  // Image compressor & reader
-  window.handlePhotoFileSelected = function(e) {
+  window.toggleUserMenu = window.openUserProfileModal;
+
+  window.closeUserProfileModal = function() {
+    const modal = document.getElementById('userProfileModal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  // Image compressor & reader from Camera / Gallery
+  window.handleUserPhotoSelected = function(e) {
     const file = e.target.files && e.target.files[0];
     if (!file) return;
 
@@ -251,7 +154,7 @@
     reader.onload = function(evt) {
       const img = new Image();
       img.onload = function() {
-        // Resize & compress on Canvas to max 160x160
+        // Resize & compress on Canvas to crisp 160x160 circle avatar
         const canvas = document.createElement('canvas');
         const size = 160;
         canvas.width = size;
@@ -267,24 +170,24 @@
         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
         tempCroppedPhotoData = compressedDataUrl;
-        const previewImg = document.getElementById('photoUploadPreviewImg');
-        if (previewImg) previewImg.src = compressedDataUrl;
+        const preview = document.getElementById('userModalPhotoPreview');
+        if (preview) preview.src = compressedDataUrl;
       };
       img.src = evt.target.result;
     };
     reader.readAsDataURL(file);
   };
 
-  window.saveUploadedPhoto = async function() {
-    const previewImg = document.getElementById('photoUploadPreviewImg');
-    const photoToSave = tempCroppedPhotoData || (previewImg ? previewImg.src : '');
+  window.saveUserPhotoModal = async function() {
+    const preview = document.getElementById('userModalPhotoPreview');
+    const photoToSave = tempCroppedPhotoData || (preview ? preview.src : '');
 
     if (!photoToSave) {
       alert('Por favor selecciona una foto de tu celular.');
       return;
     }
 
-    const btn = document.getElementById('btnSaveUploadedPhoto');
+    const btn = document.getElementById('btnSaveUserPhoto');
     if (btn) { btn.textContent = 'Guardando...'; btn.disabled = true; }
 
     try {
@@ -293,8 +196,7 @@
       const userAvatar = document.getElementById('userAvatar');
       if (userAvatar) userAvatar.src = photoToSave;
 
-      const modal = document.getElementById('photoUploaderModalGlobal');
-      if (modal) modal.style.display = 'none';
+      window.closeUserProfileModal();
 
       // Update in active game if currently on player-view.html
       const params = new URLSearchParams(window.location.search);
@@ -320,7 +222,7 @@
     }
   };
 
-  window.resetToGooglePhoto = async function() {
+  window.resetUserToGooglePhoto = async function() {
     const user = window.currentUser;
     const googlePhoto = user && user.photoURL ? user.photoURL : 'img/logo.jpg';
     localStorage.removeItem('user_custom_avatar');
@@ -328,8 +230,7 @@
     const userAvatar = document.getElementById('userAvatar');
     if (userAvatar) userAvatar.src = googlePhoto;
 
-    const modal = document.getElementById('photoUploaderModalGlobal');
-    if (modal) modal.style.display = 'none';
+    window.closeUserProfileModal();
 
     const params = new URLSearchParams(window.location.search);
     const code = (params.get('code') || params.get('game') || '').toUpperCase();
@@ -342,6 +243,21 @@
     }
 
     window.location.reload();
+  };
+
+  window.logoutFromModal = async function() {
+    window.closeUserProfileModal();
+    if (confirm('¿Deseas cerrar sesión de Drinks & Wins?')) {
+      try {
+        if (firebase.auth && firebase.auth()) {
+          await firebase.auth().signOut();
+        }
+        localStorage.removeItem('user_custom_avatar');
+        window.location.reload();
+      } catch (err) {
+        console.error('Logout error:', err);
+      }
+    }
   };
 
   // Global Auth Guard
@@ -407,11 +323,11 @@
     if (btnModalGoogle) btnModalGoogle.addEventListener('click', window.loginWithGoogle);
 
     if (btnSignOut) {
-      btnSignOut.addEventListener('click', window.logoutUser);
+      btnSignOut.addEventListener('click', window.logoutFromModal);
     }
 
     if (userBadge) {
-      userBadge.addEventListener('click', window.toggleUserMenu);
+      userBadge.addEventListener('click', window.openUserProfileModal);
     }
 
     // Check redirect result
