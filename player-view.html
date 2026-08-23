@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Tablero NFL Grid — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=67.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=68.0"/>
   <style>
     /* Custom zoom styles for mobile */
     .grid-view-header {
@@ -30,12 +30,20 @@
 </head>
 <body>
   <div class="container animate-fade" style="max-width: 1000px; padding: 12px;">
-    <!-- Top Nav Back Link & WhatsApp Share -->
-    <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-      <a href="index.html" class="btn btn-secondary" style="width: auto; padding: 8px 16px; font-size: 13px; text-decoration: none;">
+    <!-- Top Nav Back Link & WhatsApp Share with Center Hint -->
+    <div style="margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+      <a href="index.html" class="btn btn-secondary" style="width: auto; padding: 7px 14px; font-size: 12px; font-weight:800; text-decoration: none; border-radius:10px;">
         ← Volver al Dashboard
       </a>
-      <button id="btnSharePlayerWhatsApp" class="btn btn-secondary" style="width: auto; padding: 8px 14px; font-size: 13px; background: rgba(37,211,102,0.15); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 6px; font-weight: 800;" title="Compartir este Grid por WhatsApp">
+
+      <!-- Center Compact Instruction Hint -->
+      <div style="flex: 1; text-align: center; min-width: 150px;">
+        <span style="font-size: 11px; font-weight: 700; color: #00e676; background: rgba(0,230,118,0.1); border: 1px solid rgba(0,230,118,0.25); padding: 4px 10px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;">
+          ⚡ <span>Toca 1 vez para marcar • 2 veces para desmarcar</span>
+        </span>
+      </div>
+
+      <button id="btnSharePlayerWhatsApp" class="btn btn-secondary" style="width: auto; padding: 7px 13px; font-size: 12px; background: rgba(37,211,102,0.15); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 6px; font-weight: 800; border-radius:10px;" title="Compartir este Grid por WhatsApp">
         💬 Compartir por WhatsApp
       </button>
     </div>
@@ -172,10 +180,10 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Initializer & View Logic -->
-  <script src="js/firebase-config.js?v=67.0"></script>
-  <script src="js/auth.js?v=67.0"></script>
-  <script src="js/team-logos.js?v=67.0"></script>
-  <script src="js/player-view.js?v=67.0"></script>
+  <script src="js/firebase-config.js?v=68.0"></script>
+  <script src="js/auth.js?v=68.0"></script>
+  <script src="js/team-logos.js?v=68.0"></script>
+  <script src="js/player-view.js?v=68.0"></script>
 
   <!-- Global Google Login Modal Gate -->
   <div id="globalLoginModal" class="login-modal-overlay">
