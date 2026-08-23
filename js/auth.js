@@ -136,13 +136,17 @@
     tempCroppedPhotoData = null;
 
     modal.style.display = 'flex';
+    modal.classList.add('active');
   };
 
   window.toggleUserMenu = window.openUserProfileModal;
 
   window.closeUserProfileModal = function() {
     const modal = document.getElementById('userProfileModal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+    }
   };
 
   // Image compressor & reader from Camera / Gallery
@@ -263,12 +267,18 @@
   // --- How To Play Modal Controller ---
   window.openHowToPlayModal = function() {
     const modal = document.getElementById('howToPlayModal');
-    if (modal) modal.style.display = 'flex';
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.classList.add('active');
+    }
   };
 
   window.closeHowToPlayModal = function() {
     const modal = document.getElementById('howToPlayModal');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+    }
   };
 
   window.switchHowToPlayTab = function(tabKey) {
