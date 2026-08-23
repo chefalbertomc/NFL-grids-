@@ -110,8 +110,90 @@
   }
 
   let unsubGame = null;
+  let playerEspnInterval = null;
+
+  async function syncPlayerGridESPN() {
+    if (!game || !code) return;
+    const home = norm(game.homeTeam || game.home || '');
+    const away = norm(game.awayTeam || game.away || '');
+    if (!home || !away) return;
+
+    try {
+      const res = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?limit=100');
+      const data = await res.json();
+      const events = data.events || [];
+
+      let matchedEvent = null;
+      if (game.espnEventId) {
+        matchedEvent = events.find(e => String(e.id) === String(game.espnEventId));
+      }
+      if (!matchedEvent) {
+        matchedEvent = events.find(e => {
+          const comps = e.competitions?.[0]?.competitors || [];
+          const eNames = comps.map(c => norm(c.team?.displayName || c.team?.name || ''));
+          const eShorts = comps.map(c => norm(c.team?.shortDisplayName || ''));
+          const eAbbrs = comps.map(c => norm(c.team?.abbreviation || ''));
+          const allN = [...eNames, ...eShorts, ...eAbbrs];
+
+          const matchHome = allN.some(n => n && (home.includes(n) || n.includes(home)));
+          const matchAway = allN.some(n => n && (away.includes(n) || n.includes(away)));
+          return matchHome && matchAway;
+        });
+      }
+
+      if (!matchedEvent) return;
+
+      const comps = matchedEvent.competitions?.[0]?.competitors || [];
+      const homeC = comps.find(c => c.homeAway === 'home') || comps[1] || {};
+      const awayC = comps.find(c => c.homeAway === 'away') || comps[0] || {};
+
+      const sHome = parseInt(homeC.score ?? 0, 10);
+      const sAway = parseInt(awayC.score ?? 0, 10);
+      const isCompleted = !!matchedEvent.status?.type?.completed;
+      const statusText = matchedEvent.status?.type?.shortDetail || 'EN VIVO';
+      const displayClock = matchedEvent.status?.displayClock || (isCompleted ? '0:00' : '15:00');
+      const periodNum = matchedEvent.status?.period || 1;
+      const periodName = isCompleted ? 'FINAL' : (periodNum === 1 ? '1ST' : periodNum === 2 ? '2ND' : periodNum === 3 ? '3RD' : periodNum === 4 ? '4TH' : 'OT');
+
+      const sit = matchedEvent.competitions?.[0]?.situation || {};
+      const downDist = sit.shortDownDistanceText || sit.downDistanceText || (isCompleted ? 'FINAL DEL JUEGO' : 'EN VIVO');
+      const isRedZone = !!sit.isRedZone;
+
+      // Update in-memory game object immediately for instant UI update
+      game.scoreHome = sHome;
+      game.scoreAway = sAway;
+      game.quarter = statusText;
+      game.clock = displayClock;
+      game.periodName = periodName;
+      game.situation = downDist;
+      game.isRedZone = isRedZone;
+      game.lastEspnSync = Date.now();
+
+      updateGameHeader(game);
+      renderGrid(game);
+
+      // Persist to Firestore
+      try {
+        await db.collection('games').doc(code).update({
+          scoreHome: sHome,
+          scoreAway: sAway,
+          quarter: statusText,
+          clock: displayClock,
+          periodName: periodName,
+          situation: downDist,
+          isRedZone: isRedZone,
+          lastEspnSync: Date.now()
+        });
+      } catch (e) {}
+
+    } catch (err) {
+      console.warn('[player-view] Live ESPN sync error:', err);
+    }
+  }
+
   async function startGameListener() {
     if (unsubGame) unsubGame();
+    if (playerEspnInterval) { clearInterval(playerEspnInterval); playerEspnInterval = null; }
 
     // Si la URL no trae código de juego, buscar automáticamente el juego más reciente en Firestore
     if (!code) {
@@ -148,6 +230,10 @@
     }, err => {
       console.error('[player-view] Game listen error:', err);
     });
+
+    // Start direct live background sync every 10 seconds on player view
+    syncPlayerGridESPN();
+    playerEspnInterval = setInterval(syncPlayerGridESPN, 10000);
   }
 
   let unsubPlayers = null;
