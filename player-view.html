@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Tablero NFL Grid — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=75.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=76.0"/>
   <style>
     /* Custom zoom styles for mobile */
     .grid-view-header {
@@ -67,8 +67,8 @@
           <div id="selection-status-text" style="display: inline-flex;"></div>
         </div>
 
-        <!-- Right: Current Player Identity (Fixed to authenticated user, no dropdown) -->
-        <div id="playerIdentityBadge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 8px; border: 1px solid rgba(255,209,0,0.3);">
+        <!-- Right: Current Player Identity (Clickable to open profile menu / logout) -->
+        <div id="playerIdentityBadge" onclick="window.toggleUserMenu(event)" style="cursor:pointer; display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 8px; border: 1px solid rgba(255,209,0,0.3);" title="Toca para ver tu perfil o cerrar sesión">
           <span style="font-size: 12px; font-weight: 900; color: #ffd100;" id="playerNicknameDisplay">👤 Cargando...</span>
         </div>
       </div>
@@ -195,10 +195,10 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Initializer & View Logic -->
-  <script src="js/firebase-config.js?v=75.0"></script>
-  <script src="js/auth.js?v=75.0"></script>
-  <script src="js/team-logos.js?v=75.0"></script>
-  <script src="js/player-view.js?v=75.0"></script>
+  <script src="js/firebase-config.js?v=76.0"></script>
+  <script src="js/auth.js?v=76.0"></script>
+  <script src="js/team-logos.js?v=76.0"></script>
+  <script src="js/player-view.js?v=76.0"></script>
 
   <!-- Global Google Login Modal Gate -->
   <div id="globalLoginModal" class="login-modal-overlay">
