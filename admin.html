@@ -198,29 +198,69 @@
       </section>
     </main>
 
-    <!-- 2. ADMIN POOLS -->
+    <!-- 2. ADMIN QUINIELAS -->
     <main id="admin-pools" class="admin-tab-content hidden">
-      <section class="card highlight">
-        <h3 class="card-title">Configurar Quiniela</h3>
-        <p class="card-subtitle">Administra los partidos semanales de quiniela.</p>
-        
-        <div class="form-group">
-          <label>ID de Semana</label>
-          <input type="text" id="adminPoolWeekId" value="week_1" style="width: 160px;"/>
-        </div>
 
-        <button id="btnLoadAdminPool" class="btn btn-primary mb-4">Cargar Semana de Quiniela</button>
+      <!-- CREATE QUINIELA -->
+      <section class="card highlight" style="margin-bottom: 16px;">
+        <h3 class="card-title">📋 Crear Nueva Quiniela</h3>
+        <p class="card-subtitle">Busca partidos reales por deporte y liga, selecciona los que quieres incluir y publica la quiniela.</p>
 
-        <div id="adminPoolGames" class="flex-row" style="flex-direction: column; gap: 8px;">
-          <!-- Loaded dynamically -->
-        </div>
-
-        <div class="form-group mt-4">
-          <label>Registrar Ganadores Oficiales de la Semana</label>
-          <div id="adminPoolWinnersForm" class="flex-row" style="flex-direction: column; gap: 10px;">
-            <!-- Loaded dynamically -->
+        <!-- Name + Sport/League row -->
+        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+          <div class="form-group" style="flex:2; min-width:160px; margin:0;">
+            <label>Nombre de la Quiniela</label>
+            <input type="text" id="qName" placeholder="Ej. NFL Semana 3 — Drinks & Wins"/>
           </div>
-          <button id="btnUpdatePoolResults" class="btn btn-primary mt-4" style="display: none;">Calcular Puntos de Clientes</button>
+          <div class="form-group" style="flex:1; min-width:140px; margin:0;">
+            <label>Deporte / Liga</label>
+            <select id="qSportSelect"></select>
+          </div>
+          <div style="display:flex; align-items:flex-end;">
+            <button id="btnQSearchGames" class="btn btn-primary" style="width:auto; padding:10px 18px; font-size:13px;">
+              🔍 Buscar Partidos
+            </button>
+          </div>
+        </div>
+
+        <!-- Game picker -->
+        <div id="qGamePickerContainer" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+            <p style="font-size:12px; color:var(--text-muted); margin:0;">Toca los partidos que quieres incluir en la quiniela:</p>
+            <span id="qSelectedCount" style="font-size:12px; font-weight:800; color:var(--accent-color);"></span>
+          </div>
+          <div id="qGamePickerList" style="display:flex; flex-direction:column; gap:8px; max-height:380px; overflow-y:auto; padding-right:4px;"></div>
+
+          <div style="margin-top:14px;">
+            <button id="btnCreateQuiniela" class="btn btn-primary" disabled style="font-size:14px; font-weight:800;">
+              📋 Crear Quiniela
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- MANAGE ACTIVE QUINIELAS -->
+      <section class="card">
+        <h3 class="card-title">⚙️ Gestionar Quinielas</h3>
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px;">
+          <div class="form-group" style="flex:1; min-width:200px; margin:0;">
+            <label>Quiniela Activa</label>
+            <select id="selectActiveQuiniela"></select>
+          </div>
+          <button id="btnQAdminSync" class="btn btn-primary" style="width:auto; padding:10px 16px; font-size:13px;">
+            🔄 Sincronizar ESPN
+          </button>
+          <button id="btnDeleteQuiniela" class="btn btn-danger" style="width:auto; padding:10px 14px; font-size:13px;">
+            🗑️ Eliminar
+          </button>
+        </div>
+
+        <div id="qManagePanel" style="display:none;">
+          <h4 style="margin:0 0 10px; font-size:14px; color:var(--text-muted);">📊 Tabla de Pronósticos en Tiempo Real</h4>
+          <div id="qAdminStandings">
+            <div class="text-center hint-text py-3">Selecciona una quiniela para ver los pronósticos.</div>
+          </div>
         </div>
       </section>
     </main>
@@ -276,10 +316,11 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=45.0"></script>
-  <script src="js/auth.js?v=45.0"></script>
-  <script src="js/team-logos.js?v=45.0"></script>
-  <script src="js/admin.js?v=45.0"></script>
+  <script src="js/firebase-config.js?v=46.0"></script>
+  <script src="js/auth.js?v=46.0"></script>
+  <script src="js/team-logos.js?v=46.0"></script>
+  <script src="js/admin.js?v=46.0"></script>
+  <script src="js/quiniela-admin.js?v=46.0"></script>
 
   <!-- Admin Tab Switching -->
   <script>

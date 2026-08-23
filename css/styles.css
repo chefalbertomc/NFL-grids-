@@ -784,5 +784,243 @@ input:focus, select:focus, textarea:focus {
 }
 
 
+/* ===================================================
+   QUINIELA PRO — Styles
+   =================================================== */
 
+/* ---- Admin: Game Picker Cards ---- */
+.q-game-pick-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--card-bg-hover);
+  border: 1.5px solid var(--border-color);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  user-select: none;
+}
+.q-game-pick-card:hover {
+  border-color: var(--accent-color);
+  background: rgba(255,209,0,0.04);
+  transform: translateY(-1px);
+}
+.q-game-pick-card.selected {
+  border-color: var(--accent-color);
+  background: rgba(255,209,0,0.08);
+  box-shadow: 0 0 0 2px rgba(255,209,0,0.25);
+}
+.q-pick-check {
+  font-size: 20px;
+  color: var(--accent-color);
+  min-width: 24px;
+  text-align: center;
+  transition: transform 0.2s;
+}
+.q-game-pick-card.selected .q-pick-check {
+  transform: scale(1.2);
+}
+.q-pick-teams {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.q-pick-team {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.q-pick-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.q-pick-name {
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--text-color);
+}
+.q-pick-vs {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 900;
+  padding: 0 2px;
+}
+.q-pick-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  min-width: 80px;
+}
+
+/* ---- Player: Match Cards ---- */
+.q-match-card {
+  background: var(--card-bg-hover);
+  border: 1.5px solid var(--border-color);
+  border-radius: 16px;
+  padding: 14px 16px;
+  transition: border-color 0.3s, background 0.3s;
+}
+.q-match-green {
+  border-color: rgba(0,230,118,0.6) !important;
+  background: rgba(0,230,118,0.06) !important;
+}
+.q-match-yellow {
+  border-color: rgba(255,209,0,0.6) !important;
+  background: rgba(255,209,0,0.06) !important;
+}
+.q-match-red {
+  border-color: rgba(255,82,82,0.6) !important;
+  background: rgba(255,82,82,0.06) !important;
+}
+.q-match-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+.q-match-teams {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.q-match-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+.q-match-team-home {
+  align-items: flex-end;
+}
+.q-match-logo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+.q-match-team-name {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text-color);
+  text-align: center;
+  max-width: 100px;
+  line-height: 1.2;
+}
+.q-live-score {
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--text-muted);
+  line-height: 1;
+}
+.q-live-score.winning {
+  color: var(--accent-color);
+  text-shadow: 0 0 12px rgba(255,209,0,0.4);
+}
+
+/* Score inputs */
+.q-score-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-direction: column;
+}
+.q-score-inp {
+  width: 58px;
+  height: 58px;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--card-bg);
+  color: var(--text-color);
+  font-size: 22px;
+  font-weight: 900;
+  text-align: center;
+  font-family: var(--font-family);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  -moz-appearance: textfield;
+}
+.q-score-inp:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px rgba(255,209,0,0.2);
+  outline: none;
+}
+.q-score-inp[readonly] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.q-score-inp::-webkit-outer-spin-button,
+.q-score-inp::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.q-score-dash {
+  font-size: 18px;
+  color: var(--text-muted);
+  font-weight: 900;
+}
+
+/* ---- Standings Table ---- */
+.q-standings-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+  color: var(--text-color);
+}
+.q-standings-table thead tr {
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid var(--border-color);
+}
+.q-standings-table thead th {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+.q-standings-table tbody tr {
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  transition: background 0.2s;
+}
+.q-standings-table tbody tr:hover {
+  background: rgba(255,255,255,0.03);
+}
+.q-s-cell {
+  text-align: center;
+  padding: 8px 6px;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 6px;
+}
+.q-cell-green {
+  background: rgba(0,230,118,0.15);
+  color: #00e676;
+  border: 1px solid rgba(0,230,118,0.3);
+}
+.q-cell-yellow {
+  background: rgba(255,209,0,0.15);
+  color: #ffd100;
+  border: 1px solid rgba(255,209,0,0.3);
+}
+.q-cell-red {
+  background: rgba(255,82,82,0.15);
+  color: #ff6e6e;
+  border: 1px solid rgba(255,82,82,0.3);
+}
+.q-cell-gray {
+  background: rgba(255,255,255,0.04);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
 

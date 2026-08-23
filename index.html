@@ -112,28 +112,55 @@
       </section>
     </main>
 
-    <!-- 2. TAB POOLS -->
+    <!-- 2. TAB QUINIELA -->
     <main id="tab-pools" class="tab-content hidden">
-      <section class="card highlight">
-        <h3 class="card-title">Quiniela de la Semana</h3>
-        <p class="card-subtitle">Elige el ganador de cada partido de la semana de la NFL.</p>
-        
-        <div id="poolStatus" class="hint-text mb-4 text-center">Inicia sesión para guardar tu quiniela.</div>
-        
-        <div id="poolGamesList" class="flex-row" style="flex-direction: column; gap: 12px; margin-bottom: 20px;">
-          <!-- Games loaded dynamically -->
-        </div>
 
-        <button id="btnSavePool" class="btn btn-primary" disabled>Guardar Quiniela</button>
-      </section>
+      <!-- Quiniela Selector -->
+      <section class="card highlight" style="margin-bottom:14px;">
+        <h3 class="card-title">🏆 Quiniela</h3>
+        <p class="card-subtitle">Pronostica el marcador de cada partido. +3 pts si aciertas exacto, +1 pt si aciertas al ganador.</p>
 
-      <section class="card">
-        <h3 class="card-title">Tabla de Posiciones de la Semana</h3>
-        <p class="card-subtitle">Clasificación acumulada de quinielas de clientes en esta sucursal.</p>
-        <div id="poolLeaderboard" class="flex-row" style="flex-direction: column; gap: 8px;">
-          <!-- Loaded dynamically -->
+        <div class="form-group" style="margin-bottom:14px;">
+          <label>Selecciona la Quiniela</label>
+          <select id="qPlayerQuinielaSelect" style="font-size:14px; font-weight:700;"></select>
         </div>
       </section>
+
+      <!-- Picks Form -->
+      <section id="qPicksSection" class="card" style="display:none; margin-bottom:14px;">
+        <h3 class="card-title" id="qPicksTitle">Pronósticos</h3>
+
+        <!-- Player name -->
+        <div class="form-group" style="margin-bottom:14px;">
+          <label>Tu Nombre / Apodo</label>
+          <input type="text" id="qPlayerName" placeholder="Ej. AXEL DIABLILLO"
+            style="font-size:14px; font-weight:700;"/>
+        </div>
+
+        <div id="qMatchPicksForm" style="display:flex; flex-direction:column; gap:12px; margin-bottom:16px;">
+          <div class="text-center hint-text py-3">Cargando partidos...</div>
+        </div>
+
+        <button id="btnSaveQPicks" class="btn btn-primary" style="font-size:14px; font-weight:800;">
+          💾 Guardar Pronósticos
+        </button>
+      </section>
+
+      <!-- Live Standings -->
+      <section id="qStandingsSection" class="card" style="display:none;">
+        <h3 class="card-title">📊 Tabla de Posiciones en Vivo</h3>
+        <p class="card-subtitle" style="margin-bottom:12px;">
+          <span class="q-legend-dot q-cell-green" style="display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px;"></span> Marcador exacto (+3 pts)
+          &nbsp;
+          <span class="q-legend-dot q-cell-yellow" style="display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px;"></span> Solo ganador (+1 pt)
+          &nbsp;
+          <span class="q-legend-dot q-cell-red" style="display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px;"></span> Incorrecto (0 pts)
+        </p>
+        <div id="qLiveStandings">
+          <div class="text-center hint-text py-3">Cargando posiciones...</div>
+        </div>
+      </section>
+
     </main>
 
     <!-- 3. TAB SURVIVOR -->
@@ -226,13 +253,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=45.0"></script>
-  <script src="js/auth.js?v=45.0"></script>
-  <script src="js/team-logos.js?v=45.0"></script>
-  <script src="js/grids.js?v=45.0"></script>
-  <script src="js/pools.js?v=45.0"></script>
-  <script src="js/survivor.js?v=45.0"></script>
-  <script src="js/firstgoal.js?v=45.0"></script>
+  <script src="js/firebase-config.js?v=46.0"></script>
+  <script src="js/auth.js?v=46.0"></script>
+  <script src="js/team-logos.js?v=46.0"></script>
+  <script src="js/grids.js?v=46.0"></script>
+  <script src="js/quiniela-player.js?v=46.0"></script>
+  <script src="js/survivor.js?v=46.0"></script>
+  <script src="js/firstgoal.js?v=46.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
