@@ -1,4 +1,4 @@
-// Player Grid View Module — Drinks & Wins (v71.0)
+// Player Grid View Module — Drinks & Wins (v72.0)
 (function() {
   'use strict';
 
@@ -22,6 +22,17 @@
 
   const two = (n) => String(Number(n) || 0).padStart(2, '0');
   const norm = (s) => (s || '').trim().toLowerCase();
+
+  const AVATAR_PRESETS = [
+    { name: '🏈 Balón', url: 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=150&auto=format&fit=crop&q=80' },
+    { name: '🏆 Trofeo', url: 'https://images.unsplash.com/photo-1578269174936-2709b6aeb913?w=150&auto=format&fit=crop&q=80' },
+    { name: '🍺 Cerveza', url: 'https://images.unsplash.com/photo-1608270199182-3d75fb513a96?w=150&auto=format&fit=crop&q=80' },
+    { name: '🍗 Alitas', url: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=150&auto=format&fit=crop&q=80' },
+    { name: '🛡️ Casco', url: 'https://images.unsplash.com/photo-1587280501635-68a0e82cd5ff?w=150&auto=format&fit=crop&q=80' },
+    { name: '🔥 Fuego', url: 'https://images.unsplash.com/photo-1520110120835-c965c4731b84?w=150&auto=format&fit=crop&q=80' },
+    { name: '👑 Corona', url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=150&auto=format&fit=crop&q=80' },
+    { name: '🍻 Drinks', url: 'img/logo.jpg' }
+  ];
 
   function cellOwnerIsMe(info) {
     if (!info) return false;
@@ -311,6 +322,13 @@
         if (activePlayer) {
           localStorage.setItem('bww_player_id', activePlayer.id);
           localStorage.setItem('player_nick', activePlayer.nickname);
+
+          // Auto-sync Google photo to Firestore if user has one and activePlayer was empty
+          if (user && user.photoURL && !activePlayer.userPhoto) {
+            db.collection('games').doc(code).collection('players').doc(activePlayer.id).update({
+              userPhoto: user.photoURL
+            }).catch(() => {});
+          }
         }
 
         updatePlayerUI();
@@ -549,8 +567,15 @@
         cell.className = 'grid-cell';
 
         if (info) {
+          let photoSrc = info.userPhoto || '';
+          if (!photoSrc && cellOwnerIsMe(info) && user && user.photoURL) {
+            photoSrc = user.photoURL;
+          }
+          if (!photoSrc) {
+            photoSrc = 'img/logo.jpg';
+          }
+
           if (currentDisplayMode === 'photos') {
-            const photoSrc = info.userPhoto || 'img/logo.jpg';
             cell.innerHTML = `<img class="cell-avatar-img" src="${photoSrc}" onerror="this.onerror=null;this.src='img/logo.jpg'" alt="${info.name}"/>`;
           } else {
             cell.textContent = info.name || '—';
@@ -595,6 +620,85 @@
     if (game) renderGrid(game);
   };
 
+  // --- Avatar Picker Modal Logic ---
+  window.openAvatarPicker = function() {
+    const modal = document.getElementById('avatarPickerModal');
+    if (!modal) return;
+
+    const currentImg = document.getElementById('avatarCurrentPreview');
+    const previewNick = document.getElementById('avatarPreviewNick');
+    const grid = document.getElementById('avatarPresetsGrid');
+    const inpUrl = document.getElementById('inpCustomAvatarUrl');
+
+    const activePhoto = (activePlayer && activePlayer.userPhoto) || (user && user.photoURL) || 'img/logo.jpg';
+    if (currentImg) currentImg.src = activePhoto;
+    if (previewNick) previewNick.textContent = (activePlayer && activePlayer.nickname) || (user && user.displayName) || 'Mi Avatar';
+    if (inpUrl) inpUrl.value = '';
+
+    if (grid) {
+      grid.innerHTML = '';
+      AVATAR_PRESETS.forEach(p => {
+        const item = document.createElement('div');
+        item.style.cssText = 'text-align:center; cursor:pointer; padding:6px; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.08); transition:all 0.2s;';
+        item.innerHTML = `
+          <img src="${p.url}" alt="${p.name}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1.5px solid rgba(255,255,255,0.2);" />
+          <div style="font-size:9.5px; color:var(--text-muted); margin-top:4px; font-weight:700;">${p.name}</div>
+        `;
+        item.addEventListener('click', () => {
+          if (currentImg) currentImg.src = p.url;
+          if (inpUrl) inpUrl.value = p.url;
+        });
+        grid.appendChild(item);
+      });
+    }
+
+    modal.style.display = 'flex';
+  };
+
+  window.closeAvatarPicker = function() {
+    const modal = document.getElementById('avatarPickerModal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.saveCustomAvatar = async function() {
+    const currentImg = document.getElementById('avatarCurrentPreview');
+    const inpUrl = document.getElementById('inpCustomAvatarUrl');
+    const chosenUrl = (inpUrl && inpUrl.value.trim()) || (currentImg ? currentImg.src : '');
+
+    if (!chosenUrl) {
+      alert('Por favor selecciona un avatar o escribe un enlace válido.');
+      return;
+    }
+
+    if (activePlayer && db && code) {
+      try {
+        await db.collection('games').doc(code).collection('players').doc(activePlayer.id).update({
+          userPhoto: chosenUrl
+        });
+        activePlayer.userPhoto = chosenUrl;
+      } catch (e) {
+        console.error('Error saving avatar:', e);
+      }
+    }
+
+    window.closeAvatarPicker();
+    if (game) renderGrid(game);
+  };
+
+  window.resetToGoogleAvatar = async function() {
+    const googlePhoto = user && user.photoURL ? user.photoURL : 'img/logo.jpg';
+    if (activePlayer && db && code) {
+      try {
+        await db.collection('games').doc(code).collection('players').doc(activePlayer.id).update({
+          userPhoto: googlePhoto
+        });
+        activePlayer.userPhoto = googlePhoto;
+      } catch (e) {}
+    }
+    window.closeAvatarPicker();
+    if (game) renderGrid(game);
+  };
+
   function showCellPopover(info, key, g, isOwn) {
     let popover = document.getElementById('cellDetailPopover');
     if (!popover) {
@@ -610,7 +714,10 @@
     const awayNum = (g.numsLeft && g.numsLeft[r] !== undefined && (g.showNumbers || g.locked)) ? g.numsLeft[r] : '?';
     const homeNum = (g.numsTop && g.numsTop[c] !== undefined && (g.showNumbers || g.locked)) ? g.numsTop[c] : '?';
 
-    const photo = info.userPhoto || 'img/logo.jpg';
+    let photo = info.userPhoto || '';
+    if (!photo && isOwn && user && user.photoURL) photo = user.photoURL;
+    if (!photo) photo = 'img/logo.jpg';
+
     const nick = info.name || 'Jugador';
     const fullName = info.userName && info.userName !== nick ? ` (${info.userName})` : '';
 
@@ -683,7 +790,7 @@
 
     if (isPickedByMe) {
       // Show detail popover with quick unpick option
-      showCellPopover(info || { name: activePlayer.nickname, userPhoto: user?.photoURL }, key, g, true);
+      showCellPopover(info || { name: activePlayer.nickname, userPhoto: activePlayer.userPhoto || user?.photoURL }, key, g, true);
       return;
     }
 
@@ -705,35 +812,6 @@
     } catch (err) {
       console.error('[player-view] Error updating pick:', err);
       alert('Error al marcar casilla: ' + err.message);
-    }
-  }
-
-  // --- Mobile Zoom & Rotation Controls ---
-  let currentGridZoom = 1.0;
-
-  window.changeGridZoom = function(delta) {
-    currentGridZoom = Math.min(2.5, Math.max(0.75, Math.round((currentGridZoom + delta) * 100) / 100));
-    applyGridZoom();
-  };
-
-  window.resetGridZoom = function() {
-    currentGridZoom = 1.0;
-    applyGridZoom();
-  };
-
-  function applyGridZoom() {
-    const board = document.getElementById('gridBoard');
-    const indicator = document.getElementById('zoomLevelIndicator');
-    if (indicator) indicator.textContent = `${Math.round(currentGridZoom * 100)}%`;
-
-    if (board) {
-      if (currentGridZoom === 1.0) {
-        board.style.width = '100%';
-        board.style.minWidth = '320px';
-      } else {
-        board.style.width = `calc(100% * ${currentGridZoom})`;
-        board.style.minWidth = `${Math.round(320 * currentGridZoom)}px`;
-      }
     }
   }
 
