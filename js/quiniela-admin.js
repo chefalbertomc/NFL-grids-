@@ -1,22 +1,21 @@
-// Quiniela Admin Module — Wings & Wins
+// Quiniela Admin Module — Wings & Wins v48
 (function () {
   'use strict';
 
   let db = null;
 
   const LEAGUES = {
-    'nfl':              { sport: 'football',   slug: 'nfl',                     label: 'NFL 🏈' },
-    'college-football': { sport: 'football',   slug: 'college-football',        label: 'NCAA Football 🎓' },
-    'nba':              { sport: 'basketball', slug: 'nba',                     label: 'NBA 🏀' },
-    'mls':              { sport: 'soccer',     slug: 'usa.1',                   label: 'MLS ⚽' },
-    'liga-mx':          { sport: 'soccer',     slug: 'mex.1',                   label: 'Liga MX ⚽' },
-    'premier':          { sport: 'soccer',     slug: 'eng.1',                   label: 'Premier League ⚽' },
-    'champions':        { sport: 'soccer',     slug: 'uefa.champions',          label: 'Champions League ⚽' },
-    'laliga':           { sport: 'soccer',     slug: 'esp.1',                   label: 'La Liga ⚽' },
+    'nfl':              { sport: 'football',   slug: 'nfl',                label: 'NFL 🏈' },
+    'college-football': { sport: 'football',   slug: 'college-football',   label: 'NCAA Football 🎓' },
+    'nba':              { sport: 'basketball', slug: 'nba',                label: 'NBA 🏀' },
+    'mls':              { sport: 'soccer',     slug: 'usa.1',              label: 'MLS ⚽' },
+    'liga-mx':          { sport: 'soccer',     slug: 'mex.1',              label: 'Liga MX ⚽' },
+    'premier':          { sport: 'soccer',     slug: 'eng.1',              label: 'Premier League ⚽' },
+    'champions':        { sport: 'soccer',     slug: 'uefa.champions',     label: 'Champions League ⚽' },
+    'laliga':           { sport: 'soccer',     slug: 'esp.1',              label: 'La Liga ⚽' },
   };
 
-  let qSearchResults = [];
-  let qSelectedMatches = {};
+  let qSelectedMatches = {}; // Persists across searches
   let activeQuinielaId = null;
 
   function initQAdmin() {
@@ -49,6 +48,19 @@
     const btnCreate = document.getElementById('btnCreateQuiniela');
     if (btnCreate) btnCreate.addEventListener('click', createQuiniela);
 
+    // Clear all selected matches
+    const btnClearSel = document.getElementById('btnQClearSelected');
+    if (btnClearSel) btnClearSel.addEventListener('click', () => {
+      qSelectedMatches = {};
+      // Re-render picker to uncheck all visible cards
+      document.querySelectorAll('.q-game-pick-card.selected').forEach(card => {
+        card.classList.remove('selected');
+        const chk = card.querySelector('.q-pick-check');
+        if (chk) chk.textContent = '☐';
+      });
+      updateSelectedCount();
+    });
+
     const btnSync = document.getElementById('btnQAdminSync');
     if (btnSync) btnSync.addEventListener('click', () => syncQuinielaScores(activeQuinielaId));
 
@@ -60,11 +72,12 @@
       });
     }
 
+    // Delete quiniela
     const btnDelete = document.getElementById('btnDeleteQuiniela');
     if (btnDelete) {
       btnDelete.addEventListener('click', async () => {
-        if (!activeQuinielaId) return;
-        if (!confirm('¿Eliminar esta quiniela permanentemente?')) return;
+        if (!activeQuinielaId) { alert('Selecciona una quiniela primero.'); return; }
+        if (!confirm('¿Eliminar esta quiniela permanentemente? Esto borrará todos los pronósticos.')) return;
         try {
           const picks = await db.collection('quinielas').doc(activeQuinielaId).collection('picks').get();
           const batch = db.batch();
@@ -73,12 +86,30 @@
           await db.collection('quinielas').doc(activeQuinielaId).delete();
           alert('✅ Quiniela eliminada.');
           activeQuinielaId = null;
+          const panel = document.getElementById('qManagePanel');
+          if (panel) panel.style.display = 'none';
           loadActiveQuinielas();
-        } catch (err) { alert('Error: ' + err.message); }
+        } catch (err) { alert('Error al eliminar: ' + err.message); }
       });
     }
+
+    // Share quiniela on WhatsApp
+    const btnShare = document.getElementById('btnQShareWhatsApp');
+    if (btnShare) btnShare.addEventListener('click', shareQuinielaWhatsApp);
   }
 
+  function shareQuinielaWhatsApp() {
+    const sel = document.getElementById('selectActiveQuiniela');
+    const name = sel?.options[sel.selectedIndex]?.text || 'Quiniela';
+    const baseUrl = window.location.origin + window.location.pathname.replace('admin.html', 'index.html');
+    const url = `${baseUrl}#tab-pools`;
+    const text = `🏆 *¡Únete a nuestra Quiniela "${name}"!*\n\n🎯 Pronostica el marcador de los partidos\n✅ +3 pts marcador exacto | +1 pt solo ganador\n\n📱 *Entra aquí para registrar tus pronósticos:*\n${baseUrl}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  }
+
+  // ──────────────────────────────────────────────
+  // SEARCH ESPN GAMES — Does NOT reset existing selections
+  // ──────────────────────────────────────────────
   async function searchQuinielaGames() {
     const leagueKey = document.getElementById('qSportSelect')?.value;
     const league = LEAGUES[leagueKey];
@@ -92,8 +123,7 @@
     if (resultsEl) resultsEl.innerHTML = '<div class="text-center hint-text py-3">Buscando partidos en ESPN...</div>';
     if (container) container.style.display = 'block';
 
-    qSelectedMatches = {};
-    qSearchResults = [];
+    // NOTE: DO NOT reset qSelectedMatches here — preserve selections from other leagues!
 
     try {
       const today = new Date();
@@ -111,7 +141,6 @@
         return;
       }
 
-      qSearchResults = events;
       renderQGamePicker(events);
     } catch (err) {
       console.error('[QAdmin]', err);
@@ -139,11 +168,14 @@
       const isLive = ev.status?.type?.state === 'in';
       const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-MX', { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
 
+      // Check if already selected from previous search
+      const alreadySelected = !!qSelectedMatches[ev.id];
+
       const card = document.createElement('div');
-      card.className = 'q-game-pick-card';
+      card.className = `q-game-pick-card${alreadySelected ? ' selected' : ''}`;
       card.dataset.evId = ev.id;
       card.innerHTML = `
-        <div class="q-pick-check" id="chk_${ev.id}">☐</div>
+        <div class="q-pick-check">${alreadySelected ? '☑' : '☐'}</div>
         <div class="q-pick-teams">
           <div class="q-pick-team">
             <img src="${awayLogo}" onerror="this.src='img/logo.jpg'" class="q-pick-logo" alt="${awayName}"/>
@@ -170,7 +202,7 @@
           if (chk) chk.textContent = '☐';
         } else {
           qSelectedMatches[ev.id] = {
-            ev, espnEventId: ev.id, date: dateStr,
+            espnEventId: ev.id, date: dateStr,
             home: { name: homeName, logo: homeLogo, id: home.team?.id || '', abbr: home.team?.abbreviation || homeName.substring(0,3) },
             away: { name: awayName, logo: awayLogo, id: away.team?.id || '', abbr: away.team?.abbreviation || awayName.substring(0,3) }
           };
@@ -184,21 +216,50 @@
     });
 
     updateSelectedCount();
+    renderSelectedSummary();
+  }
+
+  // Show all selected games across leagues as a summary strip
+  function renderSelectedSummary() {
+    let summaryEl = document.getElementById('qSelectedSummary');
+    if (!summaryEl) {
+      summaryEl = document.createElement('div');
+      summaryEl.id = 'qSelectedSummary';
+      summaryEl.style.cssText = 'margin-bottom:12px; display:flex; flex-wrap:wrap; gap:6px;';
+      const container = document.getElementById('qGamePickerContainer');
+      if (container) container.insertBefore(summaryEl, container.firstChild);
+    }
+
+    const entries = Object.values(qSelectedMatches);
+    if (entries.length === 0) {
+      summaryEl.innerHTML = '';
+      return;
+    }
+
+    summaryEl.innerHTML = '<div style="width:100%; font-size:11px; color:var(--text-muted); margin-bottom:4px; font-weight:700;">✅ PARTIDOS SELECCIONADOS (de todas las ligas):</div>' +
+      entries.map(m => `
+        <div style="display:inline-flex; align-items:center; gap:4px; background:rgba(255,209,0,0.1); border:1px solid rgba(255,209,0,0.4); border-radius:20px; padding:4px 10px; font-size:11px; font-weight:700;">
+          <img src="${m.away.logo}" onerror="this.src='img/logo.jpg'" style="width:16px;height:16px;object-fit:contain;"/>
+          ${m.away.abbr} vs ${m.home.abbr}
+          <img src="${m.home.logo}" onerror="this.src='img/logo.jpg'" style="width:16px;height:16px;object-fit:contain;"/>
+        </div>
+      `).join('');
   }
 
   function updateSelectedCount() {
     const count = Object.keys(qSelectedMatches).length;
     const countEl = document.getElementById('qSelectedCount');
     const btn = document.getElementById('btnCreateQuiniela');
-    if (countEl) countEl.textContent = count > 0 ? `${count} partido${count > 1 ? 's' : ''} seleccionado${count > 1 ? 's' : ''}` : '';
+    const clearBtn = document.getElementById('btnQClearSelected');
+    if (countEl) countEl.textContent = count > 0 ? `✅ ${count} partido${count > 1 ? 's' : ''} seleccionado${count > 1 ? 's' : ''} (de todas las ligas)` : '';
     if (btn) btn.disabled = count === 0;
+    if (clearBtn) clearBtn.style.display = count > 0 ? 'inline-flex' : 'none';
+    renderSelectedSummary();
   }
 
   async function createQuiniela() {
     if (!db) return;
     const name = (document.getElementById('qName')?.value || '').trim();
-    const leagueKey = document.getElementById('qSportSelect')?.value;
-    const league = LEAGUES[leagueKey];
     const matchCount = Object.keys(qSelectedMatches).length;
 
     if (!name) { alert('Escribe un nombre para la quiniela.'); return; }
@@ -220,13 +281,17 @@
       completed: false
     }));
 
+    // Determine espnSlug from the first match's event or just use 'mixed'
+    const leagueKey = document.getElementById('qSportSelect')?.value || 'nfl';
+    const league = LEAGUES[leagueKey] || LEAGUES['nfl'];
+
     try {
       const ref = db.collection('quinielas').doc();
       await ref.set({
         id: ref.id,
         name,
-        sport: league.sport,
-        leagueKey,
+        sport: 'mixed',
+        leagueKey: 'mixed',
         espnSlug: league.slug,
         matches,
         active: true,
@@ -235,9 +300,10 @@
           : Date.now()
       });
 
-      alert(`✅ Quiniela "${name}" creada con ${matchCount} partidos.`);
+      alert(`✅ Quiniela "${name}" creada con ${matchCount} partidos de ${Object.values(qSelectedMatches).map(m => m.away.abbr + ' vs ' + m.home.abbr).join(', ')}`);
       if (document.getElementById('qName')) document.getElementById('qName').value = '';
       qSelectedMatches = {};
+      updateSelectedCount();
       const picker = document.getElementById('qGamePickerContainer');
       if (picker) picker.style.display = 'none';
       loadActiveQuinielas();
@@ -254,17 +320,21 @@
 
     sel.innerHTML = '<option disabled selected>— Cargando... —</option>';
     try {
-      const snap = await db.collection('quinielas').orderBy('createdAt', 'desc').limit(20).get();
+      const snap = await db.collection('quinielas').limit(20).get();
       if (snap.empty) {
         sel.innerHTML = '<option disabled selected>— No hay quinielas creadas —</option>';
         if (panel) panel.style.display = 'none';
         return;
       }
+      // Sort client-side
+      const docs = [];
+      snap.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
+      docs.sort((a, b) => (b.createdAt?.seconds || b.createdAt || 0) - (a.createdAt?.seconds || a.createdAt || 0));
+
       sel.innerHTML = '';
-      snap.forEach(doc => {
-        const q = doc.data();
+      docs.forEach(q => {
         const opt = document.createElement('option');
-        opt.value = doc.id;
+        opt.value = q.id;
         opt.textContent = `${q.name} (${q.matches?.length || 0} partidos)`;
         sel.appendChild(opt);
       });
@@ -295,7 +365,11 @@
 
       const picksSnap = await db.collection('quinielas').doc(quinielaId).collection('picks').get();
       if (picksSnap.empty) {
-        standingsEl.innerHTML = '<div class="text-center hint-text py-3">Aún no hay pronósticos registrados.</div>';
+        standingsEl.innerHTML = `
+          <div class="text-center hint-text py-3">Aún no hay pronósticos registrados.</div>
+          <div style="margin-top:10px; text-align:center;">
+            <p style="font-size:12px; color:var(--text-muted);">Comparte la quiniela con los jugadores usando el botón 💬 WhatsApp</p>
+          </div>`;
         return;
       }
 
@@ -334,7 +408,6 @@
     const table = document.createElement('table');
     table.className = 'q-standings-table';
 
-    // Header
     const thead = table.createTHead();
     const hr = thead.insertRow();
     hr.innerHTML = `<th style="text-align:left; padding:10px 12px; min-width:120px;">Jugador</th>` +
@@ -387,16 +460,33 @@
       const snap = await ref.get();
       const q = snap.data() || {};
       const matches = q.matches || [];
-      const espnSlug = q.espnSlug || 'nfl';
-      const sport = q.sport || 'football';
 
-      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${espnSlug}/scoreboard`);
-      const data = await res.json();
-      const events = data.events || [];
+      // Group matches by espnSlug for efficient fetching
+      // For mixed quinielas, we fetch all main leagues
+      const sportsToFetch = new Set();
+      // Try to map espnEventId prefixes or just fetch common leagues
+      const fetchLeagues = [
+        { sport: 'football', slug: 'nfl' },
+        { sport: 'soccer', slug: 'mex.1' },
+        { sport: 'soccer', slug: 'eng.1' },
+        { sport: 'soccer', slug: 'esp.1' },
+        { sport: 'soccer', slug: 'usa.1' },
+        { sport: 'soccer', slug: 'uefa.champions' },
+        { sport: 'basketball', slug: 'nba' },
+      ];
+
+      const allEvents = {};
+      for (const lg of fetchLeagues) {
+        try {
+          const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${lg.sport}/${lg.slug}/scoreboard`);
+          const data = await res.json();
+          (data.events || []).forEach(ev => { allEvents[ev.id] = ev; });
+        } catch (e) {}
+      }
 
       let updated = 0;
       const updatedMatches = matches.map(m => {
-        const ev = events.find(e => e.id === m.espnEventId);
+        const ev = allEvents[m.espnEventId];
         if (!ev) return m;
         const comps = ev.competitions?.[0]?.competitors || [];
         const homeC = comps.find(c => c.homeAway === 'home');
@@ -416,7 +506,7 @@
       });
 
       await ref.update({ matches: updatedMatches, lastSync: Date.now() });
-      alert(`✅ Sincronizado: ${updated} partidos actualizados.`);
+      alert(`✅ Sincronizado: ${updated} partidos encontrados y actualizados.`);
       loadQuinielaStandings(quinielaId);
     } catch (err) {
       alert('Error al sincronizar: ' + err.message);

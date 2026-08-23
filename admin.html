@@ -204,13 +204,13 @@
       <!-- CREATE QUINIELA -->
       <section class="card highlight" style="margin-bottom: 16px;">
         <h3 class="card-title">📋 Crear Nueva Quiniela</h3>
-        <p class="card-subtitle">Busca partidos reales por deporte y liga, selecciona los que quieres incluir y publica la quiniela.</p>
+        <p class="card-subtitle">Busca partidos por deporte/liga. Puedes elegir partidos de <strong>múltiples ligas</strong> (Liga MX, La Liga, NFL, etc.) antes de guardar.</p>
 
         <!-- Name + Sport/League row -->
         <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
           <div class="form-group" style="flex:2; min-width:160px; margin:0;">
             <label>Nombre de la Quiniela</label>
-            <input type="text" id="qName" placeholder="Ej. NFL Semana 3 — Drinks & Wins"/>
+            <input type="text" id="qName" placeholder="Ej. Quiniela Fin de Semana — Drinks & Wins"/>
           </div>
           <div class="form-group" style="flex:1; min-width:140px; margin:0;">
             <label>Deporte / Liga</label>
@@ -226,8 +226,11 @@
         <!-- Game picker -->
         <div id="qGamePickerContainer" style="display:none;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
-            <p style="font-size:12px; color:var(--text-muted); margin:0;">Toca los partidos que quieres incluir en la quiniela:</p>
-            <span id="qSelectedCount" style="font-size:12px; font-weight:800; color:var(--accent-color);"></span>
+            <p style="font-size:12px; color:var(--text-muted); margin:0;">Toca los partidos que quieres incluir (se acumulan entre búsquedas):</p>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span id="qSelectedCount" style="font-size:12px; font-weight:800; color:var(--accent-color);"></span>
+              <button id="btnQClearSelected" class="btn btn-secondary" style="width:auto; padding:3px 8px; font-size:11px; display:none;">✕ Limpiar</button>
+            </div>
           </div>
           <div id="qGamePickerList" style="display:flex; flex-direction:column; gap:8px; max-height:380px; overflow-y:auto; padding-right:4px;"></div>
 
@@ -248,10 +251,13 @@
             <label>Quiniela Activa</label>
             <select id="selectActiveQuiniela"></select>
           </div>
-          <button id="btnQAdminSync" class="btn btn-primary" style="width:auto; padding:10px 16px; font-size:13px;">
+          <button id="btnQAdminSync" class="btn btn-primary" style="width:auto; padding:10px 16px; font-size:13px;" title="Sincronizar marcadores en vivo de ESPN">
             🔄 Sincronizar ESPN
           </button>
-          <button id="btnDeleteQuiniela" class="btn btn-danger" style="width:auto; padding:10px 14px; font-size:13px;">
+          <button id="btnQShareWhatsApp" class="btn btn-secondary" style="width:auto; padding:10px 14px; font-size:13px; background:rgba(37,211,102,0.15); border-color:#25D366; color:#25D366;" title="Compartir enlace de esta Quiniela por WhatsApp">
+            💬 WhatsApp
+          </button>
+          <button id="btnDeleteQuiniela" class="btn btn-danger" style="width:auto; padding:10px 14px; font-size:13px;" title="Eliminar quiniela y pronósticos">
             🗑️ Eliminar
           </button>
         </div>
@@ -316,11 +322,11 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=46.0"></script>
-  <script src="js/auth.js?v=46.0"></script>
-  <script src="js/team-logos.js?v=46.0"></script>
-  <script src="js/admin.js?v=46.0"></script>
-  <script src="js/quiniela-admin.js?v=46.0"></script>
+  <script src="js/firebase-config.js?v=48.0"></script>
+  <script src="js/auth.js?v=48.0"></script>
+  <script src="js/team-logos.js?v=48.0"></script>
+  <script src="js/admin.js?v=48.0"></script>
+  <script src="js/quiniela-admin.js?v=48.0"></script>
 
   <!-- Admin Tab Switching -->
   <script>
