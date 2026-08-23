@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Tutorial en Video: ¿Cómo Jugar NFL Grids? — Drinks & Wins</title>
+  <link rel="stylesheet" href="css/styles.css?v=79.0" />
+  <style>
+    body {
+      background: #0a0e17;
+      color: #ffffff;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .reel-container {
+      width: 100%;
+      max-width: 400px;
+      height: 92vh;
+      max-height: 750px;
+      background: linear-gradient(180deg, #111827 0%, #0b0f19 100%);
+      border: 2px solid rgba(255, 209, 0, 0.4);
+      border-radius: 24px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(255, 209, 0, 0.2);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Top Progress Bar */
+    .progress-bar-container {
+      display: flex;
+      gap: 4px;
+      padding: 12px 14px 6px 14px;
+      z-index: 10;
+    }
+    .progress-segment {
+      flex: 1;
+      height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: #ffd100;
+      transition: width 0.1s linear;
+    }
+
+    /* Reel Top Bar */
+    .reel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 16px 10px 16px;
+      z-index: 10;
+    }
+    .brand-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.08);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 900;
+      color: #ffd100;
+      border: 1px solid rgba(255,209,0,0.3);
+    }
+
+    /* Reel Slide Content */
+    .slide-stage {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 16px;
+      text-align: center;
+      position: relative;
+    }
+
+    .reel-badge {
+      background: #ffd100;
+      color: #000;
+      font-weight: 900;
+      font-size: 11px;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+      letter-spacing: 0.05em;
+    }
+
+    .reel-title {
+      font-size: 22px;
+      font-weight: 900;
+      color: #ffffff;
+      line-height: 1.2;
+      margin-bottom: 10px;
+    }
+    .reel-title span {
+      color: #ffd100;
+    }
+
+    .reel-desc {
+      font-size: 13.5px;
+      color: #cbd5e1;
+      line-height: 1.4;
+      max-width: 320px;
+      margin-bottom: 16px;
+    }
+
+    /* Visual Mini Board */
+    .mini-grid {
+      display: grid;
+      grid-template-columns: 28px repeat(5, 1fr);
+      grid-template-rows: 28px repeat(5, 1fr);
+      gap: 3px;
+      width: 240px;
+      height: 240px;
+      background: rgba(255,255,255,0.03);
+      padding: 6px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,209,0,0.25);
+      margin-bottom: 14px;
+    }
+    .mini-cell {
+      background: rgba(255,255,255,0.06);
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 800;
+      color: #ffffff;
+      transition: all 0.3s;
+    }
+    .mini-cell.header-top {
+      background: rgba(255,209,0,0.2);
+      color: #ffd100;
+      font-weight: 900;
+    }
+    .mini-cell.header-left {
+      background: rgba(0,230,118,0.2);
+      color: #00e676;
+      font-weight: 900;
+    }
+    .mini-cell.corner {
+      background: transparent;
+      font-size: 9px;
+      color: var(--text-muted);
+    }
+    .mini-cell.highlight-x {
+      background: rgba(255, 209, 0, 0.4);
+      border: 1px solid #ffd100;
+      box-shadow: 0 0 8px #ffd100;
+    }
+    .mini-cell.highlight-y {
+      background: rgba(0, 230, 118, 0.4);
+      border: 1px solid #00e676;
+      box-shadow: 0 0 8px #00e676;
+    }
+    .mini-cell.winner {
+      background: #ffd100 !important;
+      color: #000000 !important;
+      font-size: 16px !important;
+      font-weight: 900;
+      animation: pulseWinner 0.8s infinite alternate;
+      box-shadow: 0 0 20px #ffd100, 0 0 40px #ffd100;
+      border-radius: 8px;
+    }
+
+    @keyframes pulseWinner {
+      from { transform: scale(1); }
+      to { transform: scale(1.15); }
+    }
+
+    /* Scoreboard Box */
+    .score-badge {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      background: rgba(0,0,0,0.6);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 8px 14px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      font-weight: 900;
+    }
+    .score-team {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .score-val {
+      font-size: 17px;
+      padding: 2px 6px;
+      border-radius: 6px;
+    }
+
+    /* Reel Bottom Navigation Controls */
+    .reel-controls {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px 16px 16px;
+      z-index: 10;
+      background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="reel-container">
+    <!-- Top Story Progress Bar -->
+    <div class="progress-bar-container">
+      <div class="progress-segment"><div class="progress-fill" id="pFill0"></div></div>
+      <div class="progress-segment"><div class="progress-fill" id="pFill1"></div></div>
+      <div class="progress-segment"><div class="progress-fill" id="pFill2"></div></div>
+      <div class="progress-segment"><div class="progress-fill" id="pFill3"></div></div>
+    </div>
+
+    <!-- Header -->
+    <div class="reel-header">
+      <div class="brand-pill">
+        <span>🏈</span> Drinks & Wins
+      </div>
+      <a href="index.html" style="color:var(--text-muted); text-decoration:none; font-size:18px; font-weight:800;" title="Salir">✕</a>
+    </div>
+
+    <!-- Slide Canvas -->
+    <div class="slide-stage" id="slideStage">
+      <!-- Loaded dynamically via script -->
+    </div>
+
+    <!-- Bottom Controls -->
+    <div class="reel-controls">
+      <button type="button" class="btn btn-secondary" onclick="window.prevSlide()" style="flex:1; padding:10px; font-size:13px; font-weight:800; border-radius:12px;">
+        ◀ Anterior
+      </button>
+      <button type="button" id="btnPlayPause" class="btn btn-secondary" onclick="window.togglePlayPause()" style="width:48px; padding:10px; font-size:14px; font-weight:900; border-radius:12px;" title="Pausar / Reanudar">
+        ⏸️
+      </button>
+      <button type="button" class="btn btn-primary" onclick="window.nextSlide()" style="flex:2; padding:10px; font-size:13px; font-weight:900; border-radius:12px;">
+        Siguiente ▶
+      </button>
+    </div>
+  </div>
+
+  <script>
+    const slides = [
+      {
+        badge: 'Paso 1 de 4',
+        title: 'Elige tus <span>Casillas</span>',
+        desc: 'El tablero tiene 100 cuadros. Toca las casillas que quieras para apartarlas con tu nombre o foto.',
+        render: () => `
+          <div class="mini-grid">
+            <div class="mini-cell corner">A\\L</div>
+            <div class="mini-cell header-top">?</div>
+            <div class="mini-cell header-top">?</div>
+            <div class="mini-cell header-top">?</div>
+            <div class="mini-cell header-top">?</div>
+            <div class="mini-cell header-top">?</div>
+
+            <div class="mini-cell header-left">?</div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell winner" style="font-size:11px !important;">👤</div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell winner" style="font-size:11px !important;">👤</div>
+            <div class="mini-cell"></div>
+
+            <div class="mini-cell header-left">?</div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+
+            <div class="mini-cell header-left">?</div>
+            <div class="mini-cell winner" style="font-size:11px !important;">👤</div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+
+            <div class="mini-cell header-left">?</div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell winner" style="font-size:11px !important;">👤</div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+
+            <div class="mini-cell header-left">?</div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+          </div>
+          <div style="font-size:12px; color:#ffd100; font-weight:800;">🔒 Al inicio los números son secretos (?)</div>
+        `
+      },
+      {
+        badge: 'Paso 2 de 4',
+        title: 'Sorteo de <span>Números</span>',
+        desc: 'Antes del partido, el sistema sortea al azar los números del 0 al 9 en las filas y columnas.',
+        render: () => `
+          <div class="mini-grid">
+            <div class="mini-cell corner">DAL\\ARI</div>
+            <div class="mini-cell header-top">8</div>
+            <div class="mini-cell header-top highlight-x">3</div>
+            <div class="mini-cell header-top">0</div>
+            <div class="mini-cell header-top">7</div>
+            <div class="mini-cell header-top">4</div>
+
+            <div class="mini-cell header-left">1</div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+
+            <div class="mini-cell header-left highlight-y">7</div>
+            <div class="mini-cell highlight-y"></div>
+            <div class="mini-cell winner" style="font-size:12px !important;">⭐</div>
+            <div class="mini-cell highlight-y"></div>
+            <div class="mini-cell highlight-y"></div>
+            <div class="mini-cell highlight-y"></div>
+
+            <div class="mini-cell header-left">5</div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+
+            <div class="mini-cell header-left">2</div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+
+            <div class="mini-cell header-left">9</div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell"></div>
+          </div>
+          <div style="font-size:12px; color:#00e676; font-weight:800;">✨ Cada casilla tiene 2 números asignados</div>
+        `
+      },
+      {
+        badge: 'Paso 3 de 4',
+        title: 'Regla del <span>Último Dígito</span>',
+        desc: 'Solo cuenta el último número del marcador acumulado al final de cada cuarto.',
+        render: () => `
+          <div class="score-badge">
+            <div class="score-team" style="color:#00e676;">
+              DAL <span class="score-val" style="background:rgba(0,230,118,0.25); border:1px solid #00e676;">1<strong style="font-size:20px; color:#00e676;">7</strong></span>
+            </div>
+            <span style="color:var(--text-muted); align-self:center;">vs</span>
+            <div class="score-team" style="color:#ffd100;">
+              ARI <span class="score-val" style="background:rgba(255,209,0,0.25); border:1px solid #ffd100;">2<strong style="font-size:20px; color:#ffd100;">3</strong></span>
+            </div>
+          </div>
+
+          <div style="font-size:13px; color:#ffffff; margin-bottom:12px; line-height:1.4;">
+            Tomamos el <strong style="color:#00e676;">7</strong> de Dallas y el <strong style="color:#ffd100;">3</strong> de Arizona.
+          </div>
+
+          <div class="mini-grid" style="width:200px; height:200px;">
+            <div class="mini-cell corner">DAL\\ARI</div>
+            <div class="mini-cell header-top">8</div>
+            <div class="mini-cell header-top highlight-x">3</div>
+            <div class="mini-cell header-top">0</div>
+
+            <div class="mini-cell header-left">1</div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell highlight-x"></div>
+            <div class="mini-cell"></div>
+
+            <div class="mini-cell header-left highlight-y">7</div>
+            <div class="mini-cell highlight-y"></div>
+            <div class="mini-cell winner">🏆</div>
+            <div class="mini-cell highlight-y"></div>
+
+            <div class="mini-cell header-left">5</div>
+            <div class="mini-cell"></div>
+            <div class="mini-cell highlight-x"></div>
+            <div class="mini-cell"></div>
+          </div>
+        `
+      },
+      {
+        badge: 'Paso 4 de 4',
+        title: '¡4 Oportunidades de <span>Ganar</span>!',
+        desc: 'Ganas premio en 1Q, Medio Tiempo, 3Q y Final del Partido. ¡Alitas, cerveza y gloria!',
+        render: () => `
+          <div style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:280px; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.06); padding:8px 12px; border-radius:10px; border:1px solid rgba(255,209,0,0.3);">
+              <span style="font-size:12px; font-weight:800;">⏱️ 1er Cuarto (1Q)</span>
+              <span style="font-size:11px; font-weight:900; color:#ffd100;">🍺 Premio Q1</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.06); padding:8px 12px; border-radius:10px; border:1px solid rgba(255,209,0,0.3);">
+              <span style="font-size:12px; font-weight:800;">🍔 Medio Tiempo (Halftime)</span>
+              <span style="font-size:11px; font-weight:900; color:#ffd100;">🍗 Premio Q2</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.06); padding:8px 12px; border-radius:10px; border:1px solid rgba(255,209,0,0.3);">
+              <span style="font-size:12px; font-weight:800;">⏱️ 3er Cuarto (3Q)</span>
+              <span style="font-size:11px; font-weight:900; color:#ffd100;">🍹 Premio Q3</span>
+            </div>
+            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,209,0,0.15); padding:10px 12px; border-radius:10px; border:1.5px solid #ffd100;">
+              <span style="font-size:13px; font-weight:900; color:#ffd100;">🏆 Final del Partido</span>
+              <span style="font-size:12px; font-weight:900; color:#00e676;">💰 PREMIO MAYOR</span>
+            </div>
+          </div>
+          <a href="index.html" class="btn btn-primary" style="text-decoration:none; padding:12px 24px; font-size:14px; font-weight:900; border-radius:14px; width:100%; max-width:280px;">
+            ¡Entrar a Jugar Ahora! 🏈
+          </a>
+        `
+      }
+    ];
+
+    let currentIdx = 0;
+    let timer = null;
+    let isPlaying = true;
+    const SLIDE_DURATION = 6000; // 6 seconds per slide
+    let progressInterval = null;
+    let progressVal = 0;
+
+    function renderSlide(idx) {
+      const s = slides[idx];
+      const stage = document.getElementById('slideStage');
+      if (!stage) return;
+
+      stage.innerHTML = `
+        <div class="reel-badge">${s.badge}</div>
+        <h2 class="reel-title">${s.title}</h2>
+        <p class="reel-desc">${s.desc}</p>
+        ${s.render()}
+      `;
+
+      // Update progress bars
+      for (let i = 0; i < 4; i++) {
+        const fill = document.getElementById(`pFill${i}`);
+        if (!fill) continue;
+        if (i < idx) fill.style.width = '100%';
+        else if (i > idx) fill.style.width = '0%';
+        else fill.style.width = `${progressVal}%`;
+      }
+    }
+
+    function startSlideTimer() {
+      clearInterval(progressInterval);
+      progressVal = 0;
+      const stepTime = 50;
+      const increment = (stepTime / SLIDE_DURATION) * 100;
+
+      progressInterval = setInterval(() => {
+        if (!isPlaying) return;
+        progressVal += increment;
+        const fill = document.getElementById(`pFill${currentIdx}`);
+        if (fill) fill.style.width = `${Math.min(progressVal, 100)}%`;
+
+        if (progressVal >= 100) {
+          window.nextSlide();
+        }
+      }, stepTime);
+    }
+
+    window.nextSlide = function() {
+      if (currentIdx < slides.length - 1) {
+        currentIdx++;
+        progressVal = 0;
+        renderSlide(currentIdx);
+      } else {
+        currentIdx = 0;
+        progressVal = 0;
+        renderSlide(currentIdx);
+      }
+      startSlideTimer();
+    };
+
+    window.prevSlide = function() {
+      if (currentIdx > 0) {
+        currentIdx--;
+        progressVal = 0;
+        renderSlide(currentIdx);
+      }
+      startSlideTimer();
+    };
+
+    window.togglePlayPause = function() {
+      isPlaying = !isPlaying;
+      const btn = document.getElementById('btnPlayPause');
+      if (btn) btn.textContent = isPlaying ? '⏸️' : '▶️';
+    };
+
+    // Initialize first slide
+    renderSlide(0);
+    startSlideTimer();
+  </script>
+</body>
+</html>
