@@ -401,6 +401,13 @@
     });
   }
 
+  let isEditingPicks = false;
+
+  window.toggleEditQuinielaPicks = function(editState) {
+    isEditingPicks = editState !== undefined ? editState : !isEditingPicks;
+    if (activeQuiniela) updateQuinielaView(activeQuiniela);
+  };
+
   // Open single Quiniela view
   async function openQuiniela(quinielaId) {
     if (!db) return;
@@ -427,6 +434,7 @@
     if (countdownTimerInterval) { clearInterval(countdownTimerInterval); countdownTimerInterval = null; }
 
     picks = {};
+    isEditingPicks = false;
     const user = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
     const authUid = user ? user.uid : null;
 
@@ -448,12 +456,18 @@
         myParticipations[quinielaId] = data;
         const nameInp = document.getElementById('qPlayerName');
         if (nameInp) nameInp.value = playerName;
-      } else if (user && user.displayName) {
-        playerName = user.displayName;
-        const nameInp = document.getElementById('qPlayerName');
-        if (nameInp) nameInp.value = playerName;
+        isEditingPicks = Object.keys(picks).length === 0;
+      } else {
+        if (user && user.displayName) {
+          playerName = user.displayName;
+          const nameInp = document.getElementById('qPlayerName');
+          if (nameInp) nameInp.value = playerName;
+        }
+        isEditingPicks = true;
       }
-    } catch (e) {}
+    } catch (e) {
+      isEditingPicks = true;
+    }
 
     // Live Snapshot listener on quiniela
     liveUnsubscribe = db.collection('quinielas').doc(quinielaId).onSnapshot(snap => {
@@ -483,7 +497,153 @@
   function updateQuinielaView(q) {
     const lockInfo = checkQuinielaLockStatus(q);
     renderLockBannerAndTimer(lockInfo);
-    renderPicksForm(q, lockInfo.isLocked);
+
+    const hasSavedPicks = picks && Object.keys(picks).length > 0;
+    const shouldShowEditor = isEditingPicks && !lockInfo.isLocked;
+
+    const editorSec = document.getElementById('qPicksSection');
+    let summarySec = document.getElementById('qMyPicksSummarySection');
+
+    if (!summarySec) {
+      summarySec = document.createElement('section');
+      summarySec.id = 'qMyPicksSummarySection';
+      summarySec.className = 'card';
+      summarySec.style.marginBottom = '16px';
+      if (editorSec && editorSec.parentNode) {
+        editorSec.parentNode.insertBefore(summarySec, editorSec);
+      }
+    }
+
+    if (hasSavedPicks && !shouldShowEditor) {
+      if (editorSec) editorSec.style.display = 'none';
+      if (summarySec) {
+        summarySec.style.display = 'block';
+        renderMyPicksSummary(summarySec, q, lockInfo.isLocked);
+      }
+    } else {
+      if (summarySec) summarySec.style.display = 'none';
+      if (editorSec) {
+        editorSec.style.display = 'block';
+        renderPicksForm(q, lockInfo.isLocked);
+      }
+    }
+  }
+
+  function renderMyPicksSummary(container, q, isLocked) {
+    const matches = q.matches || [];
+    let totalPts = 0;
+
+    const user = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const displayName = playerName || (user && user.displayName) || 'Mi Usuario';
+    const userPhoto = (user && user.photoURL) || 'img/logo.jpg';
+
+    // Calculate user's score on these matches
+    matches.forEach(m => {
+      if (m.homeScore === null || m.awayScore === null || m.status === 'pre') return;
+      const pick = picks[m.id];
+      if (!pick) return;
+      if (pick.homeScore === m.homeScore && pick.awayScore === m.awayScore) {
+        totalPts += 3;
+      } else {
+        const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
+        const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
+        if (realWin === pickWin) {
+          totalPts += 1;
+        }
+      }
+    });
+
+    let html = `
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:10px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <img src="${userPhoto}" alt="${displayName}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width:38px; height:38px; border-radius:50%; object-fit:cover; border:2px solid #ffd100;" />
+          <div>
+            <div style="font-weight:900; font-size:15px; color:#ffd100;">${displayName}</div>
+            <div style="font-size:11.5px; color:var(--text-muted);">Tus Pronósticos Guardados • <span style="color:#00e676; font-weight:800;">${totalPts} PTS EN VIVO</span></div>
+          </div>
+        </div>
+        ${!isLocked ? `
+          <button type="button" class="btn btn-secondary" onclick="toggleEditQuinielaPicks(true)" style="padding:6px 12px; font-size:12px; font-weight:800; border-radius:8px; width:auto; display:inline-flex; align-items:center; gap:4px;">
+            ✏️ Modificar Pronósticos
+          </button>
+        ` : `
+          <span class="badge danger" style="font-size:11px; font-weight:800;">🔒 PRONÓSTICOS CERRADOS</span>
+        `}
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:8px;">
+    `;
+
+    matches.forEach(m => {
+      const pick = picks[m.id];
+      const hasRealScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
+      const isLive = m.status === 'in';
+
+      let statusBadge = '';
+      let rowBorderColor = 'rgba(255,255,255,0.08)';
+      let rowBg = 'rgba(255,255,255,0.02)';
+
+      if (hasRealScore && pick) {
+        const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
+        const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
+        const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
+        if (exact) {
+          statusBadge = '<span class="badge" style="background:#00e676; color:#000; font-weight:900; font-size:11px;">🎯 Exacto (+3 pts)</span>';
+          rowBorderColor = '#00e676';
+          rowBg = 'rgba(0,230,118,0.06)';
+        } else if (realWin === pickWin) {
+          statusBadge = '<span class="badge" style="background:#ffd100; color:#000; font-weight:900; font-size:11px;">✓ Ganador (+1 pt)</span>';
+          rowBorderColor = '#ffd100';
+          rowBg = 'rgba(255,209,0,0.06)';
+        } else {
+          statusBadge = '<span class="badge" style="background:rgba(255,68,68,0.2); color:#ff4444; border:1px solid #ff4444; font-weight:800; font-size:11px;">✗ 0 pts</span>';
+          rowBorderColor = 'rgba(255,68,68,0.3)';
+        }
+      } else if (isLive) {
+        statusBadge = '<span class="badge danger" style="font-size:10px; font-weight:800; animation:tvPulse 1s infinite;">🔴 EN VIVO</span>';
+      } else {
+        statusBadge = '<span class="badge" style="background:rgba(255,255,255,0.06); color:var(--text-muted); font-size:10.5px;">⏳ Por Jugar</span>';
+      }
+
+      const pickText = pick ? `${pick.awayScore} - ${pick.homeScore}` : 'Sin pronóstico';
+      const realText = hasRealScore ? `${m.awayScore} - ${m.homeScore}` : (isLive ? '0 - 0' : '—');
+
+      html += `
+        <div style="background:${rowBg}; border:1px solid ${rowBorderColor}; border-radius:10px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:180px;">
+            <div style="font-size:10.5px; color:var(--text-muted); margin-bottom:3px;">${m.leagueLabel || ''} • ${m.date || ''}</div>
+            <div style="display:flex; align-items:center; gap:6px; font-weight:800; font-size:13px; color:#ffffff;">
+              <span style="display:inline-flex; align-items:center; gap:4px;">
+                <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:18px; height:18px; object-fit:contain;"/>
+                ${m.away}
+              </span>
+              <span style="color:var(--text-muted); font-size:11px;">vs</span>
+              <span style="display:inline-flex; align-items:center; gap:4px;">
+                <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:18px; height:18px; object-fit:contain;"/>
+                ${m.home}
+              </span>
+            </div>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:14px; text-align:center;">
+            <div>
+              <div style="font-size:10px; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Tu Pronóstico</div>
+              <div style="font-weight:900; font-size:15px; color:#ffd100; background:rgba(255,209,0,0.12); padding:2px 8px; border-radius:6px; border:1px solid rgba(255,209,0,0.3);">${pickText}</div>
+            </div>
+            <div>
+              <div style="font-size:10px; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Marcador Real</div>
+              <div style="font-weight:900; font-size:15px; color:#ffffff; background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.15);">${realText}</div>
+            </div>
+            <div>
+              ${statusBadge}
+            </div>
+          </div>
+        </div>
+      `;
+    });
+
+    html += `</div>`;
+    container.innerHTML = html;
   }
 
   function renderLockBannerAndTimer(lockInfo) {
@@ -763,6 +923,7 @@
       await db.collection('quinielas').doc(activeQuiniela.id).collection('picks').doc(activeUser.uid).set(pickData, { merge: true });
       myParticipations[activeQuiniela.id] = pickData;
 
+      isEditingPicks = false;
       showToast(`¡Pronósticos guardados para "${name}"! 🏆`);
       updateQuinielaView(activeQuiniela);
     } catch (err) {
