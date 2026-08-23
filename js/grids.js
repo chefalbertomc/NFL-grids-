@@ -462,11 +462,11 @@
 
     const nick = (inpNick ? inpNick.value : '').trim().toUpperCase();
     const waiter = (inpWaiter ? inpWaiter.value : '').trim();
-    const pack = Number(selPack ? selPack.value : 5);
+    const pack = 5;
 
     if (!nick) {
       if (gridJoinStatus) {
-        gridJoinStatus.textContent = 'Por favor escribe tu apodo.';
+        gridJoinStatus.textContent = 'Por favor escribe tu apodo (Obligatorio).';
         gridJoinStatus.style.color = 'var(--danger-color)';
       }
       if (inpNick) inpNick.focus();
