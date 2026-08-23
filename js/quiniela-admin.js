@@ -1,4 +1,4 @@
-// Quiniela & Pick'em Admin Module — Wings & Wins v49
+// Quiniela & Pick'em Admin Module — Wings & Wins v51 (Live Sync Dual-Engine)
 (function () {
   'use strict';
 
@@ -73,7 +73,6 @@
     const btnCreate = document.getElementById('btnCreateQuiniela');
     if (btnCreate) btnCreate.addEventListener('click', createQuiniela);
 
-    // Clear all selected matches
     const btnClearSel = document.getElementById('btnQClearSelected');
     if (btnClearSel) btnClearSel.addEventListener('click', () => {
       qSelectedMatches = {};
@@ -96,7 +95,6 @@
       });
     }
 
-    // Delete quiniela
     const btnDelete = document.getElementById('btnDeleteQuiniela');
     if (btnDelete) {
       btnDelete.addEventListener('click', async () => {
@@ -117,7 +115,6 @@
       });
     }
 
-    // Share quiniela on WhatsApp
     const btnShare = document.getElementById('btnQShareWhatsApp');
     if (btnShare) btnShare.addEventListener('click', shareQuinielaWhatsApp);
   }
@@ -130,9 +127,6 @@
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   }
 
-  // ──────────────────────────────────────────────
-  // SEARCH ESPN GAMES — Does NOT reset existing selections
-  // ──────────────────────────────────────────────
   async function searchQuinielaGames() {
     const leagueKey = document.getElementById('qSportSelect')?.value;
     const league = LEAGUES[leagueKey];
@@ -149,7 +143,6 @@
 
     try {
       const today = new Date();
-      // Start 1 day in the past so live/today's games appear
       const start = new Date();
       start.setDate(today.getDate() - 1);
       const end = new Date();
@@ -163,14 +156,14 @@
       const events = data.events || [];
 
       if (events.length === 0) {
-        if (resultsEl) resultsEl.innerHTML = `<div class="text-center hint-text py-3">No se encontraron partidos próximos para ${league.label} en los próximos ${daysRange} días. Prueba ampliar el rango de fechas o elegir otra liga.</div>`;
+        if (resultsEl) resultsEl.innerHTML = `<div class="text-center hint-text py-3">No se encontraron partidos para ${league.label} en este rango.</div>`;
         return;
       }
 
       renderQGamePicker(events, league);
     } catch (err) {
       console.error('[QAdmin]', err);
-      if (resultsEl) resultsEl.innerHTML = '<div class="text-center hint-text py-3" style="color:var(--danger-color);">Error al conectar con ESPN. Intenta de nuevo.</div>';
+      if (resultsEl) resultsEl.innerHTML = '<div class="text-center hint-text py-3" style="color:var(--danger-color);">Error al conectar con ESPN.</div>';
     } finally {
       if (btnSearch) { btnSearch.disabled = false; btnSearch.textContent = '🔍 Buscar Partidos'; }
     }
@@ -445,7 +438,7 @@
             <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:20px; height:20px; object-fit:contain;"/>
           </div>
           <span style="font-size:9px; color:var(--text-muted);">${m.awayAbbr || m.away.substring(0,3)} v ${m.homeAbbr || m.home.substring(0,3)}</span>
-          ${m.homeScore !== null ? `<span style="font-size:10px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore}</span>` : '<span style="font-size:9px; color:var(--text-muted);">Pendiente</span>'}
+          ${m.homeScore !== null ? `<span style="font-size:10px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore} ${m.status === 'in' ? '🔴' : ''}</span>` : '<span style="font-size:9px; color:var(--text-muted);">Pendiente</span>'}
         </div>
       </th>`).join('') +
       `<th style="text-align:center; padding:10px;">Pts</th>`;
@@ -464,9 +457,9 @@
         const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
         const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
         const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
-        if (exact) cells += `<td class="q-s-cell q-cell-green" title="+3 pts">🎯${pickStr}</td>`;
-        else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-yellow" title="+1 pt">✓${pickStr}</td>`;
-        else cells += `<td class="q-s-cell q-cell-red" title="0 pts">✗${pickStr}</td>`;
+        if (exact) cells += `<td class="q-s-cell q-cell-green" title="+3 pts">🎯 ${pickStr}</td>`;
+        else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-yellow" title="+1 pt">✓ ${pickStr}</td>`;
+        else cells += `<td class="q-s-cell q-cell-red" title="0 pts">✗ ${pickStr}</td>`;
       });
       cells += `<td style="text-align:center; font-weight:900; color:${p.totalPoints>0?'var(--accent-color)':'var(--text-muted)'}; font-size:15px;">${p.totalPoints}</td>`;
       tr.innerHTML = cells;
@@ -474,6 +467,10 @@
 
     wrap.appendChild(table);
     container.appendChild(wrap);
+  }
+
+  function norm(str) {
+    return (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
   }
 
   async function syncQuinielaScores(quinielaId) {
@@ -487,52 +484,83 @@
       const q = snap.data() || {};
       const matches = q.matches || [];
 
-      // Collect all distinct sport/slug pairs from matches
-      const endpoints = new Map();
-      matches.forEach(m => {
-        if (m.sport && m.slug) {
-          endpoints.set(`${m.sport}/${m.slug}`, { sport: m.sport, slug: m.slug });
-        }
-      });
-      // Fallback if none set
-      if (endpoints.size === 0) {
-        endpoints.set('soccer/mex.1', { sport: 'soccer', slug: 'mex.1' });
-        endpoints.set('football/nfl', { sport: 'football', slug: 'nfl' });
-        endpoints.set('baseball/mlb', { sport: 'baseball', slug: 'mlb' });
-      }
+      const endpoints = [
+        { sport: 'soccer', slug: 'mex.1' },
+        { sport: 'soccer', slug: 'eng.1' },
+        { sport: 'soccer', slug: 'esp.1' },
+        { sport: 'soccer', slug: 'ita.1' },
+        { sport: 'soccer', slug: 'ger.1' },
+        { sport: 'soccer', slug: 'fra.1' },
+        { sport: 'soccer', slug: 'usa.1' },
+        { sport: 'soccer', slug: 'uefa.champions' },
+        { sport: 'football', slug: 'nfl' },
+        { sport: 'baseball', slug: 'mlb' },
+        { sport: 'basketball', slug: 'nba' },
+      ];
 
-      const allEvents = {};
-      for (const ep of endpoints.values()) {
-        try {
-          const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?limit=100`);
-          const data = await res.json();
-          (data.events || []).forEach(ev => { allEvents[ev.id] = ev; });
-        } catch (e) {}
-      }
+      const allEvents = [];
+      const fetchPromises = endpoints.map(ep => 
+        fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?limit=100`)
+          .then(r => r.json())
+          .then(data => {
+            if (data && data.events) {
+              allEvents.push(...data.events);
+            }
+          })
+          .catch(() => {})
+      );
+
+      await Promise.all(fetchPromises);
 
       let updated = 0;
       const updatedMatches = matches.map(m => {
-        const ev = allEvents[m.espnEventId];
+        let ev = null;
+        if (m.espnEventId) {
+          ev = allEvents.find(e => String(e.id) === String(m.espnEventId));
+        }
+
+        if (!ev) {
+          const mHome = norm(m.home);
+          const mAway = norm(m.away);
+          ev = allEvents.find(e => {
+            const comps = e.competitions?.[0]?.competitors || [];
+            const eNames = comps.map(c => norm(c.team?.displayName || c.team?.name || ''));
+            const eShorts = comps.map(c => norm(c.team?.shortDisplayName || ''));
+            const eAbbrs = comps.map(c => norm(c.team?.abbreviation || ''));
+            const allMatchNames = [...eNames, ...eShorts, ...eAbbrs];
+
+            const matchHome = allMatchNames.some(n => n && (mHome.includes(n) || n.includes(mHome)));
+            const matchAway = allMatchNames.some(n => n && (mAway.includes(n) || n.includes(mAway)));
+            return matchHome && matchAway;
+          });
+        }
+
         if (!ev) return m;
+
         const comps = ev.competitions?.[0]?.competitors || [];
-        const homeC = comps.find(c => c.homeAway === 'home');
-        const awayC = comps.find(c => c.homeAway === 'away');
+        const homeC = comps.find(c => c.homeAway === 'home') || comps[1] || {};
+        const awayC = comps.find(c => c.homeAway === 'away') || comps[0] || {};
         const completed = !!ev.status?.type?.completed;
         const state = ev.status?.type?.state || 'pre';
+        const statusStr = ev.status?.type?.shortDetail || '';
+
+        const newHomeScore = (homeC && homeC.score !== undefined && homeC.score !== null) ? parseInt(homeC.score, 10) : m.homeScore;
+        const newAwayScore = (awayC && awayC.score !== undefined && awayC.score !== null) ? parseInt(awayC.score, 10) : m.awayScore;
+
         updated++;
         return {
           ...m,
-          homeScore: homeC ? parseInt(homeC.score || 0, 10) : m.homeScore,
-          awayScore: awayC ? parseInt(awayC.score || 0, 10) : m.awayScore,
+          homeScore: newHomeScore,
+          awayScore: newAwayScore,
           completed,
           status: state,
-          statusStr: ev.status?.type?.shortDetail || '',
+          statusStr,
           lastSync: Date.now()
         };
       });
 
       await ref.update({ matches: updatedMatches, lastSync: Date.now() });
-      alert(`✅ Sincronizado: ${updated} partidos actualizados con marcadores ESPN.`);
+      alert(`✅ Sincronizado: ${updated} partidos actualizados con marcadores en vivo.`);
       loadQuinielaStandings(quinielaId);
     } catch (err) {
       alert('Error al sincronizar: ' + err.message);
