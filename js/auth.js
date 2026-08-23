@@ -4,6 +4,7 @@
 
   window.currentUser = null;
   window.isAdmin = false;
+  let authInitialized = false;
 
   const authCallbacks = [];
   let pendingAuthAction = null;
@@ -11,7 +12,7 @@
   window.onAuthChange = function(cb) {
     if (typeof cb === 'function') {
       authCallbacks.push(cb);
-      if (window.currentUser !== undefined) {
+      if (authInitialized && window.currentUser !== undefined) {
         cb(window.currentUser, window.isAdmin);
       }
     }
@@ -21,31 +22,43 @@
     authCallbacks.forEach(cb => cb(window.currentUser, window.isAdmin));
   }
 
-  // Multi-Provider Sign In functions
-  window.loginWithGoogle = async function() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
-    return doSignIn(provider, 'Google');
-  };
+  function setLoginButtonLoading(btnId, isLoading, text) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    if (isLoading) {
+      btn.dataset.origHtml = btn.innerHTML;
+      btn.innerHTML = `<span style="font-size:16px;">⏳</span> <span>${text || 'Iniciando sesión...'}</span>`;
+      btn.disabled = true;
+    } else {
+      if (btn.dataset.origHtml) btn.innerHTML = btn.dataset.origHtml;
+      btn.disabled = false;
+    }
+  }
 
-  window.loginWithApple = async function() {
-    const provider = new firebase.auth.OAuthProvider('apple.com');
-    provider.addScope('email');
-    provider.addScope('name');
-    return doSignIn(provider, 'Apple');
-  };
-
-  window.loginWithFacebook = async function() {
-    const provider = new firebase.auth.FacebookAuthProvider();
-    provider.addScope('email');
-    provider.addScope('public_profile');
-    return doSignIn(provider, 'Facebook');
-  };
+  function handleAuthError(err, providerName) {
+    console.error(`[auth] Error (${providerName}):`, err);
+    if (err.code === 'auth/operation-not-allowed') {
+      alert(`⚠️ El inicio de sesión con ${providerName} aún no está habilitado en la consola de Firebase. Por favor usa "Continuar con Google".`);
+    } else if (err.code === 'auth/popup-closed-by-user') {
+      // User closed popup
+    } else if (err.code === 'auth/account-exists-with-different-credential') {
+      alert(`Ya existe una cuenta con este correo pero con otro método de acceso. Por favor inicia sesión con Google.`);
+    } else if (err.code === 'auth/cancelled-popup-request') {
+      // Ignored
+    } else {
+      alert(`Error al iniciar sesión con ${providerName}: ` + (err.message || err.code));
+    }
+  }
 
   async function doSignIn(provider, providerName) {
+    if (!window.firebase || !firebase.auth) {
+      alert('Firebase aún se está inicializando. Por favor intenta de nuevo en un segundo.');
+      return;
+    }
+
     try {
       const result = await firebase.auth().signInWithPopup(provider);
-      hideLoginModal();
+      window.hideLoginModal();
       if (pendingAuthAction) {
         const action = pendingAuthAction;
         pendingAuthAction = null;
@@ -54,18 +67,60 @@
       return result.user;
     } catch (err) {
       console.warn(`[auth] Popup error with ${providerName}, trying redirect:`, err);
-      // Popup blocked or mobile browser fallback
+      // Popup blocked or mobile webview fallback
       if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
         try {
           await firebase.auth().signInWithRedirect(provider);
         } catch (redirErr) {
-          alert(`Error al iniciar sesión con ${providerName}: ` + redirErr.message);
+          handleAuthError(redirErr, providerName);
         }
       } else {
-        alert(`Error al iniciar sesión con ${providerName}: ` + err.message);
+        handleAuthError(err, providerName);
       }
     }
   }
+
+  // Multi-Provider Sign In functions
+  window.loginWithGoogle = async function() {
+    setLoginButtonLoading('btnModalGoogle', true, 'Conectando con Google...');
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      await doSignIn(provider, 'Google');
+    } catch (err) {
+      handleAuthError(err, 'Google');
+    } finally {
+      setLoginButtonLoading('btnModalGoogle', false);
+    }
+  };
+
+  window.loginWithApple = async function() {
+    setLoginButtonLoading('btnModalApple', true, 'Conectando con Apple...');
+    try {
+      const provider = new firebase.auth.OAuthProvider('apple.com');
+      provider.addScope('email');
+      provider.addScope('name');
+      await doSignIn(provider, 'Apple');
+    } catch (err) {
+      handleAuthError(err, 'Apple');
+    } finally {
+      setLoginButtonLoading('btnModalApple', false);
+    }
+  };
+
+  window.loginWithFacebook = async function() {
+    setLoginButtonLoading('btnModalFacebook', true, 'Conectando con Facebook...');
+    try {
+      const provider = new firebase.auth.FacebookAuthProvider();
+      provider.addScope('email');
+      provider.addScope('public_profile');
+      await doSignIn(provider, 'Facebook');
+    } catch (err) {
+      handleAuthError(err, 'Facebook');
+    } finally {
+      setLoginButtonLoading('btnModalFacebook', false);
+    }
+  };
 
   // Global Auth Guard: Requires user to be logged in before taking action
   window.requireUserAuth = function(actionCallback, customTitle, customSubtitle) {
@@ -104,7 +159,7 @@
     const userAvatar = document.getElementById('userAvatar');
     const userName = document.getElementById('userName');
 
-    // Login Modal Buttons
+    // Login Modal Elements
     const modalClose = document.getElementById('loginModalClose');
     const btnModalGoogle = document.getElementById('btnModalGoogle');
     const btnModalApple = document.getElementById('btnModalApple');
@@ -123,13 +178,13 @@
     }
 
     if (modalClose) {
-      modalClose.addEventListener('click', hideLoginModal);
+      modalClose.addEventListener('click', window.hideLoginModal);
     }
 
     const modalOverlay = document.getElementById('globalLoginModal');
     if (modalOverlay) {
       modalOverlay.addEventListener('click', (e) => {
-        if (e.target === modalOverlay) hideLoginModal();
+        if (e.target === modalOverlay) window.hideLoginModal();
       });
     }
 
@@ -156,12 +211,25 @@
       });
     }
 
+    // Check redirect result on load (for mobile logins that used redirect)
+    if (firebase.auth().getRedirectResult) {
+      firebase.auth().getRedirectResult().then(result => {
+        if (result && result.user) {
+          window.currentUser = result.user;
+          window.hideLoginModal();
+        }
+      }).catch(err => {
+        console.warn('[auth] Redirect result error:', err);
+      });
+    }
+
     // Monitor Firebase Auth State
     firebase.auth().onAuthStateChanged(async (user) => {
+      authInitialized = true;
       window.currentUser = user;
 
       if (user) {
-        hideLoginModal();
+        window.hideLoginModal();
 
         // Check if Admin
         try {
@@ -205,6 +273,9 @@
         document.querySelectorAll('.admin-only').forEach(el => {
           el.classList.add('hidden');
         });
+
+        // MANDATORY LOGIN ON INITIAL PAGE LOAD: Show login modal immediately
+        window.showLoginModal('¡Inicia Sesión para Jugar!', 'Para entrar a los Grids, escoger casillas y ver tus juegos, por favor inicia sesión.');
       }
 
       notifyCallbacks();
