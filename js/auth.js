@@ -1,4 +1,4 @@
-// Authentication Module for Wings & Wins — Multi-Provider (Google, Apple, Facebook) & Mandatory Auth Gate
+// Authentication Module for Wings & Wins — Google & WhatsApp / Celular Login Gate
 (function() {
   'use strict';
 
@@ -37,9 +37,7 @@
 
   function handleAuthError(err, providerName) {
     console.error(`[auth] Error (${providerName}):`, err);
-    if (err.code === 'auth/operation-not-allowed') {
-      alert(`⚠️ El inicio de sesión con ${providerName} aún no está habilitado en la consola de Firebase. Por favor usa "Continuar con Google".`);
-    } else if (err.code === 'auth/popup-closed-by-user') {
+    if (err.code === 'auth/popup-closed-by-user') {
       // User closed popup
     } else if (err.code === 'auth/account-exists-with-different-credential') {
       alert(`Ya existe una cuenta con este correo pero con otro método de acceso. Por favor inicia sesión con Google.`);
@@ -50,43 +48,33 @@
     }
   }
 
-  async function doSignIn(provider, providerName) {
-    if (!window.firebase || !firebase.auth) {
-      alert('Firebase aún se está inicializando. Por favor intenta de nuevo en un segundo.');
-      return;
-    }
-
-    try {
-      const result = await firebase.auth().signInWithPopup(provider);
-      window.hideLoginModal();
-      if (pendingAuthAction) {
-        const action = pendingAuthAction;
-        pendingAuthAction = null;
-        action(result.user);
-      }
-      return result.user;
-    } catch (err) {
-      console.warn(`[auth] Popup error with ${providerName}, trying redirect:`, err);
-      // Popup blocked or mobile webview fallback
-      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-        try {
-          await firebase.auth().signInWithRedirect(provider);
-        } catch (redirErr) {
-          handleAuthError(redirErr, providerName);
-        }
-      } else {
-        handleAuthError(err, providerName);
-      }
-    }
-  }
-
-  // Multi-Provider Sign In functions
+  // 1. Sign In With Google
   window.loginWithGoogle = async function() {
     setLoginButtonLoading('btnModalGoogle', true, 'Conectando con Google...');
     try {
+      if (!window.firebase || !firebase.auth) {
+        alert('Firebase aún se está inicializando. Por favor intenta de nuevo en un segundo.');
+        return;
+      }
       const provider = new firebase.auth.GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-      await doSignIn(provider, 'Google');
+      
+      try {
+        const result = await firebase.auth().signInWithPopup(provider);
+        window.hideLoginModal();
+        if (pendingAuthAction) {
+          const action = pendingAuthAction;
+          pendingAuthAction = null;
+          action(result.user);
+        }
+      } catch (err) {
+        console.warn('[auth] Popup failed, attempting redirect:', err);
+        if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+          await firebase.auth().signInWithRedirect(provider);
+        } else {
+          handleAuthError(err, 'Google');
+        }
+      }
     } catch (err) {
       handleAuthError(err, 'Google');
     } finally {
@@ -94,33 +82,122 @@
     }
   };
 
-  window.loginWithApple = async function() {
-    setLoginButtonLoading('btnModalApple', true, 'Conectando con Apple...');
+  // 2. Sign In With WhatsApp / Phone (Name + 10-Digit Phone Number)
+  window.loginWithWhatsApp = async function() {
+    const nameInp = document.getElementById('loginWaName');
+    const phoneInp = document.getElementById('loginWaPhone');
+    const statusEl = document.getElementById('loginWaStatus');
+
+    const name = (nameInp ? nameInp.value : '').trim();
+    let phone = (phoneInp ? phoneInp.value : '').trim().replace(/\D/g, ''); // Digits only
+
+    if (!name || name.length < 2) {
+      if (statusEl) {
+        statusEl.textContent = '❌ Por favor escribe tu nombre completo o apodo.';
+        statusEl.style.color = 'var(--danger-color)';
+      }
+      if (nameInp) nameInp.focus();
+      return;
+    }
+
+    if (!phone || phone.length < 10) {
+      if (statusEl) {
+        statusEl.textContent = '❌ Por favor escribe tu WhatsApp de 10 dígitos (ej: 5512345678).';
+        statusEl.style.color = 'var(--danger-color)';
+      }
+      if (phoneInp) phoneInp.focus();
+      return;
+    }
+
+    phone = phone.slice(-10); // Last 10 digits
+
+    if (statusEl) {
+      statusEl.textContent = '⏳ Verificando y conectando cuenta...';
+      statusEl.style.color = 'var(--accent-color)';
+    }
+
     try {
-      const provider = new firebase.auth.OAuthProvider('apple.com');
-      provider.addScope('email');
-      provider.addScope('name');
-      await doSignIn(provider, 'Apple');
+      const waUid = `wa_${phone}`;
+      const avatarUrl = `https://ui-avatars.com/api/?background=25D366&color=fff&bold=true&name=${encodeURIComponent(name)}`;
+
+      // Create or update user profile in Firestore
+      if (window.db) {
+        await window.db.collection('users').doc(waUid).set({
+          uid: waUid,
+          displayName: name,
+          phoneNumber: phone,
+          photoURL: avatarUrl,
+          provider: 'whatsapp',
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
+        }, { merge: true });
+      }
+
+      // Store in LocalStorage for session persistence
+      const sessionUser = {
+        uid: waUid,
+        displayName: name,
+        phoneNumber: phone,
+        photoURL: avatarUrl,
+        email: `${phone}@whatsapp.drinksandwins.com`,
+        isWhatsApp: true
+      };
+
+      localStorage.setItem('bww_wa_session', JSON.stringify(sessionUser));
+      localStorage.setItem('player_nick', name.toUpperCase());
+      localStorage.setItem('bww_q_name', name.toUpperCase());
+
+      window.currentUser = sessionUser;
+      window.isAdmin = false;
+
+      // Update UI Header
+      updateHeaderUI(sessionUser);
+
+      if (statusEl) {
+        statusEl.textContent = '✅ ¡Bienvenido! Redirigiendo...';
+        statusEl.style.color = 'var(--success-color)';
+      }
+
+      setTimeout(() => {
+        window.hideLoginModal();
+        if (pendingAuthAction) {
+          const action = pendingAuthAction;
+          pendingAuthAction = null;
+          action(sessionUser);
+        }
+        notifyCallbacks();
+      }, 400);
+
     } catch (err) {
-      handleAuthError(err, 'Apple');
-    } finally {
-      setLoginButtonLoading('btnModalApple', false);
+      console.error('[auth] WhatsApp login error:', err);
+      if (statusEl) {
+        statusEl.textContent = 'Error al entrar: ' + err.message;
+        statusEl.style.color = 'var(--danger-color)';
+      }
     }
   };
 
-  window.loginWithFacebook = async function() {
-    setLoginButtonLoading('btnModalFacebook', true, 'Conectando con Facebook...');
-    try {
-      const provider = new firebase.auth.FacebookAuthProvider();
-      provider.addScope('email');
-      provider.addScope('public_profile');
-      await doSignIn(provider, 'Facebook');
-    } catch (err) {
-      handleAuthError(err, 'Facebook');
-    } finally {
-      setLoginButtonLoading('btnModalFacebook', false);
+  function updateHeaderUI(user) {
+    const btnHeaderLogin = document.getElementById('btnHeaderLogin');
+    const btnGoogle = document.getElementById('btnGoogle');
+    const btnSignOut = document.getElementById('btnSignOut');
+    const userBadge = document.getElementById('userBadge');
+    const userAvatar = document.getElementById('userAvatar');
+    const userName = document.getElementById('userName');
+
+    if (user) {
+      if (btnHeaderLogin) btnHeaderLogin.classList.add('hidden');
+      if (btnGoogle) btnGoogle.classList.add('hidden');
+      if (btnSignOut) btnSignOut.classList.remove('hidden');
+      if (userBadge) userBadge.classList.remove('hidden');
+      if (userAvatar) userAvatar.src = user.photoURL || 'img/logo.jpg';
+      if (userName) userName.textContent = user.displayName || user.phoneNumber || user.email;
+    } else {
+      if (btnHeaderLogin) btnHeaderLogin.classList.remove('hidden');
+      if (btnGoogle) btnGoogle.classList.remove('hidden');
+      if (btnSignOut) btnSignOut.classList.add('hidden');
+      if (userBadge) userBadge.classList.add('hidden');
     }
-  };
+  }
 
   // Global Auth Guard: Requires user to be logged in before taking action
   window.requireUserAuth = function(actionCallback, customTitle, customSubtitle) {
@@ -156,14 +233,11 @@
     const btnGoogle = document.getElementById('btnGoogle');
     const btnSignOut = document.getElementById('btnSignOut');
     const userBadge = document.getElementById('userBadge');
-    const userAvatar = document.getElementById('userAvatar');
-    const userName = document.getElementById('userName');
 
     // Login Modal Elements
     const modalClose = document.getElementById('loginModalClose');
     const btnModalGoogle = document.getElementById('btnModalGoogle');
-    const btnModalApple = document.getElementById('btnModalApple');
-    const btnModalFacebook = document.getElementById('btnModalFacebook');
+    const btnModalWaSubmit = document.getElementById('btnModalWaSubmit');
 
     if (btnHeaderLogin) {
       btnHeaderLogin.addEventListener('click', () => {
@@ -189,13 +263,15 @@
     }
 
     if (btnModalGoogle) btnModalGoogle.addEventListener('click', window.loginWithGoogle);
-    if (btnModalApple) btnModalApple.addEventListener('click', window.loginWithApple);
-    if (btnModalFacebook) btnModalFacebook.addEventListener('click', window.loginWithFacebook);
+    if (btnModalWaSubmit) btnModalWaSubmit.addEventListener('click', window.loginWithWhatsApp);
 
     if (btnSignOut) {
       btnSignOut.addEventListener('click', async () => {
         try {
-          await firebase.auth().signOut();
+          localStorage.removeItem('bww_wa_session');
+          if (firebase.auth && firebase.auth()) {
+            await firebase.auth().signOut();
+          }
           window.location.reload();
         } catch (e) {
           console.error('[auth] Logout error:', e);
@@ -205,14 +281,34 @@
 
     if (userBadge) {
       userBadge.addEventListener('click', () => {
-        if (confirm(`Sesión iniciada como: ${window.currentUser?.displayName || window.currentUser?.email}\n\n¿Deseas cerrar sesión?`)) {
-          firebase.auth().signOut().then(() => window.location.reload());
+        if (confirm(`Sesión iniciada como: ${window.currentUser?.displayName || window.currentUser?.email || window.currentUser?.phoneNumber}\n\n¿Deseas cerrar sesión?`)) {
+          localStorage.removeItem('bww_wa_session');
+          if (firebase.auth && firebase.auth()) {
+            firebase.auth().signOut().then(() => window.location.reload());
+          } else {
+            window.location.reload();
+          }
         }
       });
     }
 
+    // Check saved WhatsApp session first
+    const savedWaSession = localStorage.getItem('bww_wa_session');
+    if (savedWaSession) {
+      try {
+        const waUser = JSON.parse(savedWaSession);
+        if (waUser && waUser.uid) {
+          window.currentUser = waUser;
+          authInitialized = true;
+          updateHeaderUI(waUser);
+          notifyCallbacks();
+          return; // WhatsApp user session active
+        }
+      } catch (e) {}
+    }
+
     // Check redirect result on load (for mobile logins that used redirect)
-    if (firebase.auth().getRedirectResult) {
+    if (firebase.auth && firebase.auth().getRedirectResult) {
       firebase.auth().getRedirectResult().then(result => {
         if (result && result.user) {
           window.currentUser = result.user;
@@ -224,62 +320,50 @@
     }
 
     // Monitor Firebase Auth State
-    firebase.auth().onAuthStateChanged(async (user) => {
-      authInitialized = true;
-      window.currentUser = user;
+    if (firebase.auth && firebase.auth()) {
+      firebase.auth().onAuthStateChanged(async (user) => {
+        authInitialized = true;
 
-      if (user) {
-        window.hideLoginModal();
+        if (user) {
+          window.currentUser = user;
+          window.hideLoginModal();
 
-        // Check if Admin
-        try {
-          const adminDoc = await window.db.doc('admins/' + user.uid).get();
-          window.isAdmin = adminDoc.exists;
-        } catch (err) {
-          console.error('[auth] Error checking admin status:', err);
-          window.isAdmin = false;
-        }
-
-        // Store user display name into localStorage for player nickname convenience
-        if (user.displayName) {
-          if (!localStorage.getItem('player_nick')) {
-            localStorage.setItem('player_nick', user.displayName.toUpperCase());
+          // Check if Admin
+          try {
+            const adminDoc = await window.db.doc('admins/' + user.uid).get();
+            window.isAdmin = adminDoc.exists;
+          } catch (err) {
+            console.error('[auth] Error checking admin status:', err);
+            window.isAdmin = false;
           }
-          if (!localStorage.getItem('bww_q_name')) {
+
+          if (user.displayName) {
+            localStorage.setItem('player_nick', user.displayName.toUpperCase());
             localStorage.setItem('bww_q_name', user.displayName.toUpperCase());
           }
+
+          updateHeaderUI(user);
+
+          // Show Admin Nav items if applicable
+          const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+          document.querySelectorAll('.admin-only').forEach(el => {
+            el.classList.toggle('hidden', !(window.isAdmin || isLocal));
+          });
+        } else {
+          // If no WhatsApp session either, show login gate
+          if (!window.currentUser) {
+            window.isAdmin = false;
+            updateHeaderUI(null);
+            document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
+
+            // MANDATORY LOGIN ON INITIAL PAGE LOAD
+            window.showLoginModal('¡Inicia Sesión para Jugar!', 'Para entrar a los Grids, escoger casillas y ver tus juegos, por favor inicia sesión.');
+          }
         }
 
-        // Update UI
-        if (btnHeaderLogin) btnHeaderLogin.classList.add('hidden');
-        if (btnGoogle) btnGoogle.classList.add('hidden');
-        if (btnSignOut) btnSignOut.classList.remove('hidden');
-        if (userBadge) userBadge.classList.remove('hidden');
-        if (userAvatar) userAvatar.src = user.photoURL || 'img/logo.jpg';
-        if (userName) userName.textContent = user.displayName || user.email;
-
-        // Show Admin Nav items if applicable
-        const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        document.querySelectorAll('.admin-only').forEach(el => {
-          el.classList.toggle('hidden', !(window.isAdmin || isLocal));
-        });
-      } else {
-        window.isAdmin = false;
-        if (btnHeaderLogin) btnHeaderLogin.classList.remove('hidden');
-        if (btnGoogle) btnGoogle.classList.remove('hidden');
-        if (btnSignOut) btnSignOut.classList.add('hidden');
-        if (userBadge) userBadge.classList.add('hidden');
-
-        document.querySelectorAll('.admin-only').forEach(el => {
-          el.classList.add('hidden');
-        });
-
-        // MANDATORY LOGIN ON INITIAL PAGE LOAD: Show login modal immediately
-        window.showLoginModal('¡Inicia Sesión para Jugar!', 'Para entrar a los Grids, escoger casillas y ver tus juegos, por favor inicia sesión.');
-      }
-
-      notifyCallbacks();
-    });
+        notifyCallbacks();
+      });
+    }
   }
 
   function checkFirebase() {

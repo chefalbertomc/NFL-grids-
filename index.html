@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=60.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=61.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -324,13 +324,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=60.0"></script>
-  <script src="js/auth.js?v=60.0"></script>
-  <script src="js/team-logos.js?v=60.0"></script>
-  <script src="js/grids.js?v=60.0"></script>
-  <script src="js/quiniela-player.js?v=60.0"></script>
-  <script src="js/survivor.js?v=60.0"></script>
-  <script src="js/firstgoal.js?v=60.0"></script>
+  <script src="js/firebase-config.js?v=61.0"></script>
+  <script src="js/auth.js?v=61.0"></script>
+  <script src="js/team-logos.js?v=61.0"></script>
+  <script src="js/grids.js?v=61.0"></script>
+  <script src="js/quiniela-player.js?v=61.0"></script>
+  <script src="js/survivor.js?v=61.0"></script>
+  <script src="js/firstgoal.js?v=61.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -371,6 +371,7 @@
       <p class="login-modal-subtitle" id="loginModalSubtitle">Accede con tu cuenta para asegurar tus casillas, guardar pronósticos y ver tus posiciones.</p>
       
       <div class="login-buttons-stack">
+        <!-- 1. Google 1-Click Login -->
         <button type="button" class="btn-social-login btn-login-google" id="btnModalGoogle" onclick="window.loginWithGoogle()">
           <svg class="btn-social-icon" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
@@ -381,19 +382,28 @@
           <span>Continuar con Google</span>
         </button>
 
-        <button type="button" class="btn-social-login btn-login-apple" id="btnModalApple" onclick="window.loginWithApple()">
-          <svg class="btn-social-icon" fill="currentColor" viewBox="0 0 170 170">
-            <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.07-7.75-7.85-12.15-14.34-6.41-9.49-11.45-20.15-15.12-31.98-3.67-11.83-5.5-23.2-5.5-34.1 0-14.28 3.52-26.33 10.56-36.14 7.04-9.82 16.03-14.83 26.96-15.04 4.58 0 9.82 1.16 15.73 3.49 5.91 2.33 9.77 3.55 11.58 3.65 1.58-.1 5.61-1.39 12.08-3.86 6.47-2.47 11.78-3.55 15.93-3.23 12.03.85 21.6 5.21 28.71 13.08-10.56 6.41-15.73 15.34-15.52 26.79.21 9.07 3.65 16.65 10.33 22.74 6.68 6.09 14.54 9.61 23.58 10.56-2.13 6.35-4.63 12.74-7.5 19.18zm-32.96-107.4c0-5.71 2.06-11.19 6.18-16.44 4.12-5.25 9.29-8.71 15.52-10.38.53 1.27.8 2.64.8 4.12 0 5.6-2.18 11.12-6.53 16.54-4.35 5.43-9.55 8.76-15.61 9.99-.21-1.27-.36-2.54-.36-3.83z"/>
-          </svg>
-          <span>Continuar con Apple</span>
-        </button>
+        <!-- Divider -->
+        <div class="login-divider-line">
+          <span>O CON TU WHATSAPP</span>
+        </div>
 
-        <button type="button" class="btn-social-login btn-login-facebook" id="btnModalFacebook" onclick="window.loginWithFacebook()">
-          <svg class="btn-social-icon" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-          </svg>
-          <span>Continuar con Facebook</span>
-        </button>
+        <!-- 2. WhatsApp / Phone Form -->
+        <div class="login-phone-box">
+          <label>👤 Tu Nombre o Apodo:</label>
+          <input type="text" id="loginWaName" placeholder="Ej: Beto Chef" maxlength="40"/>
+          
+          <label>💬 Tu WhatsApp (10 dígitos):</label>
+          <input type="tel" id="loginWaPhone" placeholder="Ej: 5512345678" maxlength="10"/>
+
+          <button type="button" class="btn-social-login btn-login-whatsapp" id="btnModalWaSubmit" onclick="window.loginWithWhatsApp()" style="margin-top:6px;">
+            <svg class="btn-social-icon" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
+            </svg>
+            <span>Entrar con mi WhatsApp</span>
+          </button>
+          
+          <div id="loginWaStatus" style="font-size:11px; margin-top:8px; text-align:center; font-weight:800;"></div>
+        </div>
       </div>
     </div>
   </div>

@@ -1621,15 +1621,63 @@ input:focus, select:focus, textarea:focus {
   color: #222222;
   border-color: #e0e0e0;
 }
-.btn-login-apple {
-  background: #000000;
+.btn-login-whatsapp {
+  background: #25D366;
   color: #ffffff;
-  border: 1px solid rgba(255,255,255,0.2);
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
 }
-.btn-login-facebook {
-  background: #1877F2;
-  color: #ffffff;
+.btn-login-whatsapp:hover {
+  background: #20bd5a;
 }
+.login-divider-line {
+  display: flex;
+  align-items: center;
+  margin: 16px 0;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.login-divider-line::before,
+.login-divider-line::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+}
+.login-divider-line span {
+  padding: 0 10px;
+}
+.login-phone-box {
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 14px;
+  text-align: left;
+}
+.login-phone-box label {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: block;
+}
+.login-phone-box input {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  color: #fff;
+  margin-bottom: 10px;
+}
+.login-phone-box input:focus {
+  border-color: #25D366;
+  outline: none;
+}
+
 
 
 
