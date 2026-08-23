@@ -127,7 +127,76 @@
     });
   }
 
-  // Load user registrations for each game
+  // Player Audio Chime Synthesizer
+  function playVictoryChime() {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') ctx.resume();
+
+      const freqs = [523.25, 659.25, 783.99, 1046.50];
+      freqs.forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, ctx.currentTime + i * 0.1);
+        gain.gain.setValueAtTime(0.25, ctx.currentTime + i * 0.1);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.4);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime + i * 0.1);
+        osc.stop(ctx.currentTime + i * 0.1 + 0.4);
+      });
+    } catch (e) {}
+  }
+
+  function showPlayerApprovalToast(gameCode, gameName, quota) {
+    let toast = document.getElementById('playerApprovalToast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'playerApprovalToast';
+      toast.style.cssText = `
+        position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+        z-index: 100000; width: 92%; max-width: 420px;
+        background: linear-gradient(135deg, #102a1e, #0a1811);
+        border: 2px solid #00e676; border-radius: 16px;
+        padding: 14px 16px; box-shadow: 0 10px 40px rgba(0,230,118,0.35), 0 0 20px rgba(0,0,0,0.8);
+        color: #ffffff; animation: toastSlideUp 0.4s ease;
+      `;
+      document.body.appendChild(toast);
+    }
+
+    toast.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:8px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:24px;">🎉</span>
+          <div>
+            <div style="font-weight:900; font-size:14px; color:#00e676;">¡Tu Solicitud fue APROBADA!</div>
+            <div style="font-size:11.5px; color:#e0e0e0;">${gameName || 'NFL Grid'} (${gameCode})</div>
+          </div>
+        </div>
+        <button type="button" onclick="document.getElementById('playerApprovalToast').remove()" style="background:none; border:none; color:var(--text-muted); font-size:16px; cursor:pointer;">✕</button>
+      </div>
+      <p style="font-size:12px; color:#c8e6c9; margin:0 0 10px 0;">Tienes <strong>${quota || 5} casillas listas</strong> para escoger en el tablero.</p>
+      <a href="player-view.html?code=${gameCode}" class="btn btn-primary" style="text-decoration:none; padding:10px; font-size:13px; font-weight:900; border-radius:10px; text-align:center; display:block; background:#00e676; color:#000000; border:none;">
+        🏈 ¡Ir a Escoger Mis Casillas Ahora!
+      </a>
+    `;
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification('🎉 ¡Solicitud Aprobada en NFL Grids!', {
+          body: `Tu solicitud en ${gameName} fue aprobada. Ya puedes escoger tus ${quota || 5} casillas.`,
+          icon: 'img/logo.jpg'
+        });
+      } catch (e) {}
+    }
+  }
+
+  const activePlayerUnsubs = {};
+
+  // Load user registrations for each game & attach realtime listeners for status change
   async function loadMyRegistrations() {
     if (!db) return;
     const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
@@ -140,6 +209,27 @@
 
     for (const g of ALL_GRIDS) {
       try {
+        const playerDocRef = db.collection('games').doc(g.code).collection('players').doc(userUid);
+        
+        // Realtime status listener for current player in each game
+        if (!activePlayerUnsubs[g.code]) {
+          activePlayerUnsubs[g.code] = playerDocRef.onSnapshot(doc => {
+            if (doc.exists) {
+              const p = doc.data() || {};
+              const prevStatus = MY_REGISTRATIONS[g.code]?.status;
+              MY_REGISTRATIONS[g.code] = { docId: doc.id, ...p };
+
+              // Check if player got approved in real-time
+              const isNowApproved = p.approved === true || p.status === 'approved';
+              if (isNowApproved && prevStatus === 'pending') {
+                playVictoryChime();
+                showPlayerApprovalToast(g.code, `${g.away} @ ${g.home}`, p.quota || p.pack || 5);
+              }
+              renderGrids();
+            }
+          });
+        }
+
         const snap = await db.collection('games').doc(g.code).collection('players').get();
         snap.forEach(doc => {
           const p = doc.data() || {};

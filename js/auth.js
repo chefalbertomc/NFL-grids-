@@ -395,6 +395,13 @@
             localStorage.setItem('bww_q_name', user.displayName.toUpperCase());
           }
 
+          // Request Web Push Notification Permission so players get instant alerts
+          if ('Notification' in window && Notification.permission === 'default') {
+            try {
+              Notification.requestPermission();
+            } catch (e) {}
+          }
+
           updateHeaderUI(user);
 
           // Show Admin Nav items if applicable

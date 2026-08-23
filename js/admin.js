@@ -637,6 +637,68 @@
   let unsubPend = null;
   let unsubAppr = null;
 
+  // Audio Chime Synthesizer for Real-Time Alerts
+  function playNotificationChime(type) {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      if (ctx.state === 'suspended') ctx.resume();
+
+      if (type === 'admin') {
+        // Two-tone attention chime (Ding-Dong)
+        const osc1 = ctx.createOscillator();
+        const osc2 = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+        osc1.frequency.setValueAtTime(880, ctx.currentTime + 0.15); // A5
+
+        gain.gain.setValueAtTime(0.25, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+
+        osc1.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc1.start();
+        osc1.stop(ctx.currentTime + 0.6);
+      } else {
+        // Victory chime
+        const freqs = [523.25, 659.25, 783.99, 1046.50];
+        freqs.forEach((f, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, ctx.currentTime + i * 0.1);
+          gain.gain.setValueAtTime(0.2, ctx.currentTime + i * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.4);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(ctx.currentTime + i * 0.1);
+          osc.stop(ctx.currentTime + i * 0.1 + 0.4);
+        });
+      }
+    } catch (e) {
+      console.warn('Audio chime note:', e);
+    }
+  }
+
+  // Send System Web Push Notification
+  function sendSystemNotification(title, body, tag) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(title, {
+          body: body,
+          icon: 'img/logo.jpg',
+          tag: tag || 'drinks-wins-alert'
+        });
+      } catch (e) {}
+    }
+  }
+
+  let lastPendingCount = 0;
+
   function attachPlayersListener(code) {
     if (unsubPend) unsubPend();
     if (unsubAppr) unsubAppr();
@@ -657,6 +719,20 @@
         }
       });
 
+      // Trigger Admin Alert on NEW pending requests
+      if (pendingDocs.length > lastPendingCount) {
+        playNotificationChime('admin');
+        const newest = pendingDocs[pendingDocs.length - 1].data() || {};
+        const nick = newest.nickname || newest.name || 'Nuevo Jugador';
+        const realName = newest.userName ? ` (${newest.userName})` : '';
+        const waiter = newest.waiter ? ` • Mesero: ${newest.waiter}` : '';
+        sendSystemNotification(
+          '🔔 ¡Nueva Solicitud en NFL Grids!',
+          `${nick}${realName} solicitó entrar a ${code}${waiter}.`
+        );
+      }
+      lastPendingCount = pendingDocs.length;
+
       renderPlayersArray(listPend, pendingDocs, false);
       renderPlayersArray(listAppr, approvedDocs, true);
       if (currentGame) renderAdminGrid(currentGame);
@@ -675,38 +751,52 @@
     docsArray.forEach(doc => {
       const p = doc.data() || {};
       const id = doc.id;
-      const pid = p.playerId || '';
+      const currentQuota = p.quota ?? p.pack ?? 5;
+      const userPhoto = p.userPhoto || 'img/logo.jpg';
+      const realName = p.userName || 'Usuario de Google';
+      const email = p.userEmail || '';
+      const apodo = (p.nickname || p.name || 'JUGADOR').toUpperCase();
+      const waiter = p.waiter || 'Sin mesero';
 
       const card = document.createElement('div');
       card.className = 'flex-between';
-      card.style.padding = '8px 12px';
-      card.style.background = 'rgba(255,255,255,0.02)';
-      card.style.border = '1px solid var(--border-color)';
-      card.style.borderRadius = '10px';
-      card.style.marginBottom = '6px';
+      card.style.padding = '10px 12px';
+      card.style.background = isApproved ? 'rgba(255,255,255,0.02)' : 'rgba(255,209,0,0.05)';
+      card.style.border = isApproved ? '1px solid var(--border-color)' : '1.5px solid rgba(255,209,0,0.4)';
+      card.style.borderRadius = '12px';
+      card.style.marginBottom = '8px';
+      card.style.gap = '10px';
+      card.style.flexWrap = 'wrap';
 
-      const currentQuota = p.quota ?? p.pack ?? 5;
       card.innerHTML = `
-        <div>
-          <span style="font-weight: 800; color: var(--accent-color);">${p.nickname || p.name || '—'}</span>
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <span>Mesa: ${p.table || '—'}</span>
-            <span>Mesero: ${p.waiter || '—'}</span>
-            <label style="margin: 0; display: inline-flex; align-items: center; gap: 4px;">
-              Cuadros: 
-              <input type="number" id="quota_${id}" value="${currentQuota}" min="1" max="100" style="width: 50px; padding: 2px 4px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-color); border-radius: 6px; text-align: center; margin: 0; display: inline-block;">
-            </label>
-            <span>Usados: ${p.taken || 0}</span>
+        <div style="display:flex; align-items:center; gap:10px; min-width:220px; flex:1;">
+          <img src="${userPhoto}" alt="${apodo}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:2px solid ${isApproved ? '#ffd100' : '#ffc107'}; flex-shrink:0;" />
+          <div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-weight:900; font-size:14px; color:#ffd100;">${apodo}</span>
+              ${!isApproved ? `<span class="badge" style="background:rgba(255,193,7,0.2); color:#ffc107; border:1px solid #ffc107; font-size:9.5px; padding:1px 5px; font-weight:800;">PENDIENTE</span>` : ''}
+            </div>
+            <div style="font-size:11.5px; color:#ffffff; font-weight:700; margin-top:2px;">
+              👤 ${realName} ${email ? `<span style="font-size:10.5px; color:var(--text-muted);">(${email})</span>` : ''}
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:3px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span>🤵 <strong>Mesero:</strong> ${waiter}</span>
+              <label style="margin:0; display:inline-flex; align-items:center; gap:4px; font-weight:700;">
+                🎟️ Cuadros: 
+                <input type="number" id="quota_${id}" value="${currentQuota}" min="1" max="100" style="width:46px; padding:2px 4px; background:var(--bg-color); border:1px solid var(--border-color); color:#ffd100; font-weight:900; border-radius:6px; text-align:center; margin:0; display:inline-block;">
+              </label>
+              <span>📌 Usados: <strong>${p.taken || 0}</strong></span>
+            </div>
           </div>
         </div>
-        <div class="flex-row" style="gap: 6px;">
+        <div class="flex-row" style="gap: 6px; align-items:center;">
           ${isApproved 
-            ? `<button class="btn btn-primary" data-player-id="${id}" data-action="update-quota" style="padding: 4px 8px; font-size: 11px; width: auto; color: var(--bg-color);">Guardar Cuota</button>
-               <button class="btn btn-secondary" data-player-id="${id}" data-action="reset" style="padding: 4px 8px; font-size: 11px; width: auto;">Reset Casillas</button>
-               <button class="btn btn-danger" data-player-id="${id}" data-action="remove" style="padding: 4px 8px; font-size: 11px; width: auto;">Eliminar</button>`
-            : `<button class="btn btn-primary" data-player-id="${id}" data-action="approve" style="padding: 4px 8px; font-size: 11px; width: auto; color: var(--bg-color);">Aprobar</button>
-               <button class="btn btn-secondary" data-player-id="${id}" data-action="reject" style="padding: 4px 8px; font-size: 11px; width: auto;">Rechazar</button>
-               <button class="btn btn-danger" data-player-id="${id}" data-action="delete" style="padding: 4px 8px; font-size: 11px; width: auto;">Eliminar</button>`
+            ? `<button class="btn btn-primary" data-player-id="${id}" data-action="update-quota" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; color: var(--bg-color); border-radius:8px;">💾 Guardar Cuota</button>
+               <button class="btn btn-secondary" data-player-id="${id}" data-action="reset" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; border-radius:8px;">🔄 Reset</button>
+               <button class="btn btn-danger" data-player-id="${id}" data-action="remove" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; border-radius:8px;">🗑️</button>`
+            : `<button class="btn btn-primary" data-player-id="${id}" data-action="approve" style="padding: 7px 14px; font-size: 12px; font-weight:900; width: auto; color: var(--bg-color); border-radius:8px; background:#00e676; border-color:#00e676;">✅ Aprobar</button>
+               <button class="btn btn-secondary" data-player-id="${id}" data-action="reject" style="padding: 7px 10px; font-size: 12px; font-weight:800; width: auto; border-radius:8px; color:#ff4444;">✕ Rechazar</button>
+               <button class="btn btn-danger" data-player-id="${id}" data-action="delete" style="padding: 7px 10px; font-size: 12px; font-weight:800; width: auto; border-radius:8px;">🗑️</button>`
           }
         </div>
       `;
