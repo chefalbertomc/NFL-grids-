@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Tablero NFL Grid — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=73.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=75.0"/>
   <style>
     /* Custom zoom styles for mobile */
     .grid-view-header {
@@ -119,13 +119,6 @@
     
     <!-- Grid Container -->
     <div class="card" style="padding: 12px;">
-      <!-- Grid Mode Switch -->
-      <div style="display:flex; justify-content:flex-start; align-items:center; margin-bottom:10px;">
-        <button type="button" class="btn btn-secondary" id="btnToggleViewMode" onclick="window.toggleGridDisplayMode()" style="width:auto; padding:6px 14px; font-size:12px; font-weight:800; border-radius:10px; background:rgba(255,209,0,0.12); border:1px solid #ffd100; color:#ffd100;">
-          🖼️ Modo Fotos
-        </button>
-      </div>
-
       <!-- Interactive Grid Component -->
       <div class="grid-container-wrapper">
         <div class="grid-wrapper">
@@ -135,10 +128,15 @@
             <span class="axis-text" id="awayTeamName">Visitante</span>
           </div>
           <div class="grid-content">
-            <!-- Home team: horizontal top axis -->
-            <div class="horizontal-label" id="horizontalTeam">
-              <img class="axis-logo" id="homeLogo" src="" alt="" style="display:none;"/>
-              <span class="axis-text" id="homeTeamName">Local</span>
+            <!-- Home team: horizontal top axis + Integrated View Mode Button -->
+            <div class="horizontal-label" id="horizontalTeam" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding: 4px 6px;">
+              <div style="display:flex; align-items:center; gap:8px; justify-content:center; flex:1;">
+                <img class="axis-logo" id="homeLogo" src="" alt="" style="display:none;"/>
+                <span class="axis-text" id="homeTeamName">Local</span>
+              </div>
+              <button type="button" class="btn btn-secondary" id="btnToggleViewMode" onclick="window.toggleGridDisplayMode()" style="width:auto; padding:4px 10px; font-size:11px; font-weight:900; border-radius:8px; background:rgba(255,209,0,0.18); border:1px solid #ffd100; color:#ffd100; white-space:nowrap; flex-shrink:0;">
+                🖼️ Fotos
+              </button>
             </div>
             <div class="grid-board" id="gridBoard">
               <!-- Loaded dynamically -->
@@ -197,51 +195,10 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Initializer & View Logic -->
-  <script src="js/firebase-config.js?v=73.0"></script>
-  <script src="js/auth.js?v=73.0"></script>
-  <script src="js/team-logos.js?v=73.0"></script>
-  <script src="js/player-view.js?v=73.0"></script>
-
-  <!-- Avatar Picker Modal -->
-  <div id="avatarPickerModal" class="login-modal-overlay" style="display:none;">
-    <div class="login-modal-card" style="max-width: 420px; text-align: left;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-        <h3 style="margin:0; font-size:16px; font-weight:900; color:#ffd100;">📷 Elige tu Foto / Avatar</h3>
-        <button type="button" class="login-modal-close" onclick="window.closeAvatarPicker()">✕</button>
-      </div>
-      <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Esta imagen aparecerá dentro de tus casillas en el tablero.</p>
-
-      <!-- Current Photo Preview -->
-      <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; padding:10px; background:rgba(255,255,255,0.04); border-radius:12px; border:1px solid rgba(255,255,255,0.1);">
-        <img id="avatarCurrentPreview" src="img/logo.jpg" alt="Preview" style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid #ffd100;" />
-        <div>
-          <div style="font-size:13px; font-weight:800; color:#ffffff;" id="avatarPreviewNick">Mi Avatar</div>
-          <div style="font-size:11px; color:var(--text-muted);">Foto activa en el Grid</div>
-        </div>
-      </div>
-
-      <!-- Quick Preset Avatars -->
-      <div style="font-size:11px; font-weight:800; color:#ffd100; text-transform:uppercase; margin-bottom:8px;">Avatars Disponibles:</div>
-      <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin-bottom:16px;" id="avatarPresetsGrid">
-        <!-- Generated dynamically in JS -->
-      </div>
-
-      <!-- Custom Image URL input -->
-      <div class="form-group" style="margin-bottom:14px;">
-        <label style="font-size:11px; font-weight:700; color:var(--text-muted);">O pega un enlace de imagen (URL):</label>
-        <input type="url" id="inpCustomAvatarUrl" placeholder="https://ejemplo.com/mifoto.jpg" style="font-size:12px; padding:8px 10px; border-radius:8px;" />
-      </div>
-
-      <div style="display:flex; gap:8px;">
-        <button type="button" class="btn btn-primary" onclick="window.saveCustomAvatar()" style="flex:1; padding:10px; font-size:13px; font-weight:900; border-radius:10px;">
-          💾 Guardar Avatar
-        </button>
-        <button type="button" class="btn btn-secondary" onclick="window.resetToGoogleAvatar()" style="width:auto; padding:10px 12px; font-size:12px; font-weight:800; border-radius:10px;" title="Restaurar foto original de Google">
-          Google
-        </button>
-      </div>
-    </div>
-  </div>
+  <script src="js/firebase-config.js?v=75.0"></script>
+  <script src="js/auth.js?v=75.0"></script>
+  <script src="js/team-logos.js?v=75.0"></script>
+  <script src="js/player-view.js?v=75.0"></script>
 
   <!-- Global Google Login Modal Gate -->
   <div id="globalLoginModal" class="login-modal-overlay">

@@ -567,16 +567,17 @@
         cell.className = 'grid-cell';
 
         if (info) {
-          let photoSrc = info.userPhoto || '';
+          let photoSrc = info.userPhoto || info.photoURL || '';
           if (!photoSrc && cellOwnerIsMe(info) && user && user.photoURL) {
             photoSrc = user.photoURL;
           }
           if (!photoSrc) {
-            photoSrc = 'img/logo.jpg';
+            const cleanNick = (info.name || 'J').trim();
+            photoSrc = `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanNick)}&background=ffd100&color=000000&bold=true&length=2`;
           }
 
           if (currentDisplayMode === 'photos') {
-            cell.innerHTML = `<img class="cell-avatar-img" src="${photoSrc}" onerror="this.onerror=null;this.src='img/logo.jpg'" alt="${info.name}"/>`;
+            cell.innerHTML = `<img class="cell-avatar-img" src="${photoSrc}" onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(info.name || 'J')}&background=ffd100&color=000&bold=true'" alt="${info.name}"/>`;
           } else {
             cell.textContent = info.name || '—';
           }
@@ -615,87 +616,8 @@
     currentDisplayMode = currentDisplayMode === 'photos' ? 'names' : 'photos';
     const btn = document.getElementById('btnToggleViewMode');
     if (btn) {
-      btn.textContent = currentDisplayMode === 'photos' ? '🖼️ Modo Fotos' : '👤 Modo Nombres';
+      btn.textContent = currentDisplayMode === 'photos' ? '🖼️ Fotos' : '👤 Nombres';
     }
-    if (game) renderGrid(game);
-  };
-
-  // --- Avatar Picker Modal Logic ---
-  window.openAvatarPicker = function() {
-    const modal = document.getElementById('avatarPickerModal');
-    if (!modal) return;
-
-    const currentImg = document.getElementById('avatarCurrentPreview');
-    const previewNick = document.getElementById('avatarPreviewNick');
-    const grid = document.getElementById('avatarPresetsGrid');
-    const inpUrl = document.getElementById('inpCustomAvatarUrl');
-
-    const activePhoto = (activePlayer && activePlayer.userPhoto) || (user && user.photoURL) || 'img/logo.jpg';
-    if (currentImg) currentImg.src = activePhoto;
-    if (previewNick) previewNick.textContent = (activePlayer && activePlayer.nickname) || (user && user.displayName) || 'Mi Avatar';
-    if (inpUrl) inpUrl.value = '';
-
-    if (grid) {
-      grid.innerHTML = '';
-      AVATAR_PRESETS.forEach(p => {
-        const item = document.createElement('div');
-        item.style.cssText = 'text-align:center; cursor:pointer; padding:6px; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.08); transition:all 0.2s;';
-        item.innerHTML = `
-          <img src="${p.url}" alt="${p.name}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1.5px solid rgba(255,255,255,0.2);" />
-          <div style="font-size:9.5px; color:var(--text-muted); margin-top:4px; font-weight:700;">${p.name}</div>
-        `;
-        item.addEventListener('click', () => {
-          if (currentImg) currentImg.src = p.url;
-          if (inpUrl) inpUrl.value = p.url;
-        });
-        grid.appendChild(item);
-      });
-    }
-
-    modal.style.display = 'flex';
-  };
-
-  window.closeAvatarPicker = function() {
-    const modal = document.getElementById('avatarPickerModal');
-    if (modal) modal.style.display = 'none';
-  };
-
-  window.saveCustomAvatar = async function() {
-    const currentImg = document.getElementById('avatarCurrentPreview');
-    const inpUrl = document.getElementById('inpCustomAvatarUrl');
-    const chosenUrl = (inpUrl && inpUrl.value.trim()) || (currentImg ? currentImg.src : '');
-
-    if (!chosenUrl) {
-      alert('Por favor selecciona un avatar o escribe un enlace válido.');
-      return;
-    }
-
-    if (activePlayer && db && code) {
-      try {
-        await db.collection('games').doc(code).collection('players').doc(activePlayer.id).update({
-          userPhoto: chosenUrl
-        });
-        activePlayer.userPhoto = chosenUrl;
-      } catch (e) {
-        console.error('Error saving avatar:', e);
-      }
-    }
-
-    window.closeAvatarPicker();
-    if (game) renderGrid(game);
-  };
-
-  window.resetToGoogleAvatar = async function() {
-    const googlePhoto = user && user.photoURL ? user.photoURL : 'img/logo.jpg';
-    if (activePlayer && db && code) {
-      try {
-        await db.collection('games').doc(code).collection('players').doc(activePlayer.id).update({
-          userPhoto: googlePhoto
-        });
-        activePlayer.userPhoto = googlePhoto;
-      } catch (e) {}
-    }
-    window.closeAvatarPicker();
     if (game) renderGrid(game);
   };
 
