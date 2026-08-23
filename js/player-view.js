@@ -337,20 +337,13 @@
         });
 
         const urlParams = new URLSearchParams(window.location.search);
-        const urlNick = (urlParams.get('nick') || '').trim().toLowerCase();
-        const savedNick = (localStorage.getItem('player_nick') || '').trim().toLowerCase();
-        const savedPlayerId = localStorage.getItem('bww_player_id');
         const userUid = user ? user.uid : null;
+        const userEmail = user && user.email ? user.email.toLowerCase() : null;
 
-        activePlayer = approvedPlayers.find(p => pid && (p.id === pid || p.playerId === pid)) ||
-                       approvedPlayers.find(p => urlNick && p.nickname.toLowerCase() === urlNick) ||
-                       approvedPlayers.find(p => savedNick && p.nickname.toLowerCase() === savedNick) ||
-                       approvedPlayers.find(p => savedPlayerId && (p.id === savedPlayerId || p.playerId === savedPlayerId)) ||
-                       approvedPlayers.find(p => userUid && (p.id === userUid || p.playerId === userUid)) ||
-                       pendingPlayers.find(p => pid && (p.id === pid || p.playerId === pid)) ||
-                       pendingPlayers.find(p => urlNick && p.nickname.toLowerCase() === urlNick) ||
-                       pendingPlayers.find(p => savedNick && p.nickname.toLowerCase() === savedNick) ||
-                       pendingPlayers.find(p => savedPlayerId && (p.id === savedPlayerId || p.playerId === savedPlayerId)) ||
+        // STRICT MATCH: Only bind to the authenticated player's account
+        activePlayer = approvedPlayers.find(p => (userUid && (p.id === userUid || p.playerId === userUid || p.userUid === userUid))) ||
+                       approvedPlayers.find(p => (userEmail && p.userEmail && p.userEmail.toLowerCase() === userEmail)) ||
+                       pendingPlayers.find(p => (userUid && (p.id === userUid || p.playerId === userUid || p.userUid === userUid))) ||
                        null;
 
         if (activePlayer) {
@@ -504,60 +497,31 @@
     }
 
     const statusText = document.getElementById('selection-status-text');
+    const playerNickDisplay = document.getElementById('playerNicknameDisplay');
+
+    if (playerNickDisplay) {
+      if (activePlayer) {
+        playerNickDisplay.textContent = `👤 ${activePlayer.nickname}`;
+      } else if (user && user.displayName) {
+        playerNickDisplay.textContent = `👤 ${user.displayName.toUpperCase()}`;
+      } else {
+        playerNickDisplay.textContent = '👤 No Registrado';
+      }
+    }
+
     if (statusText) {
       if (activePlayer) {
         const remaining = Math.max(0, quota - taken);
         if (remaining > 0) {
-          statusText.innerHTML = `<span class="badge" style="background:rgba(255,209,0,0.15); color:#ffd100; border:1px solid rgba(255,209,0,0.4); font-size:11px; padding:2px 8px; font-weight:800;">🏈 Te quedan ${remaining} casillas</span>`;
+          statusText.innerHTML = `<span class="badge" style="background:rgba(255,209,0,0.18); color:#ffd100; border:1px solid rgba(255,209,0,0.4); font-size:10px; padding:2px 6px; font-weight:800;">🏈 ${taken}/${quota} CASILLAS (${remaining} LIBRES)</span>`;
         } else {
-          statusText.innerHTML = `<span class="badge" style="background:rgba(0,230,118,0.15); color:#00e676; border:1px solid rgba(0,230,118,0.4); font-size:11px; padding:2px 8px; font-weight:800;">✅ ¡Listo! ${quota} casillas</span>`;
+          statusText.innerHTML = `<span class="badge" style="background:rgba(0,230,118,0.18); color:#00e676; border:1px solid rgba(0,230,118,0.4); font-size:10px; padding:2px 6px; font-weight:800;">✅ ¡LISTO! ${quota} CASILLAS</span>`;
         }
       } else if (pendingPlayers.length > 0) {
-        statusText.innerHTML = `<span class="badge danger" style="font-size:11px; padding:2px 8px;">⏳ Pendiente</span>`;
+        statusText.innerHTML = `<span class="badge" style="background:rgba(255,193,7,0.18); color:#ffc107; border:1px solid #ffc107; font-size:10px; padding:2px 6px; font-weight:800;">⏳ PENDIENTE</span>`;
       } else {
-        statusText.innerHTML = `<span class="badge" style="font-size:11px; padding:2px 8px; color:var(--text-muted);">📌 Elige tu apodo</span>`;
+        statusText.innerHTML = `<span class="badge" style="font-size:10px; padding:2px 6px; color:var(--text-muted);">📌 Sin Registro</span>`;
       }
-    }
-
-    // Toggle dropdown if approved players exist
-    if (nickChooser) {
-      if (approvedPlayers.length > 0) {
-        nickChooser.innerHTML = '';
-        approvedPlayers.forEach(p => {
-          const o = document.createElement('option');
-          o.value = p.id;
-          o.textContent = `${p.nickname} (${p.taken}/${p.quota} cuadros)`;
-          nickChooser.appendChild(o);
-        });
-        if (activePlayer) {
-          nickChooser.value = activePlayer.id;
-        }
-      } else if (pendingPlayers.length > 0) {
-        nickChooser.innerHTML = `<option value="">${pendingPlayers[0].nickname} (Pendiente)</option>`;
-      } else {
-        nickChooser.innerHTML = '<option value="">Sin registros</option>';
-      }
-      
-      // Update handler
-      nickChooser.onchange = () => {
-        const selectedId = nickChooser.value;
-        if (selectedId) {
-          activePlayer = approvedPlayers.find(p => p.id === selectedId) || null;
-          if (activePlayer) {
-            localStorage.setItem('bww_player_id', activePlayer.id);
-            localStorage.setItem('player_nick', activePlayer.nickname);
-            const newUrl = new URL(window.location.href);
-            newUrl.searchParams.set('pid', activePlayer.id);
-            newUrl.searchParams.set('nick', activePlayer.nickname);
-            window.history.replaceState(null, '', newUrl.toString());
-          }
-        } else {
-          activePlayer = null;
-        }
-
-        updatePlayerUI();
-        if (game) renderGrid(game);
-      };
     }
   }
 

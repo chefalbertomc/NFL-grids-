@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Tablero NFL Grid — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=66.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=67.0"/>
   <style>
     /* Custom zoom styles for mobile */
     .grid-view-header {
@@ -40,42 +40,28 @@
       </button>
     </div>
 
-    <!-- Header Hero Card (Compact & Perfectly Aligned) -->
-    <div class="card" style="margin-bottom: 12px; background: linear-gradient(135deg, rgba(22, 31, 46, 0.95), rgba(11, 15, 25, 0.98)); border: 1px solid rgba(255, 209, 0, 0.25); border-radius: 14px; padding: 10px 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.6);">
-      <div style="display: flex; align-items: center; gap: 12px;">
-        <img src="img/logo.jpg" alt="Drinks & Wins by Beto" style="width: 44px; height: 44px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(255,209,0,0.4); box-shadow: 0 0 10px rgba(255,209,0,0.2); flex-shrink: 0;" />
-        
-        <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px;">
-          <!-- Top Line: Title + Code + Store + Lock Badge -->
-          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-            <h2 id="gameTitle" style="font-size: clamp(16px, 3.8vw, 22px); margin:0; line-height: 1; display: flex; align-items: center; gap: 6px;">
-              <span style="color:#ffffff; font-weight:900; letter-spacing:0.04em;">FOOTBALL GRIDS</span>
-              <span id="gameCodeDisplay" style="color:#ffd100; font-weight:900;">...</span>
-            </h2>
-            <span id="gameStoreDisplay" class="badge accent" style="display:none; font-size:10px; padding: 2px 6px;"></span>
-            <span id="lockBadge" class="badge danger" style="display: none; font-size:10px; padding: 2px 6px;">🔒 Bloqueado</span>
-          </div>
+    <!-- Header Hero Card (Ultra-Slim Single-Row Layout) -->
+    <div class="card" style="margin-bottom: 10px; background: linear-gradient(135deg, rgba(20, 28, 42, 0.95), rgba(10, 14, 22, 0.98)); border: 1px solid rgba(255, 209, 0, 0.25); border-radius: 14px; padding: 8px 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.6);">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+        <!-- Left: Logo + Title + Code + Store + Lock + Status -->
+        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+          <img src="img/logo.jpg" alt="Drinks & Wins" style="width: 34px; height: 34px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,209,0,0.4); flex-shrink: 0;" />
+          
+          <h2 id="gameTitle" style="font-size: 16px; margin:0; line-height: 1; display: inline-flex; align-items: center; gap: 4px;">
+            <span style="color:#ffffff; font-weight:900; letter-spacing:0.03em;">FOOTBALL GRIDS</span>
+            <span id="gameCodeDisplay" style="color:#ffd100; font-weight:900;">...</span>
+          </h2>
 
-          <!-- Bottom Line: Player Selector + Status Pill + Compact Instruction -->
-          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-            <!-- Nick Chooser Selector Pill -->
-            <div id="playerSelectorWrapper" style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.06); padding: 2px 8px; border-radius: 8px; border: 1px solid rgba(255,209,0,0.3);">
-              <span style="font-size: 11px; color: var(--text-muted); font-weight: 700;">👤</span>
-              <select id="nickChooser" style="background: transparent; border: none; color: #ffd100; font-weight: 800; font-size: 12px; cursor: pointer; outline: none; padding: 0;">
-                <option value="">Cargando...</option>
-              </select>
-            </div>
+          <span id="gameStoreDisplay" class="badge accent" style="display:none; font-size:10px; padding: 2px 6px;"></span>
+          <span id="lockBadge" class="badge danger" style="display: none; font-size:10px; padding: 2px 6px; font-weight:800;">🔒 Bloqueado</span>
 
-            <!-- Selection Status Pill -->
-            <div id="selection-status-text" style="display: inline-flex;">
-              <span class="badge success" style="font-size: 11px; padding: 2px 8px;">Cargando...</span>
-            </div>
+          <!-- Selection Status Pill placed right next to Lock badge -->
+          <div id="selection-status-text" style="display: inline-flex;"></div>
+        </div>
 
-            <!-- Subtle Permanent Instruction Hint -->
-            <span style="font-size: 11px; color: #00e676; font-weight: 600; letter-spacing: 0.01em;">
-              ⚡ Toca una casilla vacía para marcarla o desmarcarla
-            </span>
-          </div>
+        <!-- Right: Current Player Identity (Fixed to authenticated user, no dropdown) -->
+        <div id="playerIdentityBadge" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 8px; border: 1px solid rgba(255,209,0,0.3);">
+          <span style="font-size: 12px; font-weight: 900; color: #ffd100;" id="playerNicknameDisplay">👤 Cargando...</span>
         </div>
       </div>
       <div id="gridMsg" style="display:none;"></div>
@@ -186,10 +172,10 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Initializer & View Logic -->
-  <script src="js/firebase-config.js?v=66.0"></script>
-  <script src="js/auth.js?v=66.0"></script>
-  <script src="js/team-logos.js?v=66.0"></script>
-  <script src="js/player-view.js?v=66.0"></script>
+  <script src="js/firebase-config.js?v=67.0"></script>
+  <script src="js/auth.js?v=67.0"></script>
+  <script src="js/team-logos.js?v=67.0"></script>
+  <script src="js/player-view.js?v=67.0"></script>
 
   <!-- Global Google Login Modal Gate -->
   <div id="globalLoginModal" class="login-modal-overlay">
