@@ -1,4 +1,4 @@
-// Grids Module for Wings & Wins — Unified Interactive Cards (v63.0)
+// Grids Module for Wings & Wins — Live Scoreboard & Unified Smart Cards (v64.0)
 (function() {
   'use strict';
 
@@ -7,6 +7,7 @@
   let MY_REGISTRATIONS = {}; // code -> playerDocData
   let SELECTED_GRID_CODE = null;
   let gridsUnsubscribe = null;
+  let espnSyncInterval = null;
 
   const gridsList = document.getElementById('gridsList');
   const filterStore = document.getElementById('filterStore');
@@ -23,6 +24,10 @@
       db = window.db;
       setupEventListeners();
       loadGrids();
+      syncESPNLiveGrids();
+      if (!espnSyncInterval) {
+        espnSyncInterval = setInterval(syncESPNLiveGrids, 15000);
+      }
     } else {
       setTimeout(initGrids, 100);
     }
@@ -78,7 +83,12 @@
           locked: !!d.locked,
           cells: cells,
           size: totalSize,
-          free: freeCount
+          free: freeCount,
+          scoreHome: d.scoreHome !== undefined ? d.scoreHome : null,
+          scoreAway: d.scoreAway !== undefined ? d.scoreAway : null,
+          quarter: d.quarter || d.periodName || '',
+          clock: d.clock || '',
+          kickoff: d.kickoff || d.gameDate || d.date || ''
         });
 
         if (d.store || d.tienda) {
@@ -101,6 +111,7 @@
 
       await loadMyRegistrations();
       renderGrids();
+      syncESPNLiveGrids();
 
       // Auto-select if URL has ?join=CODE
       const urlJoin = new URLSearchParams(window.location.search).get('join');
@@ -163,6 +174,11 @@
       const isApproved = reg && (reg.status === 'approved' || !!reg.approved);
       const isPending = reg && !isApproved;
 
+      // Live status variables
+      const isLive = g.isLive || (g.quarter && (g.quarter.includes('Q') || g.quarter.toLowerCase().includes('medio') || g.quarter.toLowerCase().includes('cuarto')));
+      const isDone = g.isDone || (g.quarter && g.quarter.toLowerCase().includes('final'));
+      const hasScores = g.scoreHome !== null && g.scoreAway !== null;
+
       const card = document.createElement('div');
       card.className = 'card';
       card.style.padding = '16px 18px';
@@ -173,10 +189,10 @@
 
       if (isApproved) {
         card.style.border = '2px solid #00e676';
-        card.style.background = 'linear-gradient(145deg, rgba(16,32,20,0.95), rgba(10,20,14,0.98))';
+        card.style.background = 'linear-gradient(145deg, rgba(14,28,18,0.95), rgba(8,16,11,0.98))';
       } else if (isPending) {
         card.style.border = '2px solid #ffc107';
-        card.style.background = 'linear-gradient(145deg, rgba(35,28,15,0.95), rgba(20,16,8,0.98))';
+        card.style.background = 'linear-gradient(145deg, rgba(32,25,12,0.95), rgba(18,14,7,0.98))';
       } else if (isSelected) {
         card.style.border = '2px solid var(--accent-color)';
         card.style.background = 'rgba(255,209,0,0.06)';
@@ -185,11 +201,21 @@
         card.style.background = 'var(--card-bg-hover)';
       }
 
-      // Middle Badges Strip
+      // Live Status Header Badge
+      let statusBadge = '';
+      if (isLive) {
+        const clockStr = g.clock ? `(${g.clock} ${g.quarter || ''})` : `(${g.quarter || 'EN VIVO'})`;
+        statusBadge = `<span class="badge danger" style="background:#ff4444; color:#fff; font-weight:900; animation: tvPulse 1s infinite; font-size:11px; padding:3px 8px; border-radius:10px;">🔴 EN VIVO ${clockStr}</span>`;
+      } else if (isDone) {
+        statusBadge = `<span class="badge" style="background:rgba(255,255,255,0.12); color:#aaa; font-weight:800; font-size:11px; padding:3px 8px;">🏁 FINAL</span>`;
+      } else {
+        statusBadge = `<span class="badge" style="background:rgba(255,255,255,0.06); font-weight:700; font-size:11px; padding:3px 8px; color:var(--text-muted);">🕒 ${g.kickoff || 'Por Iniciar'}</span>`;
+      }
+
+      // Middle Badges Strip (CLEAN & NON-REPETITIVE)
       let badgesHtml = `
         <span class="badge" style="font-weight: 800; letter-spacing: 0.04em;">🔑 ${g.code}</span>
         ${g.store ? `<span class="badge accent">${g.store}</span>` : ''}
-        <span class="badge success" style="font-weight: 800;">🟢 Libres: ${g.free}/${g.size || 100}</span>
       `;
 
       if (g.locked) {
@@ -197,17 +223,24 @@
       }
 
       if (isApproved) {
+        // CLEAN APPROVED STATE: Removed "APROBADO" badge & "100/100" badge
         const taken = Number(reg.taken || 0);
         const quota = Number(reg.quota || reg.pack || 0);
+        const remaining = Math.max(0, quota - taken);
         badgesHtml += `
-          <span class="badge" style="background:#00e676; color:#000; font-weight:900;">✅ APROBADO</span>
           <span class="badge" style="background:rgba(255,255,255,0.12); color:#fff; font-weight:800;">👤 ${reg.nickname || reg.name || 'Tú'}</span>
-          <span class="badge" style="background:rgba(255,209,0,0.2); color:#ffd100; font-weight:900;">🎯 ${taken}/${quota} Cuadros Usados</span>
+          <span class="badge" style="background:rgba(0,230,118,0.18); color:#00e676; font-weight:900; border:1px solid rgba(0,230,118,0.4);">
+            🎯 ${taken}/${quota} Cuadros Usados (${remaining} Libres)
+          </span>
         `;
       } else if (isPending) {
         badgesHtml += `
-          <span class="badge" style="background:#ffc107; color:#000; font-weight:900;">🟡 ESPERANDO APROBACIÓN</span>
-          <span class="badge" style="background:rgba(255,255,255,0.12); color:#fff; font-weight:800;">👤 ${reg.nickname || reg.name || 'Tú'} (${reg.pack || 5} Cuadros)</span>
+          <span class="badge success" style="font-weight: 800;">🟢 Libres: ${g.free}/${g.size || 100}</span>
+          <span class="badge" style="background:#ffc107; color:#000; font-weight:900;">🟡 ESPERANDO APROBACIÓN (${reg.pack || 5} Cuadros)</span>
+        `;
+      } else {
+        badgesHtml += `
+          <span class="badge success" style="font-weight: 800;">🟢 Libres: ${g.free}/${g.size || 100}</span>
         `;
       }
 
@@ -216,41 +249,49 @@
       if (isApproved) {
         const pid = activeUser ? activeUser.uid : (reg.docId || '');
         actionButtonHtml = `
-          <a href="player-view.html?code=${g.code}&pid=${encodeURIComponent(pid)}" class="btn btn-primary" style="display:flex; align-items:center; justify-content:center; gap:8px; width:100%; padding:12px 18px; font-size:15px; font-weight:900; border-radius:12px; text-decoration:none; background: linear-gradient(135deg, #ffd100, #ffb300); color: #000; box-shadow: 0 4px 14px rgba(255,209,0,0.3);">
+          <a href="player-view.html?code=${g.code}&pid=${encodeURIComponent(pid)}" class="btn btn-primary" style="flex: 1; padding:12px 18px; font-size:15px; font-weight:900; border-radius:12px; text-decoration:none; background: linear-gradient(135deg, #ffd100, #ffb300); color: #000; box-shadow: 0 4px 14px rgba(255,209,0,0.3); justify-content:center;">
             <span>👁️ Ver Mi Grid & Escoger Casillas</span>
           </a>
         `;
       } else if (isPending) {
         actionButtonHtml = `
-          <button class="btn btn-secondary" disabled style="width: 100%; padding: 12px 16px; font-size: 14px; font-weight: 800; border-radius: 12px; opacity: 0.9; background: rgba(255,193,7,0.15); border: 1px solid #ffc107; color: #ffc107; cursor: not-allowed;">
+          <button class="btn btn-secondary" disabled style="flex: 1; padding: 12px 16px; font-size: 14px; font-weight: 800; border-radius: 12px; opacity: 0.9; background: rgba(255,193,7,0.15); border: 1px solid #ffc107; color: #ffc107; cursor: not-allowed; justify-content:center;">
             ⏳ Solicitud Enviada — Esperando Aprobación del Mesero
           </button>
         `;
       } else {
         actionButtonHtml = `
-          <button class="btn ${isSelected ? 'btn-secondary' : 'btn-primary'}" data-select-code="${g.code}" style="width: 100%; padding: 12px 16px; font-size: 14px; font-weight: 800; border-radius: 12px;">
+          <button class="btn ${isSelected ? 'btn-secondary' : 'btn-primary'}" data-select-code="${g.code}" style="flex: 1; padding: 12px 16px; font-size: 14px; font-weight: 800; border-radius: 12px; justify-content:center;">
             ${isSelected ? '📝 Completar Registro Abajo' : '🏈 Unirse a este Grid'}
           </button>
         `;
       }
 
       card.innerHTML = `
-        <!-- Card Top: Matchup & WhatsApp Share -->
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px;">
+        <!-- Card Top: Matchup, Live Scores & Status -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
           <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1;">
+            <!-- Away Team -->
             <div style="display: inline-flex; align-items: center; gap: 6px;">
-              <img src="${window.getTeamLogoURL(g.away)}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width: 28px; height: 28px; object-fit: contain;" alt="${g.away}"/>
+              <img src="${window.getTeamLogoURL(g.away)}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width: 30px; height: 30px; object-fit: contain;" alt="${g.away}"/>
               <span style="font-weight: 900; font-size: 16px; color: #fff;">${g.away}</span>
+              ${hasScores ? `<span class="badge" style="font-size:15px; font-weight:900; background:rgba(255,255,255,0.12); color:#ffd100; padding:2px 8px; border-radius:8px;">${g.scoreAway}</span>` : ''}
             </div>
-            <span style="font-size: 13px; color: var(--accent-color); font-weight: 900;">@</span>
+
+            <span style="font-size: 13px; color: var(--text-muted); font-weight: 900;">@</span>
+
+            <!-- Home Team -->
             <div style="display: inline-flex; align-items: center; gap: 6px;">
-              <img src="${window.getTeamLogoURL(g.home)}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width: 28px; height: 28px; object-fit: contain;" alt="${g.home}"/>
+              <img src="${window.getTeamLogoURL(g.home)}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width: 30px; height: 30px; object-fit: contain;" alt="${g.home}"/>
               <span style="font-weight: 900; font-size: 16px; color: #fff;">${g.home}</span>
+              ${hasScores ? `<span class="badge" style="font-size:15px; font-weight:900; background:rgba(255,255,255,0.12); color:#ffd100; padding:2px 8px; border-radius:8px;">${g.scoreHome}</span>` : ''}
             </div>
           </div>
-          <button class="btn btn-secondary" data-share-code="${g.code}" title="Compartir enlace por WhatsApp" style="width: auto; padding: 6px 12px; font-size: 12px; background: rgba(37,211,102,0.12); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 4px; border-radius: 10px; flex-shrink: 0; font-weight: 800;">
-            💬 WhatsApp
-          </button>
+
+          <!-- Top Right Live / Kickoff Badge -->
+          <div>
+            ${statusBadge}
+          </div>
         </div>
 
         <!-- Card Middle: Badges Strip -->
@@ -258,9 +299,12 @@
           ${badgesHtml}
         </div>
 
-        <!-- Card Bottom: Direct Action Button -->
-        <div>
+        <!-- Card Bottom: Action Button & WhatsApp Share -->
+        <div style="display: flex; gap: 8px; align-items: center;">
           ${actionButtonHtml}
+          <button class="btn btn-secondary" data-share-code="${g.code}" title="Compartir enlace por WhatsApp" style="width: auto; padding: 12px 14px; font-size: 13px; background: rgba(37,211,102,0.14); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 4px; border-radius: 12px; flex-shrink: 0; font-weight: 900;">
+            💬 WhatsApp
+          </button>
         </div>
       `;
       gridsList.appendChild(card);
@@ -281,6 +325,78 @@
         shareGridWhatsApp(code);
       });
     });
+  }
+
+  function norm(str) {
+    return (str || '')
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]/g, '');
+  }
+
+  // Live ESPN Scoreboard Sync for NFL Grids
+  async function syncESPNLiveGrids() {
+    if (!ALL_GRIDS || ALL_GRIDS.length === 0) return;
+
+    try {
+      const resp = await fetch('https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard');
+      const data = await resp.json();
+      if (!data || !data.events) return;
+
+      let changed = false;
+
+      ALL_GRIDS.forEach(g => {
+        const gHome = norm(g.home);
+        const gAway = norm(g.away);
+
+        const ev = data.events.find(e => {
+          const comps = e.competitions?.[0]?.competitors || [];
+          const eNames = comps.map(c => norm(c.team?.displayName || c.team?.name || ''));
+          const eShorts = comps.map(c => norm(c.team?.shortDisplayName || ''));
+          const eAbbrs = comps.map(c => norm(c.team?.abbreviation || ''));
+          const allNames = [...eNames, ...eShorts, ...eAbbrs];
+
+          const matchHome = allNames.some(n => n && (gHome.includes(n) || n.includes(gHome)));
+          const matchAway = allNames.some(n => n && (gAway.includes(n) || n.includes(gAway)));
+          return matchHome && matchAway;
+        });
+
+        if (ev) {
+          const comps = ev.competitions?.[0]?.competitors || [];
+          const homeC = comps.find(c => c.homeAway === 'home') || comps[1] || {};
+          const awayC = comps.find(c => c.homeAway === 'away') || comps[0] || {};
+
+          const completed = !!ev.status?.type?.completed;
+          const state = ev.status?.type?.state || 'pre';
+          const statusText = ev.status?.type?.shortDetail || ev.status?.type?.detail || '';
+          const clock = ev.status?.displayClock || '';
+
+          if (state === 'in' || state === 'post' || completed) {
+            g.scoreHome = (homeC && homeC.score !== undefined) ? parseInt(homeC.score, 10) : g.scoreHome;
+            g.scoreAway = (awayC && awayC.score !== undefined) ? parseInt(awayC.score, 10) : g.scoreAway;
+          }
+
+          g.isLive = state === 'in';
+          g.isDone = completed || state === 'post';
+          g.quarter = statusText;
+          g.clock = clock;
+
+          if (ev.date && !g.kickoff) {
+            const d = new Date(ev.date);
+            g.kickoff = `${d.toLocaleDateString('es-MX', { weekday: 'short' })} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} hrs`;
+          }
+
+          changed = true;
+        }
+      });
+
+      if (changed) {
+        renderGrids();
+      }
+    } catch (e) {
+      console.warn('[grids] ESPN Live sync background note:', e);
+    }
   }
 
   function shareGridWhatsApp(code) {
