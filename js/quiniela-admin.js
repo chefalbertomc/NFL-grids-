@@ -1,4 +1,4 @@
-// Quiniela & Pick'em Admin Module — Wings & Wins v51 (Live Sync Dual-Engine)
+// Quiniela & Pick'em Admin Module — Wings & Wins v53 (Sport-Isolated Real-Time Engine)
 (function () {
   'use strict';
 
@@ -398,7 +398,7 @@
       players.forEach(p => {
         let pts = 0;
         matches.forEach(m => {
-          if (m.homeScore === null || m.awayScore === null) return;
+          if (m.homeScore === null || m.awayScore === null || m.status === 'pre') return;
           const pick = p.picks?.[m.id];
           if (!pick) return;
           if (pick.homeScore === m.homeScore && pick.awayScore === m.awayScore) {
@@ -430,17 +430,26 @@
     const thead = table.createTHead();
     const hr = thead.insertRow();
     hr.innerHTML = `<th style="text-align:left; padding:10px 12px; min-width:120px;">Jugador</th>` +
-      matches.map(m => `<th style="text-align:center; padding:6px; min-width:90px;">
-        <div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
-          <div style="display:flex; align-items:center; gap:4px;">
-            <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:20px; height:20px; object-fit:contain;"/>
-            <span style="font-size:9px; font-weight:700;">vs</span>
-            <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:20px; height:20px; object-fit:contain;"/>
+      matches.map(m => {
+        const isLive = m.status === 'in';
+        const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
+        let scoreHtml = '<span style="font-size:9px; color:var(--text-muted);">PENDIENTE</span>';
+        if (hasScore) {
+          scoreHtml = `<span style="font-size:10px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore} ${isLive ? '🔴' : ''}</span>`;
+        }
+
+        return `<th style="text-align:center; padding:6px; min-width:90px;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+            <div style="display:flex; align-items:center; gap:4px;">
+              <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:20px; height:20px; object-fit:contain;"/>
+              <span style="font-size:9px; font-weight:700;">vs</span>
+              <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:20px; height:20px; object-fit:contain;"/>
+            </div>
+            <span style="font-size:9px; color:var(--text-muted);">${m.awayAbbr || m.away.substring(0,3)} v ${m.homeAbbr || m.home.substring(0,3)}</span>
+            ${scoreHtml}
           </div>
-          <span style="font-size:9px; color:var(--text-muted);">${m.awayAbbr || m.away.substring(0,3)} v ${m.homeAbbr || m.home.substring(0,3)}</span>
-          ${m.homeScore !== null ? `<span style="font-size:10px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore} ${m.status === 'in' ? '🔴' : ''}</span>` : '<span style="font-size:9px; color:var(--text-muted);">Pendiente</span>'}
-        </div>
-      </th>`).join('') +
+        </th>`;
+      }).join('') +
       `<th style="text-align:center; padding:10px;">Pts</th>`;
 
     const tbody = table.createTBody();
@@ -453,7 +462,7 @@
         const pick = p.picks?.[m.id];
         if (!pick) { cells += `<td class="q-s-cell q-cell-gray">—</td>`; return; }
         const pickStr = `${pick.awayScore}-${pick.homeScore}`;
-        if (m.homeScore === null) { cells += `<td class="q-s-cell q-cell-gray">${pickStr}</td>`; return; }
+        if (m.homeScore === null || m.status === 'pre') { cells += `<td class="q-s-cell q-cell-gray">${pickStr}</td>`; return; }
         const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
         const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
         const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
@@ -471,6 +480,15 @@
 
   function norm(str) {
     return (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  }
+
+  function detectSport(m) {
+    if (m.sport) return m.sport;
+    const label = (m.leagueLabel || '').toLowerCase();
+    if (label.includes('nfl') || label.includes('ncaa football') || label.includes('football')) return 'football';
+    if (label.includes('mlb') || label.includes('beisbol') || label.includes('baseball')) return 'baseball';
+    if (label.includes('nba') || label.includes('wnba') || label.includes('basquet')) return 'basketball';
+    return 'soccer';
   }
 
   async function syncQuinielaScores(quinielaId) {
@@ -498,13 +516,14 @@
         { sport: 'basketball', slug: 'nba' },
       ];
 
-      const allEvents = [];
+      const eventsBySport = {};
       const fetchPromises = endpoints.map(ep => 
         fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?limit=100`)
           .then(r => r.json())
           .then(data => {
             if (data && data.events) {
-              allEvents.push(...data.events);
+              if (!eventsBySport[ep.sport]) eventsBySport[ep.sport] = [];
+              eventsBySport[ep.sport].push(...data.events.map(ev => ({ ...ev, _sport: ep.sport, _slug: ep.slug })));
             }
           })
           .catch(() => {})
@@ -514,15 +533,18 @@
 
       let updated = 0;
       const updatedMatches = matches.map(m => {
+        const matchSport = detectSport(m);
+        const candidateEvents = eventsBySport[matchSport] || [];
+
         let ev = null;
         if (m.espnEventId) {
-          ev = allEvents.find(e => String(e.id) === String(m.espnEventId));
+          ev = candidateEvents.find(e => String(e.id) === String(m.espnEventId));
         }
 
         if (!ev) {
           const mHome = norm(m.home);
           const mAway = norm(m.away);
-          ev = allEvents.find(e => {
+          ev = candidateEvents.find(e => {
             const comps = e.competitions?.[0]?.competitors || [];
             const eNames = comps.map(c => norm(c.team?.displayName || c.team?.name || ''));
             const eShorts = comps.map(c => norm(c.team?.shortDisplayName || ''));
@@ -544,8 +566,13 @@
         const state = ev.status?.type?.state || 'pre';
         const statusStr = ev.status?.type?.shortDetail || '';
 
-        const newHomeScore = (homeC && homeC.score !== undefined && homeC.score !== null) ? parseInt(homeC.score, 10) : m.homeScore;
-        const newAwayScore = (awayC && awayC.score !== undefined && awayC.score !== null) ? parseInt(awayC.score, 10) : m.awayScore;
+        let newHomeScore = null;
+        let newAwayScore = null;
+
+        if (state === 'in' || state === 'post' || completed) {
+          newHomeScore = (homeC && homeC.score !== undefined && homeC.score !== null) ? parseInt(homeC.score, 10) : null;
+          newAwayScore = (awayC && awayC.score !== undefined && awayC.score !== null) ? parseInt(awayC.score, 10) : null;
+        }
 
         updated++;
         return {
