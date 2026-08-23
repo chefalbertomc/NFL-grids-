@@ -260,6 +260,36 @@
     }
   };
 
+  // --- How To Play Modal Controller ---
+  window.openHowToPlayModal = function() {
+    const modal = document.getElementById('howToPlayModal');
+    if (modal) modal.style.display = 'flex';
+  };
+
+  window.closeHowToPlayModal = function() {
+    const modal = document.getElementById('howToPlayModal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.switchHowToPlayTab = function(tabKey) {
+    const btnQuick = document.getElementById('tabBtnQuickGuide');
+    const btnFull = document.getElementById('tabBtnFullRules');
+    const contentQuick = document.getElementById('howToPlayContentQuick');
+    const contentFull = document.getElementById('howToPlayContentFull');
+
+    if (tabKey === 'quick') {
+      if (btnQuick) { btnQuick.style.background = '#ffd100'; btnQuick.style.color = '#000'; btnQuick.style.fontWeight = '900'; }
+      if (btnFull) { btnFull.style.background = 'transparent'; btnFull.style.color = '#ffffff'; btnFull.style.fontWeight = '800'; }
+      if (contentQuick) contentQuick.style.display = 'block';
+      if (contentFull) contentFull.style.display = 'none';
+    } else {
+      if (btnQuick) { btnQuick.style.background = 'transparent'; btnQuick.style.color = '#ffffff'; btnQuick.style.fontWeight = '800'; }
+      if (btnFull) { btnFull.style.background = '#ffd100'; btnFull.style.color = '#000'; btnFull.style.fontWeight = '900'; }
+      if (contentQuick) contentQuick.style.display = 'none';
+      if (contentFull) contentFull.style.display = 'block';
+    }
+  };
+
   // Global Auth Guard
   window.requireUserAuth = function(actionCallback, customTitle, customSubtitle) {
     if (window.currentUser) {

@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=78.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=79.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -58,8 +58,15 @@
     <!-- 1. TAB GRIDS -->
     <main id="tab-grids" class="tab-content">
       <section class="card highlight">
-        <h3 class="card-title">Juegos de Cuadrícula Disponibles</h3>
-        <p class="card-subtitle">Selecciona un juego para unirte o ver tu tablero en tiempo real.</p>
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+          <div>
+            <h3 class="card-title" style="margin:0;">Juegos de Cuadrícula Disponibles</h3>
+            <p class="card-subtitle" style="margin:0;">Selecciona un juego para unirte o ver tu tablero en tiempo real.</p>
+          </div>
+          <button type="button" class="btn btn-secondary" onclick="window.openHowToPlayModal()" style="width:auto; padding:6px 14px; font-size:12px; font-weight:900; border-radius:10px; background:rgba(255,209,0,0.15); border:1px solid #ffd100; color:#ffd100; display:inline-flex; align-items:center; gap:6px;">
+            ❓ ¿Cómo Jugar?
+          </button>
+        </div>
         
         <div class="form-group">
           <label for="filterStore">Filtrar por Sucursal</label>
@@ -317,13 +324,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=78.0"></script>
-  <script src="js/auth.js?v=78.0"></script>
-  <script src="js/team-logos.js?v=78.0"></script>
-  <script src="js/grids.js?v=78.0"></script>
-  <script src="js/quiniela-player.js?v=78.0"></script>
-  <script src="js/survivor.js?v=78.0"></script>
-  <script src="js/firstgoal.js?v=78.0"></script>
+  <script src="js/firebase-config.js?v=79.0"></script>
+  <script src="js/auth.js?v=79.0"></script>
+  <script src="js/team-logos.js?v=79.0"></script>
+  <script src="js/grids.js?v=79.0"></script>
+  <script src="js/quiniela-player.js?v=79.0"></script>
+  <script src="js/survivor.js?v=79.0"></script>
+  <script src="js/firstgoal.js?v=79.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -389,6 +396,98 @@
       <!-- Sign Out Button -->
       <button type="button" class="btn btn-secondary" onclick="window.logoutFromModal()" style="width:100%; padding:10px; font-size:12px; font-weight:800; border-radius:10px; color:#ff4444; border:1px solid rgba(255,68,68,0.3); background:rgba(255,68,68,0.08);">
         🚪 Cerrar Sesión
+      </button>
+    </div>
+  </div>
+
+  <!-- How to Play Interactive Guide Modal -->
+  <div id="howToPlayModal" class="login-modal-overlay" style="display:none; z-index:10000;">
+    <div class="login-modal-card" style="max-width: 520px; text-align: left; max-height: 88vh; display: flex; flex-direction: column; padding: 20px;">
+      <!-- Header -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="font-size:22px;">🏈</span>
+          <h3 style="margin:0; font-size:17px; font-weight:900; color:#ffd100;">¿Cómo Jugar NFL Grids?</h3>
+        </div>
+        <button type="button" class="login-modal-close" onclick="window.closeHowToPlayModal()">✕</button>
+      </div>
+
+      <!-- Segmented Tab Switcher -->
+      <div style="display:flex; gap:6px; background:rgba(255,255,255,0.06); padding:4px; border-radius:12px; margin-bottom:14px;">
+        <button type="button" id="tabBtnQuickGuide" class="btn btn-secondary" onclick="window.switchHowToPlayTab('quick')" style="flex:1; padding:8px; font-size:12px; font-weight:900; border-radius:8px; background:#ffd100; color:#000; border:none;">
+          ⚡ Guía Rápida (30 seg)
+        </button>
+        <button type="button" id="tabBtnFullRules" class="btn btn-secondary" onclick="window.switchHowToPlayTab('full')" style="flex:1; padding:8px; font-size:12px; font-weight:800; border-radius:8px; background:transparent; color:#ffffff; border:none;">
+          📖 Reglas Oficiales & FAQ
+        </button>
+      </div>
+
+      <!-- Scrollable Content Container -->
+      <div style="overflow-y: auto; flex:1; padding-right:4px;">
+        <!-- TAB 1: QUICK GUIDE -->
+        <div id="howToPlayContentQuick">
+          <div style="background:rgba(255,209,0,0.08); border:1px solid rgba(255,209,0,0.25); border-radius:12px; padding:12px; margin-bottom:14px;">
+            <div style="font-weight:900; color:#ffd100; font-size:13px; margin-bottom:4px;">🎯 El Objetivo del Juego:</div>
+            <div style="font-size:12px; color:#ffffff; line-height:1.4;">
+              ¡No necesitas ser experto en americano! Solo necesitas que el <strong>último número del marcador</strong> de cada equipo coincida con tu casilla.
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px; margin-bottom:14px;">
+            <div style="display:flex; gap:10px; align-items:flex-start;">
+              <span style="background:#ffd100; color:#000; font-weight:900; font-size:12px; width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;">1</span>
+              <div style="font-size:12px; color:#e0e0e0;"><strong>Escoge tus casillas:</strong> Inicia sesión con Google y toca tus casillas en el tablero de 100 cuadros.</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:flex-start;">
+              <span style="background:#ffd100; color:#000; font-weight:900; font-size:12px; width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;">2</span>
+              <div style="font-size:12px; color:#e0e0e0;"><strong>Sorteo de números:</strong> Antes de que inicie el partido, el sistema sortea los números del <strong>0 al 9</strong> para cada equipo.</div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:flex-start;">
+              <span style="background:#ffd100; color:#000; font-weight:900; font-size:12px; width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;">3</span>
+              <div style="font-size:12px; color:#e0e0e0;"><strong>¡Gana en cada cuarto!</strong> Se premia al terminar el 1er Cuarto, Medio Tiempo, 3er Cuarto y Final del Juego.</div>
+            </div>
+          </div>
+
+          <!-- Interactive Example Box -->
+          <div style="background:linear-gradient(135deg, rgba(20,28,42,0.95), rgba(10,14,22,0.98)); border:1.5px solid #00e676; border-radius:12px; padding:12px; text-align:center;">
+            <div style="font-size:11px; font-weight:800; color:#00e676; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">🔥 Ejemplo de Jugada Ganadora:</div>
+            <div style="font-size:14px; font-weight:900; color:#ffffff; margin-bottom:6px;">
+              Dallas Cowboys <span style="color:#ffd100; font-size:17px; background:rgba(255,209,0,0.2); padding:2px 6px; border-radius:6px;">1<u style="text-decoration:none; color:#ffd100;">7</u></span> 
+              @ 
+              Arizona Cardinals <span style="color:#00e676; font-size:17px; background:rgba(0,230,118,0.2); padding:2px 6px; border-radius:6px;">2<u style="text-decoration:none; color:#00e676;">3</u></span>
+            </div>
+            <div style="font-size:11.5px; color:#cccccc;">
+              Último dígito Dallas: <strong style="color:#ffd100;">7</strong> • Último dígito Arizona: <strong style="color:#00e676;">3</strong><br>
+              👉 <strong>¡La casilla en la coordenada (Dallas 7, Arizona 3) gana el premio!</strong> 🏆🍗🍺
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: FULL RULES -->
+        <div id="howToPlayContentFull" style="display:none; font-size:12px; color:#dddddd; line-height:1.5;">
+          <h4 style="color:#ffd100; margin:0 0 6px 0; font-size:13px;">1. Tablero y Coordenadas</h4>
+          <p style="margin:0 0 10px 0;">El tablero consta de 100 casillas (10 filas x 10 columnas). El <strong>Equipo Visitante</strong> ocupa las filas verticales y el <strong>Equipo Local</strong> ocupa las columnas horizontales.</p>
+
+          <h4 style="color:#ffd100; margin:0 0 6px 0; font-size:13px;">2. Sorteo a Ciegas</h4>
+          <p style="margin:0 0 10px 0;">Al registrarte, los números están ocultos con <code>?</code>. Una vez bloqueado el juego por el administrador, se genera el sorteo aleatorio del 0 al 9 para garantizar máxima transparencia.</p>
+
+          <h4 style="color:#ffd100; margin:0 0 6px 0; font-size:13px;">3. 4 Premios por Partido</h4>
+          <ul style="margin:0 0 10px 0; padding-left:18px;">
+            <li><strong>1er Cuarto (Q1):</strong> Marcador al finalizar los primeros 15 min.</li>
+            <li><strong>2do Cuarto (Q2 / Medio Tiempo):</strong> Marcador acumulado al descanso.</li>
+            <li><strong>3er Cuarto (Q3):</strong> Marcador acumulado al terminar el 3er cuarto.</li>
+            <li><strong>Final del Juego (Q4 / Overtime):</strong> Marcador definitivo (incluye tiempo extra).</li>
+          </ul>
+
+          <h4 style="color:#ffd100; margin:0 0 6px 0; font-size:13px;">4. Preguntas Frecuentes (FAQ)</h4>
+          <p style="margin:0 0 6px 0;"><strong>¿Qué pasa si el partido se va a Tiempo Extra?</strong><br>El ganador del 4to cuarto se define con el resultado final definitivo del tiempo extra.</p>
+          <p style="margin:0 0 6px 0;"><strong>¿Puedo ganar dos cuartos con la misma casilla?</strong><br>¡Sí! Si los dígitos finales coinciden en dos cuartos, esa casilla se lleva ambos premios.</p>
+          <p style="margin:0;"><strong>¿Y si la casilla ganadora quedó vacía?</strong><br>El premio se acumula para el siguiente cuarto o se rifa entre los participantes según la dinámica del bar.</p>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-primary" onclick="window.closeHowToPlayModal()" style="margin-top:14px; padding:10px; font-weight:900; font-size:13px; border-radius:10px;">
+        ¡Entendido! Vamos a Jugar 🏈
       </button>
     </div>
   </div>
