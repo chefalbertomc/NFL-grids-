@@ -81,6 +81,13 @@
       user = u || null;
       startGameListener();
     });
+
+    // Auto-open floating tutorial reel on first visit
+    if (!localStorage.getItem('has_seen_grid_tutorial')) {
+      setTimeout(() => {
+        if (window.openHowToPlayModal) window.openHowToPlayModal();
+      }, 700);
+    }
   }
 
   let unsubGame = null;

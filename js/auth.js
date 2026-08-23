@@ -264,12 +264,262 @@
     }
   };
 
-  // --- How To Play Modal Controller ---
+  // --- Animated Tutorial Reel Modal Controller (9:16 Format) ---
+  const reelSlides = [
+    {
+      badge: 'Paso 1 de 4',
+      title: 'Elige tus <span>Casillas</span>',
+      desc: 'El tablero tiene 100 cuadros. Toca las casillas que quieras para apartarlas con tu nombre o foto.',
+      render: () => `
+        <div class="mini-grid">
+          <div class="mini-cell corner">A\\L</div>
+          <div class="mini-cell header-top">?</div>
+          <div class="mini-cell header-top">?</div>
+          <div class="mini-cell header-top">?</div>
+          <div class="mini-cell header-top">?</div>
+          <div class="mini-cell header-top">?</div>
+
+          <div class="mini-cell header-left">?</div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell winner" style="font-size:11px !important;">👤</div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell winner" style="font-size:11px !important;">👤</div>
+          <div class="mini-cell"></div>
+
+          <div class="mini-cell header-left">?</div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+
+          <div class="mini-cell header-left">?</div>
+          <div class="mini-cell winner" style="font-size:11px !important;">👤</div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+
+          <div class="mini-cell header-left">?</div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell winner" style="font-size:11px !important;">👤</div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+
+          <div class="mini-cell header-left">?</div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+        </div>
+        <div style="font-size:11.5px; color:#ffd100; font-weight:800;">🔒 Al inicio los números son secretos (?)</div>
+      `
+    },
+    {
+      badge: 'Paso 2 de 4',
+      title: 'Sorteo de <span>Números</span>',
+      desc: 'Antes del partido, el sistema sortea al azar los números del 0 al 9 en las filas y columnas.',
+      render: () => `
+        <div class="mini-grid">
+          <div class="mini-cell corner">DAL\\ARI</div>
+          <div class="mini-cell header-top">8</div>
+          <div class="mini-cell header-top highlight-x">3</div>
+          <div class="mini-cell header-top">0</div>
+          <div class="mini-cell header-top">7</div>
+          <div class="mini-cell header-top">4</div>
+
+          <div class="mini-cell header-left">1</div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+
+          <div class="mini-cell header-left highlight-y">7</div>
+          <div class="mini-cell highlight-y"></div>
+          <div class="mini-cell winner" style="font-size:12px !important;">⭐</div>
+          <div class="mini-cell highlight-y"></div>
+          <div class="mini-cell highlight-y"></div>
+          <div class="mini-cell highlight-y"></div>
+
+          <div class="mini-cell header-left">5</div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+
+          <div class="mini-cell header-left">2</div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+
+          <div class="mini-cell header-left">9</div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell"></div>
+        </div>
+        <div style="font-size:11.5px; color:#00e676; font-weight:800;">✨ Cada casilla tiene 2 números asignados</div>
+      `
+    },
+    {
+      badge: 'Paso 3 de 4',
+      title: 'Regla del <span>Último Dígito</span>',
+      desc: 'Solo cuenta el último número del marcador acumulado al final de cada cuarto.',
+      render: () => `
+        <div class="score-badge">
+          <div class="score-team" style="color:#00e676;">
+            DAL <span class="score-val" style="background:rgba(0,230,118,0.25); border:1px solid #00e676;">1<strong style="font-size:18px; color:#00e676;">7</strong></span>
+          </div>
+          <span style="color:var(--text-muted); align-self:center; font-size:11px;">vs</span>
+          <div class="score-team" style="color:#ffd100;">
+            ARI <span class="score-val" style="background:rgba(255,209,0,0.25); border:1px solid #ffd100;">2<strong style="font-size:18px; color:#ffd100;">3</strong></span>
+          </div>
+        </div>
+
+        <div style="font-size:12px; color:#ffffff; margin-bottom:10px; line-height:1.3;">
+          Tomamos el <strong style="color:#00e676;">7</strong> de Dallas y el <strong style="color:#ffd100;">3</strong> de Arizona.
+        </div>
+
+        <div class="mini-grid" style="width:190px; height:190px;">
+          <div class="mini-cell corner">DAL\\ARI</div>
+          <div class="mini-cell header-top">8</div>
+          <div class="mini-cell header-top highlight-x">3</div>
+          <div class="mini-cell header-top">0</div>
+
+          <div class="mini-cell header-left">1</div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell highlight-x"></div>
+          <div class="mini-cell"></div>
+
+          <div class="mini-cell header-left highlight-y">7</div>
+          <div class="mini-cell highlight-y"></div>
+          <div class="mini-cell winner">🏆</div>
+          <div class="mini-cell highlight-y"></div>
+
+          <div class="mini-cell header-left">5</div>
+          <div class="mini-cell"></div>
+          <div class="mini-cell highlight-x"></div>
+          <div class="mini-cell"></div>
+        </div>
+      `
+    },
+    {
+      badge: 'Paso 4 de 4',
+      title: '¡4 Premios en <span>Cada Juego</span>!',
+      desc: 'Ganas premio en 1Q, Medio Tiempo, 3Q y Final del Partido. ¡Alitas, cerveza y premios!',
+      render: () => `
+        <div style="display:flex; flex-direction:column; gap:6px; width:100%; max-width:270px; margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.06); padding:6px 10px; border-radius:8px; border:1px solid rgba(255,209,0,0.3);">
+            <span style="font-size:11.5px; font-weight:800;">⏱️ 1er Cuarto (1Q)</span>
+            <span style="font-size:11px; font-weight:900; color:#ffd100;">🍺 Premio Q1</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.06); padding:6px 10px; border-radius:8px; border:1px solid rgba(255,209,0,0.3);">
+            <span style="font-size:11.5px; font-weight:800;">🍔 Medio Tiempo (Halftime)</span>
+            <span style="font-size:11px; font-weight:900; color:#ffd100;">🍗 Premio Q2</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.06); padding:6px 10px; border-radius:8px; border:1px solid rgba(255,209,0,0.3);">
+            <span style="font-size:11.5px; font-weight:800;">⏱️ 3er Cuarto (3Q)</span>
+            <span style="font-size:11px; font-weight:900; color:#ffd100;">🍹 Premio Q3</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,209,0,0.15); padding:8px 10px; border-radius:8px; border:1.5px solid #ffd100;">
+            <span style="font-size:12px; font-weight:900; color:#ffd100;">🏆 Final del Partido</span>
+            <span style="font-size:11.5px; font-weight:900; color:#00e676;">💰 PREMIO MAYOR</span>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="window.closeHowToPlayModal()" style="padding:10px; font-size:13px; font-weight:900; border-radius:10px; width:100%; max-width:270px;">
+          ¡Entendido! Vamos a Jugar 🏈
+        </button>
+      `
+    }
+  ];
+
+  let currentReelIdx = 0;
+  let reelProgressInterval = null;
+  let reelProgressVal = 0;
+  let isReelPlaying = true;
+  const REEL_SLIDE_DURATION = 6000;
+
+  function renderReelSlide(idx) {
+    const s = reelSlides[idx];
+    const stage = document.getElementById('reelModalSlideStage');
+    if (!stage) return;
+
+    stage.innerHTML = `
+      <div class="reel-badge">${s.badge}</div>
+      <h2 class="reel-title">${s.title}</h2>
+      <p class="reel-desc">${s.desc}</p>
+      ${s.render()}
+    `;
+
+    for (let i = 0; i < 4; i++) {
+      const fill = document.getElementById(`reelModalFill${i}`);
+      if (!fill) continue;
+      if (i < idx) fill.style.width = '100%';
+      else if (i > idx) fill.style.width = '0%';
+      else fill.style.width = `${reelProgressVal}%`;
+    }
+  }
+
+  function startReelProgressTimer() {
+    clearInterval(reelProgressInterval);
+    reelProgressVal = 0;
+    const stepTime = 50;
+    const increment = (stepTime / REEL_SLIDE_DURATION) * 100;
+
+    reelProgressInterval = setInterval(() => {
+      if (!isReelPlaying) return;
+      reelProgressVal += increment;
+      const fill = document.getElementById(`reelModalFill${currentReelIdx}`);
+      if (fill) fill.style.width = `${Math.min(reelProgressVal, 100)}%`;
+
+      if (reelProgressVal >= 100) {
+        window.nextReelSlide();
+      }
+    }, stepTime);
+  }
+
+  window.nextReelSlide = function() {
+    if (currentReelIdx < reelSlides.length - 1) {
+      currentReelIdx++;
+    } else {
+      currentReelIdx = 0;
+    }
+    reelProgressVal = 0;
+    renderReelSlide(currentReelIdx);
+    startReelProgressTimer();
+  };
+
+  window.prevReelSlide = function() {
+    if (currentReelIdx > 0) {
+      currentReelIdx--;
+    }
+    reelProgressVal = 0;
+    renderReelSlide(currentReelIdx);
+    startReelProgressTimer();
+  };
+
+  window.toggleReelPlayPause = function() {
+    isReelPlaying = !isReelPlaying;
+    const btn = document.getElementById('btnReelModalPlayPause');
+    if (btn) btn.textContent = isReelPlaying ? '⏸️' : '▶️';
+  };
+
   window.openHowToPlayModal = function() {
     const modal = document.getElementById('howToPlayModal');
     if (modal) {
       modal.style.display = 'flex';
       modal.classList.add('active');
+      currentReelIdx = 0;
+      isReelPlaying = true;
+      renderReelSlide(0);
+      startReelProgressTimer();
     }
   };
 
@@ -278,25 +528,8 @@
     if (modal) {
       modal.classList.remove('active');
       modal.style.display = 'none';
-    }
-  };
-
-  window.switchHowToPlayTab = function(tabKey) {
-    const btnQuick = document.getElementById('tabBtnQuickGuide');
-    const btnFull = document.getElementById('tabBtnFullRules');
-    const contentQuick = document.getElementById('howToPlayContentQuick');
-    const contentFull = document.getElementById('howToPlayContentFull');
-
-    if (tabKey === 'quick') {
-      if (btnQuick) { btnQuick.style.background = '#ffd100'; btnQuick.style.color = '#000'; btnQuick.style.fontWeight = '900'; }
-      if (btnFull) { btnFull.style.background = 'transparent'; btnFull.style.color = '#ffffff'; btnFull.style.fontWeight = '800'; }
-      if (contentQuick) contentQuick.style.display = 'block';
-      if (contentFull) contentFull.style.display = 'none';
-    } else {
-      if (btnQuick) { btnQuick.style.background = 'transparent'; btnQuick.style.color = '#ffffff'; btnQuick.style.fontWeight = '800'; }
-      if (btnFull) { btnFull.style.background = '#ffd100'; btnFull.style.color = '#000'; btnFull.style.fontWeight = '900'; }
-      if (contentQuick) contentQuick.style.display = 'none';
-      if (contentFull) contentFull.style.display = 'block';
+      clearInterval(reelProgressInterval);
+      localStorage.setItem('has_seen_grid_tutorial', 'true');
     }
   };
 
