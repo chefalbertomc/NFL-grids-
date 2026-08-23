@@ -678,6 +678,56 @@
     }
   }
 
+  // --- Mobile Zoom & Rotation Controls ---
+  let currentGridZoom = 1.0;
+
+  window.changeGridZoom = function(delta) {
+    currentGridZoom = Math.min(2.5, Math.max(0.75, Math.round((currentGridZoom + delta) * 100) / 100));
+    applyGridZoom();
+  };
+
+  window.resetGridZoom = function() {
+    currentGridZoom = 1.0;
+    applyGridZoom();
+  };
+
+  function applyGridZoom() {
+    const board = document.getElementById('gridBoard');
+    const indicator = document.getElementById('zoomLevelIndicator');
+    if (indicator) indicator.textContent = `${Math.round(currentGridZoom * 100)}%`;
+
+    if (board) {
+      if (currentGridZoom === 1.0) {
+        board.style.width = '100%';
+        board.style.minWidth = '320px';
+      } else {
+        board.style.width = `calc(100% * ${currentGridZoom})`;
+        board.style.minWidth = `${Math.round(320 * currentGridZoom)}px`;
+      }
+    }
+  }
+
+  window.dismissRotateTip = function() {
+    const tip = document.getElementById('rotatePhoneTip');
+    if (tip) tip.style.display = 'none';
+    sessionStorage.setItem('dismissed_rotate_tip', 'true');
+  };
+
+  function checkOrientationTip() {
+    const tip = document.getElementById('rotatePhoneTip');
+    if (!tip) return;
+    if (sessionStorage.getItem('dismissed_rotate_tip') === 'true') {
+      tip.style.display = 'none';
+      return;
+    }
+    const isPortraitMobile = window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+    tip.style.display = isPortraitMobile ? 'flex' : 'none';
+  }
+
+  window.addEventListener('resize', checkOrientationTip);
+  window.addEventListener('orientationchange', checkOrientationTip);
+
   // Run initialization
   init();
+  checkOrientationTip();
 })();

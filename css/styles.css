@@ -392,12 +392,119 @@ input:focus, select:focus, textarea:focus {
   filter: drop-shadow(0 0 8px var(--team-home-color, var(--accent-color)));
 }
 
-/* ---- Grid Board ---- */
+/* ---- Rotate Phone Tip Banner ---- */
+.rotate-phone-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(255, 209, 0, 0.15), rgba(20, 26, 38, 0.95));
+  border: 1.5px solid rgba(255, 209, 0, 0.5);
+  border-radius: 12px;
+  padding: 8px 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  animation: slideDown 0.3s ease;
+}
+
+@media (orientation: landscape), (min-width: 768px) {
+  .rotate-phone-banner {
+    display: none !important;
+  }
+}
+
+.rotate-phone-icon {
+  font-size: 22px;
+  animation: rotateWiggle 2s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+@keyframes rotateWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-25deg); }
+  75% { transform: rotate(25deg); }
+}
+
+.rotate-phone-text {
+  flex: 1;
+  font-size: 11.5px;
+  line-height: 1.3;
+  color: #ffffff;
+}
+
+.rotate-phone-text strong {
+  color: #ffd100;
+  display: block;
+  font-size: 12px;
+}
+
+.btn-rotate-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* ---- Grid Zoom Toolbar ---- */
+.grid-zoom-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.zoom-btn-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-zoom-step {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-zoom-step:hover, .btn-zoom-step:active {
+  background: rgba(255, 209, 0, 0.2);
+  border-color: #ffd100;
+  color: #ffd100;
+}
+
+.zoom-level-text {
+  font-size: 12px;
+  font-weight: 900;
+  color: #ffd100;
+  min-width: 44px;
+  text-align: center;
+}
+
+.grid-content {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
 .grid-board {
   display: grid;
   /* Side label col fixed, 10 data cols fluid */
   grid-template-columns: clamp(24px, 6vw, 52px) repeat(10, 1fr);
   gap: clamp(2px, 0.5vw, 4px);
+  min-width: 320px;
+  transition: width 0.2s ease;
 }
 
 .grid-header-cell, .grid-side-cell {
@@ -438,7 +545,6 @@ input:focus, select:focus, textarea:focus {
   word-break: break-word;
   overflow: hidden;
   line-height: 1.2;
-  /* Ensure minimum tap target on mobile */
   min-height: 28px;
 }
 
