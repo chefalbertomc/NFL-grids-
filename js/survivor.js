@@ -45,9 +45,9 @@
       } else {
         if (survivorUserStatus) survivorUserStatus.textContent = '—';
         if (survivorUserStatus) survivorUserStatus.style.color = 'var(--text-muted)';
-        if (btnSaveSurvivor) btnSaveSurvivor.disabled = true;
+        if (btnSaveSurvivor) btnSaveSurvivor.disabled = false;
         if (survivorStatusText) {
-          survivorStatusText.textContent = 'Inicia sesión con Google para jugar a Survivor.';
+          survivorStatusText.textContent = 'Inicia sesión con Google, Apple o Facebook para jugar a Survivor.';
           survivorStatusText.style.color = 'var(--text-muted)';
         }
         userPickData = { picks: {}, status: 'alive' };
@@ -153,7 +153,11 @@
   }
 
   async function savePick() {
-    if (!db || !user) return;
+    if (!db) return;
+    if (!user) {
+      window.requireUserAuth(savePick, '¡Inicia Sesión para Survivor!', 'Necesitas iniciar sesión con Google, Apple o Facebook para registrar tu selección semanal.');
+      return;
+    }
     
     const selectedTeam = selSurvivorTeam.value;
     if (!selectedTeam) {

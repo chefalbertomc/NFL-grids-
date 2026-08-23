@@ -242,6 +242,13 @@
   async function joinGrid() {
     if (!SELECTED_GRID_CODE || !db) return;
 
+    // MANDATORY AUTH CHECK: User must be signed in with Google, Apple, or Facebook
+    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    if (!activeUser) {
+      window.requireUserAuth(joinGrid, '¡Inicia Sesión para Registrarte!', 'Para unirte a un Grid y asegurar tus casillas, necesitas iniciar sesión con Google, Apple o Facebook.');
+      return;
+    }
+
     const nick = (inpNick ? inpNick.value : '').trim();
     const waiter = (inpWaiter ? inpWaiter.value : '').trim();
     const pack = Number(selPack ? selPack.value : 5);
@@ -260,17 +267,14 @@
     }
 
     try {
-      if (window.ensurePlayerAuth) {
-        await window.ensurePlayerAuth();
-      }
-
       // Check if nickname is already registered in this grid
       const playersSnap = await db.collection('games').doc(SELECTED_GRID_CODE).collection('players').get();
       let nickTaken = false;
       playersSnap.forEach(doc => {
         const d = doc.data() || {};
         const pNick = (d.nickname || d.name || '').trim().toLowerCase();
-        if (pNick === nick.toLowerCase()) {
+        // Allow the same user to re-use their nick if already approved
+        if (pNick === nick.toLowerCase() && d.playerId !== activeUser.uid && d.userUid !== activeUser.uid) {
           nickTaken = true;
         }
       });
@@ -283,18 +287,19 @@
         return;
       }
 
-      const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
       const grid = ALL_GRIDS.find(x => x.code === SELECTED_GRID_CODE);
       
-      // Auto-generate a unique document ID for this registration
-      const playerRef = db.collection('games').doc(SELECTED_GRID_CODE).collection('players').doc();
-      const pDocId = playerRef.id;
-      localStorage.setItem('bww_player_id', pDocId);
+      // Document ID linked uniquely to user's UID or doc ID
+      const playerRef = db.collection('games').doc(SELECTED_GRID_CODE).collection('players').doc(activeUser.uid);
+      localStorage.setItem('bww_player_id', activeUser.uid);
       localStorage.setItem('player_nick', nick);
 
       await playerRef.set({
-        id: pDocId,
-        playerId: activeUser ? activeUser.uid : pDocId,
+        id: activeUser.uid,
+        playerId: activeUser.uid,
+        userUid: activeUser.uid,
+        userEmail: activeUser.email || '',
+        userName: activeUser.displayName || nick,
         name: nick,
         nickname: nick,
         waiter: waiter || 'Sin mesero',
@@ -307,7 +312,7 @@
         store: grid ? grid.store : '',
         createdAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
-      });
+      }, { merge: true });
 
       if (gridJoinStatus) {
         gridJoinStatus.textContent = '✅ ¡Solicitud enviada! Espera a que el mesero o administrador te apruebe.';
@@ -327,40 +332,44 @@
     }
   }
 
-  // Fetch grids where player has a registration (approved or pending)
+  // Fetch grids where player has a registration (strictly for the current authenticated user)
   async function loadMyGrids() {
     if (!db || !myGridsList) return;
 
-    const savedNick = (localStorage.getItem('player_nick') || '').trim();
-    const savedPlayerId = localStorage.getItem('bww_player_id');
     const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
-    const userUid = activeUser ? activeUser.uid : null;
 
-    if (!savedNick && !savedPlayerId && !userUid) {
-      myGridsList.innerHTML = '<div class="text-center hint-text py-3" style="background:rgba(255,255,255,0.02); border-radius:12px; padding:16px;">— Toca <strong>🏈 Unirse a este Grid</strong> en cualquier juego arriba para registrar tu apodo y ver tus casillas. —</div>';
+    if (!activeUser) {
+      myGridsList.innerHTML = `
+        <div class="card text-center" style="padding:22px 18px; background:rgba(255,209,0,0.04); border:1px dashed rgba(255,209,0,0.4); border-radius:14px;">
+          <div style="font-size:32px; margin-bottom:6px;">🔐</div>
+          <h4 style="margin:0 0 4px; color:#fff;">Inicia sesión para ver tus Grids</h4>
+          <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Tus cuadros y jugadas se guardan de forma privada y segura en tu cuenta.</p>
+          <button class="btn btn-primary" onclick="window.showLoginModal('Iniciar Sesión', 'Accede con Google, Apple o Facebook para ver tus casillas.')" style="width:auto; padding:8px 20px; font-weight:800; border-radius:10px;">
+            🔑 Iniciar Sesión Ahora
+          </button>
+        </div>
+      `;
       return;
     }
 
     try {
       const activeRegistrations = [];
-      const matchNickLower = savedNick ? savedNick.toLowerCase() : '';
+      const userUid = activeUser.uid;
+      const userEmail = (activeUser.email || '').toLowerCase();
 
-      // Scan all active games
+      // Scan all active games strictly for this authenticated user
       for (const g of ALL_GRIDS) {
         try {
           const playersSnap = await db.collection('games').doc(g.code).collection('players').get();
           playersSnap.forEach(pdoc => {
             const p = pdoc.data() || {};
-            const pNick = (p.nickname || p.name || '').trim().toLowerCase();
-            const pId = p.playerId || '';
+            const pId = p.playerId || p.userUid || pdoc.id;
+            const pEmail = (p.userEmail || '').toLowerCase();
 
-            const isMatch = (matchNickLower && pNick === matchNickLower) ||
-                            (savedPlayerId && (pdoc.id === savedPlayerId || pId === savedPlayerId)) ||
-                            (userUid && (pId === userUid || pdoc.id === userUid));
-
+            const isMyAccount = (pId === userUid) || (userEmail && pEmail && pEmail === userEmail);
             const isApproved = (p.status === 'approved') || !!p.approved;
 
-            if (isApproved && isMatch) {
+            if (isApproved && isMyAccount) {
               activeRegistrations.push({
                 code: g.code,
                 game: g,
@@ -373,7 +382,7 @@
       }
 
       if (activeRegistrations.length === 0) {
-        myGridsList.innerHTML = '<div class="text-center hint-text py-3" style="background:rgba(255,255,255,0.02); border-radius:12px; padding:16px;">— Aún no tienes grids aprobados. Regístrate en un juego arriba y espera la aprobación del admin. —</div>';
+        myGridsList.innerHTML = '<div class="text-center hint-text py-3" style="background:rgba(255,255,255,0.02); border-radius:12px; padding:16px;">— Aún no tienes grids aprobados con tu cuenta. Toca <strong>🏈 Unirse a este Grid</strong> arriba y espera la aprobación. —</div>';
         return;
       }
 

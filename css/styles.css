@@ -1511,5 +1511,126 @@ input:focus, select:focus, textarea:focus {
   color: #fff;
 }
 
+/* ==========================================================================
+   MULTI-PROVIDER LOGIN MODAL (GOOGLE, APPLE, FACEBOOK)
+   ========================================================================== */
+.login-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.login-modal-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.login-modal-card {
+  background: linear-gradient(145deg, #1f1f2e 0%, #13131c 100%);
+  border: 1px solid rgba(255,209,0,0.4);
+  border-radius: 22px;
+  padding: 28px 24px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.7), 0 0 25px rgba(255,209,0,0.15);
+  text-align: center;
+  position: relative;
+  transform: translateY(20px) scale(0.96);
+  transition: transform 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+.login-modal-overlay.active .login-modal-card {
+  transform: translateY(0) scale(1);
+}
+.login-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px;
+  transition: color 0.2s ease;
+}
+.login-modal-close:hover {
+  color: #fff;
+}
+.login-modal-icon {
+  font-size: 40px;
+  margin-bottom: 8px;
+}
+.login-modal-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  margin-bottom: 6px;
+}
+.login-modal-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 22px;
+}
+.login-buttons-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.btn-social-login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 800;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.btn-social-login:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+.btn-social-login:active {
+  transform: translateY(0);
+}
+.btn-social-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+.btn-login-google {
+  background: #ffffff;
+  color: #222222;
+  border-color: #e0e0e0;
+}
+.btn-login-apple {
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+.btn-login-facebook {
+  background: #1877F2;
+  color: #ffffff;
+}
+
+
 
 

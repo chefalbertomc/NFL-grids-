@@ -191,8 +191,9 @@
   }
 
   async function submitBet(gameId, option, table, statusEl) {
-    if (!db || !user) {
-      alert('Inicia sesión con Google para registrar tu apuesta.');
+    if (!db) return;
+    if (!user) {
+      window.requireUserAuth(() => submitBet(gameId, option, table, statusEl), '¡Inicia Sesión para Apostar!', 'Accede con Google, Apple o Facebook para registrar tu apuesta de primer gol.');
       return;
     }
 

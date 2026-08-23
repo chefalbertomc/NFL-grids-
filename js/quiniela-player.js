@@ -1,4 +1,4 @@
-// Quiniela & Pick'em Player Module — Wings & Wins v58.0 (Interactive Live Leader, Clean Accordion Standings & Multi-Quinielas)
+// Quiniela & Pick'em Player Module — Wings & Wins v59.0 (Interactive Live Leader, Mandatory Auth & Social Logins)
 (function () {
   'use strict';
 
@@ -29,7 +29,8 @@
   function initQPlayer() {
     if (window.db) {
       db = window.db;
-      playerName = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '';
+      const user = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+      playerName = (user && user.displayName) || localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '';
       setupEventListeners();
       listenQuinielasCatalog();
     } else {
@@ -74,6 +75,23 @@
     const btnCopy = document.getElementById('btnCopyQLink');
     if (btnCopy) {
       btnCopy.addEventListener('click', copyActiveQuinielaLink);
+    }
+
+    // Re-check participations on Auth state change
+    if (window.onAuthChange) {
+      window.onAuthChange((user) => {
+        if (user && user.displayName && !playerName) {
+          playerName = user.displayName;
+          const nameInp = document.getElementById('qPlayerName');
+          if (nameInp && !nameInp.value) nameInp.value = user.displayName;
+        }
+        loadUserParticipations().then(() => {
+          renderQuinielasCatalog();
+          if (activeQuiniela && latestPicksSnap) {
+            renderLiveStandings(latestPicksSnap, activeQuiniela.matches || []);
+          }
+        });
+      });
     }
 
     // Auto-select quiniela if in URL query string (e.g. ?q=ID or ?quiniela=ID)
@@ -161,11 +179,23 @@
 
   async function loadUserParticipations() {
     if (!db) return;
+    const user = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const authUid = user ? user.uid : null;
+
     const promises = allQuinielas.map(async q => {
       try {
-        const docSnap = await db.collection('quinielas').doc(q.id).collection('picks').doc(deviceId).get();
-        if (docSnap.exists) {
-          myParticipations[q.id] = docSnap.data();
+        let foundDoc = null;
+        if (authUid) {
+          const authSnap = await db.collection('quinielas').doc(q.id).collection('picks').doc(authUid).get();
+          if (authSnap.exists) foundDoc = authSnap.data();
+        }
+        if (!foundDoc) {
+          const devSnap = await db.collection('quinielas').doc(q.id).collection('picks').doc(deviceId).get();
+          if (devSnap.exists) foundDoc = devSnap.data();
+        }
+
+        if (foundDoc) {
+          myParticipations[q.id] = foundDoc;
         } else {
           delete myParticipations[q.id];
         }
@@ -397,13 +427,29 @@
     if (countdownTimerInterval) { clearInterval(countdownTimerInterval); countdownTimerInterval = null; }
 
     picks = {};
+    const user = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const authUid = user ? user.uid : null;
+
     try {
-      const myPicksDoc = await db.collection('quinielas').doc(quinielaId).collection('picks').doc(deviceId).get();
-      if (myPicksDoc.exists) {
+      let myPicksDoc = null;
+      if (authUid) {
+        const s = await db.collection('quinielas').doc(quinielaId).collection('picks').doc(authUid).get();
+        if (s.exists) myPicksDoc = s;
+      }
+      if (!myPicksDoc) {
+        const s2 = await db.collection('quinielas').doc(quinielaId).collection('picks').doc(deviceId).get();
+        if (s2.exists) myPicksDoc = s2;
+      }
+
+      if (myPicksDoc && myPicksDoc.exists) {
         const data = myPicksDoc.data();
         picks = data.picks || {};
-        playerName = data.playerName || playerName;
+        playerName = data.playerName || (user && user.displayName) || playerName;
         myParticipations[quinielaId] = data;
+        const nameInp = document.getElementById('qPlayerName');
+        if (nameInp) nameInp.value = playerName;
+      } else if (user && user.displayName) {
+        playerName = user.displayName;
         const nameInp = document.getElementById('qPlayerName');
         if (nameInp) nameInp.value = playerName;
       }
@@ -662,6 +708,13 @@
   async function savePlayerPicks() {
     if (!db || !activeQuiniela) return;
 
+    // MANDATORY AUTH CHECK
+    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    if (!activeUser) {
+      window.requireUserAuth(savePlayerPicks, '¡Inicia Sesión para Pronosticar!', 'Para registrar tus pronósticos y competir en la quiniela, inicia sesión con Google, Apple o Facebook.');
+      return;
+    }
+
     // Re-verify strict lock before saving
     const lockInfo = checkQuinielaLockStatus(activeQuiniela);
     if (lockInfo.isLocked) {
@@ -670,12 +723,7 @@
     }
 
     const nameInp = document.getElementById('qPlayerName');
-    const name = (nameInp ? nameInp.value : '').trim();
-    if (!name) {
-      alert('Por favor escribe tu nombre o apodo para guardar tu quiniela.');
-      if (nameInp) nameInp.focus();
-      return;
-    }
+    const name = (nameInp ? nameInp.value : '').trim() || activeUser.displayName || 'Jugador';
 
     playerName = name;
     localStorage.setItem('bww_q_name', name);
@@ -699,6 +747,10 @@
     try {
       picks = newPicks;
       const pickData = {
+        playerId: activeUser.uid,
+        userUid: activeUser.uid,
+        userEmail: activeUser.email || '',
+        photoURL: activeUser.photoURL || '',
         playerName: name,
         deviceId,
         picks: newPicks,
@@ -707,7 +759,8 @@
           : Date.now()
       };
 
-      await db.collection('quinielas').doc(activeQuiniela.id).collection('picks').doc(deviceId).set(pickData);
+      // Save directly using user's unique UID as doc ID
+      await db.collection('quinielas').doc(activeQuiniela.id).collection('picks').doc(activeUser.uid).set(pickData, { merge: true });
       myParticipations[activeQuiniela.id] = pickData;
 
       showToast(`¡Pronósticos guardados para "${name}"! 🏆`);
@@ -763,6 +816,7 @@
     const standingsListEl = document.getElementById('qLiveStandings');
     if (!standingsListEl) return;
 
+    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
     const players = [];
     picksSnap.forEach(doc => players.push({ id: doc.id, ...doc.data() }));
 
@@ -811,7 +865,6 @@
       leaderCardEl.className = 'q-leader-card';
 
       if (leaders.length === 0 || topPts === 0) {
-        // No points scored yet
         leaderCardEl.innerHTML = `
           <div class="q-leader-left">
             <div class="q-leader-crown">⏳</div>
@@ -827,7 +880,7 @@
         `;
       } else if (leaders.length === 1) {
         const leader = leaders[0];
-        const isMe = leader.id === deviceId;
+        const isMe = (activeUser && (leader.id === activeUser.uid || leader.userUid === activeUser.uid)) || leader.id === deviceId;
         leaderCardEl.innerHTML = `
           <div class="q-leader-left">
             <div class="q-leader-crown">👑</div>
@@ -842,7 +895,6 @@
           </div>
         `;
       } else {
-        // Tie
         const names = leaders.slice(0, 3).map(l => l.playerName).join(' y ');
         leaderCardEl.innerHTML = `
           <div class="q-leader-left">
@@ -866,7 +918,7 @@
     rankList.className = 'q-rank-list';
 
     players.forEach((p, idx) => {
-      const isMe = p.id === deviceId;
+      const isMe = (activeUser && (p.id === activeUser.uid || p.userUid === activeUser.uid)) || p.id === deviceId;
       const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
 
       const item = document.createElement('div');
