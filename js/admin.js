@@ -237,23 +237,40 @@
     selectedEspnGame = null;
 
     try {
-      const url = `https://site.api.espn.com/apis/site/v2/sports/football/${league}/scoreboard`;
-      const res = await fetch(url);
-      const data = await res.json();
-      const events = data.events || [];
+      const today = new Date();
+      const start = new Date();
+      start.setDate(today.getDate() - 1);
+      const end = new Date();
+      end.setDate(today.getDate() + 30); // Lookahead 30 days to get upcoming games and next weeks
+
+      const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+      const url = `https://site.api.espn.com/apis/site/v2/sports/football/${league}/scoreboard?dates=${fmt(start)}-${fmt(end)}&limit=100`;
+      
+      let res = await fetch(url);
+      let data = await res.json();
+      let events = data.events || [];
+
+      // If date range returned few, also fetch standard scoreboard
+      if (events.length === 0) {
+        const res2 = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/${league}/scoreboard`);
+        const data2 = await res2.json();
+        events = data2.events || [];
+      }
 
       pickerList.innerHTML = '';
 
-      if (!events.length) {
-        pickerList.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:8px;">No se encontraron partidos esta semana para esta liga.</div>';
+      // Filter out finished games
+      const upcomingEvents = events.filter(ev => {
+        return !(ev.status?.type?.completed === true || ev.status?.type?.state === 'post');
+      });
+
+      if (!upcomingEvents.length) {
+        pickerList.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:8px;">No se encontraron próximos partidos para esta liga en los próximos 30 días.</div>';
         pickerContainer.style.display = 'block';
         return;
       }
 
-      events.forEach(ev => {
-        // Skip games that have already finished (Final / Completed)
-        const isDone = ev.status?.type?.completed === true || ev.status?.type?.state === 'post';
-        if (isDone) return;
+      upcomingEvents.forEach(ev => {
 
         const comps = ev.competitions?.[0]?.competitors || [];
         const homeComp = comps.find(c => c.homeAway === 'home');
