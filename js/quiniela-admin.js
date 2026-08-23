@@ -117,14 +117,64 @@
 
     const btnShare = document.getElementById('btnQShareWhatsApp');
     if (btnShare) btnShare.addEventListener('click', shareQuinielaWhatsApp);
+
+    const btnCopyLink = document.getElementById('btnQAdminCopyLink');
+    if (btnCopyLink) btnCopyLink.addEventListener('click', copyQuinielaLink);
+
+    const btnToggleLock = document.getElementById('btnToggleQLock');
+    if (btnToggleLock) btnToggleLock.addEventListener('click', toggleQuinielaLock);
   }
 
   function shareQuinielaWhatsApp() {
     const sel = document.getElementById('selectActiveQuiniela');
     const name = sel?.options[sel.selectedIndex]?.text || 'Quiniela';
     const baseUrl = window.location.origin + window.location.pathname.replace('admin.html', 'index.html');
-    const text = `🏆 *¡Únete a nuestra Quiniela & Pick'em "${name}"!*\n\n🎯 Pronostica el marcador de los partidos\n✅ +3 pts marcador exacto | +1 pt solo ganador\n\n📱 *Entra aquí para registrar tus pronósticos:*\n${baseUrl}#tab-pools`;
+    const directUrl = `${baseUrl}?q=${activeQuinielaId}#tab-pools`;
+    const text = `🏆 *¡Únete a nuestra Quiniela & Pick'em "${name}"!*\n\n🎯 Pronostica el marcador de los partidos\n✅ +3 pts marcador exacto | +1 pt solo ganador\n\n📱 *Entra aquí para registrar tus pronósticos:*\n${directUrl}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  }
+
+  function copyQuinielaLink() {
+    if (!activeQuinielaId) { alert('Selecciona una quiniela primero.'); return; }
+    const baseUrl = window.location.origin + window.location.pathname.replace('admin.html', 'index.html');
+    const directUrl = `${baseUrl}?q=${activeQuinielaId}#tab-pools`;
+    navigator.clipboard.writeText(directUrl).then(() => {
+      alert('✅ Enlace copiado al portapapeles:\n' + directUrl);
+    }).catch(() => {
+      prompt('Copia este enlace directo:', directUrl);
+    });
+  }
+
+  async function toggleQuinielaLock() {
+    if (!db || !activeQuinielaId) { alert('Selecciona una quiniela primero.'); return; }
+    try {
+      const qRef = db.collection('quinielas').doc(activeQuinielaId);
+      const snap = await qRef.get();
+      if (!snap.exists) return;
+      const currentLocked = !!snap.data().locked;
+      const newLocked = !currentLocked;
+      await qRef.update({ locked: newLocked });
+      alert(newLocked ? '🔒 Quiniela BLOQUEADA. Los jugadores ya no podrán registrar ni modificar pronósticos.' : '🔓 Quiniela DESBLOQUEADA. Los jugadores pueden volver a pronosticar.');
+      updateLockBtnState(newLocked);
+    } catch (err) {
+      alert('Error al cambiar bloqueo: ' + err.message);
+    }
+  }
+
+  function updateLockBtnState(isLocked) {
+    const btn = document.getElementById('btnToggleQLock');
+    if (!btn) return;
+    if (isLocked) {
+      btn.textContent = '🔓 Desbloquear Pronósticos';
+      btn.className = 'btn btn-danger';
+      btn.style.background = '#ff4444';
+      btn.style.color = '#fff';
+    } else {
+      btn.textContent = '🔒 Bloquear Pronósticos';
+      btn.className = 'btn btn-secondary';
+      btn.style.background = '';
+      btn.style.color = '';
+    }
   }
 
   async function searchQuinielaGames() {
@@ -381,6 +431,8 @@
       if (!quinielaSnap.exists) { standingsEl.innerHTML = '<div class="text-center hint-text py-2">Quiniela no encontrada.</div>'; return; }
       const q = quinielaSnap.data() || {};
       const matches = q.matches || [];
+
+      updateLockBtnState(!!q.locked);
 
       const picksSnap = await db.collection('quinielas').doc(quinielaId).collection('picks').get();
       if (picksSnap.empty) {
