@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Tablero NFL Grid — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=61.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=62.0"/>
   <style>
     /* Custom zoom styles for mobile */
     .grid-view-header {
@@ -186,53 +186,29 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Initializer & View Logic -->
-  <script src="js/firebase-config.js?v=61.0"></script>
-  <script src="js/auth.js?v=61.0"></script>
-  <script src="js/team-logos.js?v=61.0"></script>
-  <script src="js/player-view.js?v=61.0"></script>
+  <script src="js/firebase-config.js?v=62.0"></script>
+  <script src="js/auth.js?v=62.0"></script>
+  <script src="js/team-logos.js?v=62.0"></script>
+  <script src="js/player-view.js?v=62.0"></script>
 
-  <!-- Global Multi-Provider Login Modal -->
+  <!-- Global Google Login Modal Gate -->
   <div id="globalLoginModal" class="login-modal-overlay">
     <div class="login-modal-card">
       <button id="loginModalClose" class="login-modal-close" title="Cerrar" onclick="window.hideLoginModal()">✕</button>
       <div class="login-modal-icon">🏆</div>
       <h3 class="login-modal-title" id="loginModalTitle">¡Inicia Sesión para Jugar!</h3>
-      <p class="login-modal-subtitle" id="loginModalSubtitle">Accede con tu cuenta para asegurar tus casillas, guardar pronósticos y ver tus posiciones.</p>
+      <p class="login-modal-subtitle" id="loginModalSubtitle">Accede con tu cuenta de Google para asegurar tus casillas, guardar pronósticos con tu foto de perfil y ver tus posiciones.</p>
       
-      <div class="login-buttons-stack">
-        <!-- 1. Google 1-Click Login -->
-        <button type="button" class="btn-social-login btn-login-google" id="btnModalGoogle" onclick="window.loginWithGoogle()">
-          <svg class="btn-social-icon" viewBox="0 0 24 24">
+      <div class="login-buttons-stack" style="margin-top:16px;">
+        <button type="button" class="btn-social-login btn-login-google" id="btnModalGoogle" onclick="window.loginWithGoogle()" style="padding:14px 20px; font-size:15px; border-radius:14px; box-shadow: 0 6px 20px rgba(0,0,0,0.4);">
+          <svg class="btn-social-icon" viewBox="0 0 24 24" style="width:24px; height:24px;">
             <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
             <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
             <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
             <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
           </svg>
-          <span>Continuar con Google</span>
+          <span style="font-weight:900; letter-spacing:0.02em;">Continuar con Google</span>
         </button>
-
-        <!-- Divider -->
-        <div class="login-divider-line">
-          <span>O CON TU WHATSAPP</span>
-        </div>
-
-        <!-- 2. WhatsApp / Phone Form -->
-        <div class="login-phone-box">
-          <label>👤 Tu Nombre o Apodo:</label>
-          <input type="text" id="loginWaName" placeholder="Ej: Beto Chef" maxlength="40"/>
-          
-          <label>💬 Tu WhatsApp (10 dígitos):</label>
-          <input type="tel" id="loginWaPhone" placeholder="Ej: 5512345678" maxlength="10"/>
-
-          <button type="button" class="btn-social-login btn-login-whatsapp" id="btnModalWaSubmit" onclick="window.loginWithWhatsApp()" style="margin-top:6px;">
-            <svg class="btn-social-icon" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/>
-            </svg>
-            <span>Entrar con mi WhatsApp</span>
-          </button>
-          
-          <div id="loginWaStatus" style="font-size:11px; margin-top:8px; text-align:center; font-weight:800;"></div>
-        </div>
       </div>
     </div>
   </div>
