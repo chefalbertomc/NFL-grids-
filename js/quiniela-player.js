@@ -959,6 +959,8 @@
           </div>
         `;
       }
+    }
+
     // 2. Render Quiniela PRO Live Matrix Table
     standingsListEl.innerHTML = `
       <div class="q-matrix-container">
