@@ -1,4 +1,4 @@
-// Grids Module for Wings & Wins — Authentic NFL TV Scorebug & Clean Smart Cards (v65.0)
+// Grids Module for Wings & Wins — Authentic NFL TV Scorebug & Ultra-Thin Smart Cards (v66.0)
 (function() {
   'use strict';
 
@@ -208,18 +208,18 @@
 
       const card = document.createElement('div');
       card.className = 'card';
-      card.style.padding = '14px 16px';
-      card.style.margin = '0 0 16px 0';
-      card.style.borderRadius = '18px';
-      card.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
+      card.style.padding = '12px 14px';
+      card.style.margin = '0 0 12px 0';
+      card.style.borderRadius = '16px';
+      card.style.boxShadow = '0 6px 20px rgba(0,0,0,0.5)';
       card.style.transition = 'all 0.25s ease';
 
       if (isApproved) {
         card.style.border = '2px solid #00e676';
-        card.style.background = 'linear-gradient(145deg, rgba(12,24,16,0.96), rgba(8,16,11,0.98))';
+        card.style.background = 'linear-gradient(145deg, rgba(10,22,14,0.96), rgba(6,14,9,0.98))';
       } else if (isPending) {
         card.style.border = '2px solid #ffc107';
-        card.style.background = 'linear-gradient(145deg, rgba(28,22,10,0.96), rgba(16,12,6,0.98))';
+        card.style.background = 'linear-gradient(145deg, rgba(26,20,8,0.96), rgba(14,10,4,0.98))';
       } else if (isSelected) {
         card.style.border = '2px solid var(--accent-color)';
         card.style.background = 'rgba(255,209,0,0.06)';
@@ -228,35 +228,33 @@
         card.style.background = 'var(--card-bg-hover)';
       }
 
-      // Middle Badges Strip (CLEAN & NON-REPETITIVE)
+      // ULTRA-THIN SINGLE-ROW BADGES STRIP
       let badgesHtml = `
-        <span class="badge" style="font-weight: 800; letter-spacing: 0.04em;">🔑 ${g.code}</span>
-        ${g.store ? `<span class="badge accent">${g.store}</span>` : ''}
+        <span class="badge" style="font-weight: 800; font-size:11px; padding:3px 7px;">🔑 ${g.code}</span>
+        ${g.store ? `<span class="badge accent" style="font-size:11px; padding:3px 7px;">${g.store}</span>` : ''}
       `;
 
       if (g.locked) {
-        badgesHtml += `<span class="badge danger" style="font-weight:800;">🔒 Bloqueado</span>`;
+        badgesHtml += `<span class="badge danger" style="font-weight:800; font-size:11px; padding:3px 7px;">🔒 Bloqueado</span>`;
       }
 
       if (isApproved) {
-        // CLEAN APPROVED STATE: Removed "APROBADO" badge & "100/100" badge
+        // SINGLE COMPACT USER + 10/10 BADGE NEXT TO EACH OTHER
         const taken = Number(reg.taken || 0);
         const quota = Number(reg.quota || reg.pack || 0);
-        const remaining = Math.max(0, quota - taken);
         badgesHtml += `
-          <span class="badge" style="background:rgba(255,255,255,0.12); color:#fff; font-weight:800;">👤 ${reg.nickname || reg.name || 'Tú'}</span>
-          <span class="badge" style="background:rgba(0,230,118,0.18); color:#00e676; font-weight:900; border:1px solid rgba(0,230,118,0.4);">
-            🎯 ${taken}/${quota} Cuadros Usados (${remaining} Libres)
+          <span class="badge" style="background:rgba(0,230,118,0.2); color:#00e676; font-weight:900; border:1px solid rgba(0,230,118,0.4); font-size:11px; padding:3px 8px;">
+            👤 ${reg.nickname || reg.name || 'Tú'} • 🎯 ${taken}/${quota}
           </span>
         `;
       } else if (isPending) {
         badgesHtml += `
-          <span class="badge success" style="font-weight: 800;">🟢 Libres: ${g.free}/${g.size || 100}</span>
-          <span class="badge" style="background:#ffc107; color:#000; font-weight:900;">🟡 ESPERANDO APROBACIÓN (${reg.pack || 5} Cuadros)</span>
+          <span class="badge success" style="font-weight: 800; font-size:11px; padding:3px 7px;">🟢 ${g.free}/${g.size || 100}</span>
+          <span class="badge" style="background:#ffc107; color:#000; font-weight:900; font-size:11px; padding:3px 8px;">🟡 ${reg.nickname || reg.name || 'Tú'} • ${reg.pack || 5} Cuadros</span>
         `;
       } else {
         badgesHtml += `
-          <span class="badge success" style="font-weight: 800;">🟢 Libres: ${g.free}/${g.size || 100}</span>
+          <span class="badge success" style="font-weight: 800; font-size:11px; padding:3px 7px;">🟢 ${g.free}/${g.size || 100}</span>
         `;
       }
 
@@ -265,27 +263,27 @@
       if (isApproved) {
         const pid = activeUser ? activeUser.uid : (reg.docId || '');
         actionButtonHtml = `
-          <a href="player-view.html?code=${g.code}&pid=${encodeURIComponent(pid)}" class="btn btn-primary" style="flex: 1; padding:12px 18px; font-size:15px; font-weight:900; border-radius:12px; text-decoration:none; background: linear-gradient(135deg, #ffd100, #ffb300); color: #000; box-shadow: 0 4px 14px rgba(255,209,0,0.3); justify-content:center;">
+          <a href="player-view.html?code=${g.code}&pid=${encodeURIComponent(pid)}" class="btn btn-primary" style="flex: 1; padding:11px 16px; font-size:14px; font-weight:900; border-radius:12px; text-decoration:none; background: linear-gradient(135deg, #ffd100, #ffb300); color: #000; box-shadow: 0 4px 14px rgba(255,209,0,0.3); justify-content:center;">
             <span>👁️ Ver Mi Grid & Escoger Casillas</span>
           </a>
         `;
       } else if (isPending) {
         actionButtonHtml = `
-          <button class="btn btn-secondary" disabled style="flex: 1; padding: 12px 16px; font-size: 14px; font-weight: 800; border-radius: 12px; opacity: 0.9; background: rgba(255,193,7,0.15); border: 1px solid #ffc107; color: #ffc107; cursor: not-allowed; justify-content:center;">
-            ⏳ Solicitud Enviada — Esperando Aprobación del Mesero
+          <button class="btn btn-secondary" disabled style="flex: 1; padding: 11px 14px; font-size:13px; font-weight: 800; border-radius: 12px; opacity: 0.9; background: rgba(255,193,7,0.15); border: 1px solid #ffc107; color: #ffc107; cursor: not-allowed; justify-content:center;">
+            ⏳ Solicitud Enviada — Esperando Aprobación
           </button>
         `;
       } else {
         actionButtonHtml = `
-          <button class="btn ${isSelected ? 'btn-secondary' : 'btn-primary'}" data-select-code="${g.code}" style="flex: 1; padding: 12px 16px; font-size: 14px; font-weight: 800; border-radius: 12px; justify-content:center;">
+          <button class="btn ${isSelected ? 'btn-secondary' : 'btn-primary'}" data-select-code="${g.code}" style="flex: 1; padding: 11px 14px; font-size: 14px; font-weight: 800; border-radius: 12px; justify-content:center;">
             ${isSelected ? '📝 Completar Registro Abajo' : '🏈 Unirse a este Grid'}
           </button>
         `;
       }
 
       card.innerHTML = `
-        <!-- NFL TV Broadcast Scorebug Header (Exact Styling) -->
-        <div class="tv-scorebug-main" style="margin-bottom: 12px; border-radius: 12px;">
+        <!-- NFL TV Broadcast Scorebug Header (Mobile Crisp Layout) -->
+        <div class="tv-scorebug-main" style="margin-bottom: 10px;">
           <!-- Away Team Wing: [Logo] [Abbr] [Score] -->
           <div class="tv-team-wing tv-away" style="--team-bg: ${awayColor};">
             <div class="tv-team-logo-frame">
@@ -301,7 +299,7 @@
               <span class="tv-quarter-text">${centerQuarter}</span>
               ${centerClock ? `<span class="tv-clock-text">${centerClock}</span>` : ''}
             </div>
-            <span class="tv-situation-bar" style="text-transform: uppercase;">${centerSub}</span>
+            <span class="tv-situation-bar">${centerSub}</span>
           </div>
 
           <!-- Home Team Wing: [Score] [Abbr] [Logo] -->
@@ -314,15 +312,15 @@
           </div>
         </div>
 
-        <!-- Middle: Badges Strip -->
-        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+        <!-- Middle: Thin Single-Row Badges Strip -->
+        <div style="display: flex; gap: 5px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">
           ${badgesHtml}
         </div>
 
         <!-- Bottom: Action Button & WhatsApp Share -->
         <div style="display: flex; gap: 8px; align-items: center;">
           ${actionButtonHtml}
-          <button class="btn btn-secondary" data-share-code="${g.code}" title="Compartir enlace por WhatsApp" style="width: auto; padding: 12px 14px; font-size: 13px; background: rgba(37,211,102,0.14); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 4px; border-radius: 12px; flex-shrink: 0; font-weight: 900;">
+          <button class="btn btn-secondary" data-share-code="${g.code}" title="Compartir enlace por WhatsApp" style="width: auto; padding: 11px 13px; font-size: 12px; background: rgba(37,211,102,0.14); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 4px; border-radius: 12px; flex-shrink: 0; font-weight: 900;">
             💬 WhatsApp
           </button>
         </div>
