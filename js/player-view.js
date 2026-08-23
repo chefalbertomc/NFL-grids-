@@ -159,6 +159,67 @@
       const downDist = sit.shortDownDistanceText || sit.downDistanceText || (isCompleted ? 'FINAL DEL JUEGO' : 'EN VIVO');
       const isRedZone = !!sit.isRedZone;
 
+      const awayLs = (awayC.linescores || []).map(ls => Number(ls.value || 0));
+      const homeLs = (homeC.linescores || []).map(ls => Number(ls.value || 0));
+
+      const topNums = Array.isArray(game.numsTop) ? game.numsTop : [];
+      const leftNums = Array.isArray(game.numsLeft) ? game.numsLeft : [];
+      const cells = buildMergedCells(game.cells || {}, approvedPlayers);
+
+      function getWinnerForScore(aScore, hScore) {
+        if (!topNums.length || !leftNums.length) return { winner: '—', scoreStr: `${aScore}-${hScore}` };
+        const winCol = topNums.indexOf(Number(hScore) % 10);
+        const winRow = leftNums.indexOf(Number(aScore) % 10);
+        if (winCol === -1 || winRow === -1) return { winner: '—', scoreStr: `${aScore}-${hScore}` };
+        const cell = cells[`${winRow}-${winCol}`];
+        return {
+          winner: (cell && cell.name) ? cell.name : 'Nadie',
+          scoreStr: `${aScore}-${hScore}`,
+          row: winRow,
+          col: winCol
+        };
+      }
+
+      // Q1 Winner
+      if (periodNum >= 2 || isCompleted || (periodNum === 1 && awayLs.length > 0)) {
+        const a1 = awayLs[0] ?? 0;
+        const h1 = homeLs[0] ?? 0;
+        const w1 = getWinnerForScore(a1, h1);
+        game.q1_score = w1.scoreStr;
+        game.q1_winner = w1.winner;
+      }
+
+      // Q2 / Halftime Winner
+      if (periodNum >= 3 || isCompleted || (periodNum === 2 && awayLs.length > 1)) {
+        const a2 = (awayLs[0] ?? 0) + (awayLs[1] ?? 0);
+        const h2 = (homeLs[0] ?? 0) + (homeLs[1] ?? 0);
+        const w2 = getWinnerForScore(a2, h2);
+        game.q2_score = w2.scoreStr;
+        game.q2_winner = w2.winner;
+      }
+
+      // Q3 Winner
+      if (periodNum >= 4 || isCompleted || (periodNum === 3 && awayLs.length > 2)) {
+        const a3 = (awayLs[0] ?? 0) + (awayLs[1] ?? 0) + (awayLs[2] ?? 0);
+        const h3 = (homeLs[0] ?? 0) + (homeLs[1] ?? 0) + (homeLs[2] ?? 0);
+        const w3 = getWinnerForScore(a3, h3);
+        game.q3_score = w3.scoreStr;
+        game.q3_winner = w3.winner;
+      }
+
+      // Q4 / Final Winner
+      if (isCompleted || periodNum >= 4) {
+        const w4 = getWinnerForScore(sAway, sHome);
+        game.q4_score = w4.scoreStr;
+        game.q4_winner = w4.winner;
+        game.winRow = w4.row;
+        game.winCol = w4.col;
+      } else {
+        const curWin = getWinnerForScore(sAway, sHome);
+        game.winRow = curWin.row;
+        game.winCol = curWin.col;
+      }
+
       // Update in-memory game object immediately for instant UI update
       game.scoreHome = sHome;
       game.scoreAway = sAway;
@@ -182,6 +243,16 @@
           periodName: periodName,
           situation: downDist,
           isRedZone: isRedZone,
+          q1_score: game.q1_score || null,
+          q1_winner: game.q1_winner || null,
+          q2_score: game.q2_score || null,
+          q2_winner: game.q2_winner || null,
+          q3_score: game.q3_score || null,
+          q3_winner: game.q3_winner || null,
+          q4_score: game.q4_score || null,
+          q4_winner: game.q4_winner || null,
+          winRow: game.winRow ?? null,
+          winCol: game.winCol ?? null,
           lastEspnSync: Date.now()
         });
       } catch (e) {}
