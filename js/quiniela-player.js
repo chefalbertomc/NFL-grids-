@@ -50,21 +50,30 @@
 
     sel.innerHTML = '<option disabled selected>Cargando quinielas...</option>';
     try {
-      const snap = await db.collection('quinielas').where('active', '==', true).orderBy('createdAt', 'desc').limit(10).get();
-      if (snap.empty) {
+      // Simple fetch without compound index - filter and sort client-side
+      const snap = await db.collection('quinielas').limit(20).get();
+      
+      // Filter active ones and sort by createdAt desc
+      const docs = [];
+      snap.forEach(doc => {
+        const q = doc.data();
+        if (q.active !== false) docs.push({ id: doc.id, ...q });
+      });
+      docs.sort((a, b) => (b.createdAt?.seconds || b.createdAt || 0) - (a.createdAt?.seconds || a.createdAt || 0));
+
+      if (docs.length === 0) {
         sel.innerHTML = '<option disabled selected>— No hay quinielas activas —</option>';
         if (picksSection) picksSection.style.display = 'none';
         return;
       }
       sel.innerHTML = '<option value="" disabled selected>— Elige una quiniela —</option>';
       let firstId = null;
-      snap.forEach(doc => {
-        const q = doc.data();
+      docs.forEach(q => {
         const opt = document.createElement('option');
-        opt.value = doc.id;
+        opt.value = q.id;
         opt.textContent = q.name;
         sel.appendChild(opt);
-        if (!firstId) firstId = doc.id;
+        if (!firstId) firstId = q.id;
       });
 
       // Auto-load first quiniela
