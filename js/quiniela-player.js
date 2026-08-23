@@ -1,4 +1,4 @@
-// Quiniela Player Module — Wings & Wins
+// Quiniela & Pick'em Player Module — Wings & Wins v50
 (function () {
   'use strict';
 
@@ -8,6 +8,7 @@
   let playerName = '';
   let liveUnsubscribe = null;
   let standingsUnsubscribe = null;
+  let autoSyncInterval = null;
 
   const deviceId = (function () {
     let id = localStorage.getItem('bww_quiniela_device_id');
@@ -50,10 +51,7 @@
 
     sel.innerHTML = '<option disabled selected>Cargando quinielas...</option>';
     try {
-      // Simple fetch without compound index - filter and sort client-side
       const snap = await db.collection('quinielas').limit(20).get();
-      
-      // Filter active ones and sort by createdAt desc
       const docs = [];
       snap.forEach(doc => {
         const q = doc.data();
@@ -76,7 +74,6 @@
         if (!firstId) firstId = q.id;
       });
 
-      // Auto-load first quiniela
       if (firstId) {
         sel.value = firstId;
         loadQuinielaForPlayer(firstId);
@@ -90,9 +87,9 @@
   async function loadQuinielaForPlayer(quinielaId) {
     if (!db) return;
 
-    // Cleanup previous listeners
     if (liveUnsubscribe) { liveUnsubscribe(); liveUnsubscribe = null; }
     if (standingsUnsubscribe) { standingsUnsubscribe(); standingsUnsubscribe = null; }
+    if (autoSyncInterval) { clearInterval(autoSyncInterval); autoSyncInterval = null; }
 
     const picksSection = document.getElementById('qPicksSection');
     const standingsSection = document.getElementById('qStandingsSection');
@@ -110,18 +107,92 @@
       }
     } catch (e) {}
 
-    // Live-listen to quiniela document (scores update in real time)
+    // Live-listen to quiniela document
     liveUnsubscribe = db.collection('quinielas').doc(quinielaId).onSnapshot(snap => {
       if (!snap.exists) return;
       activeQuiniela = { id: snap.id, ...snap.data() };
       renderPicksForm(activeQuiniela);
     }, err => console.error('[QPlayer] live error:', err));
 
-    // Live-listen to picks/standings
+    // Live-listen to standings
     standingsUnsubscribe = db.collection('quinielas').doc(quinielaId).collection('picks').onSnapshot(snap => {
       if (!activeQuiniela) return;
       renderLiveStandings(snap, activeQuiniela.matches || []);
     }, err => console.error('[QPlayer] standings error:', err));
+
+    // Auto-sync ESPN live scores in background every 20 seconds
+    syncESPNLiveScores(quinielaId);
+    autoSyncInterval = setInterval(() => syncESPNLiveScores(quinielaId), 20000);
+  }
+
+  // Background ESPN Live Score fetcher
+  async function syncESPNLiveScores(quinielaId) {
+    if (!db || !quinielaId) return;
+    try {
+      const qRef = db.collection('quinielas').doc(quinielaId);
+      const snap = await qRef.get();
+      if (!snap.exists) return;
+      const q = snap.data();
+      const matches = q.matches || [];
+
+      // Collect endpoints to fetch
+      const endpoints = new Map();
+      matches.forEach(m => {
+        const sp = m.sport || (m.slug === 'nfl' ? 'football' : 'soccer');
+        const sl = m.slug || 'mex.1';
+        endpoints.set(`${sp}/${sl}`, { sport: sp, slug: sl });
+      });
+
+      if (endpoints.size === 0) {
+        endpoints.set('soccer/mex.1', { sport: 'soccer', slug: 'mex.1' });
+        endpoints.set('football/nfl', { sport: 'football', slug: 'nfl' });
+      }
+
+      const allEvents = {};
+      for (const ep of endpoints.values()) {
+        try {
+          const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?limit=100`);
+          const data = await res.json();
+          (data.events || []).forEach(ev => { allEvents[ev.id] = ev; });
+        } catch (e) {}
+      }
+
+      let hasChanges = false;
+      const updatedMatches = matches.map(m => {
+        const ev = allEvents[m.espnEventId];
+        if (!ev) return m;
+
+        const comps = ev.competitions?.[0]?.competitors || [];
+        const homeC = comps.find(c => c.homeAway === 'home') || comps[1];
+        const awayC = comps.find(c => c.homeAway === 'away') || comps[0];
+        const completed = !!ev.status?.type?.completed;
+        const state = ev.status?.type?.state || 'pre';
+        const statusStr = ev.status?.type?.shortDetail || '';
+
+        const newHomeScore = homeC && homeC.score !== undefined ? parseInt(homeC.score, 10) : m.homeScore;
+        const newAwayScore = awayC && awayC.score !== undefined ? parseInt(awayC.score, 10) : m.awayScore;
+
+        if (newHomeScore !== m.homeScore || newAwayScore !== m.awayScore || state !== m.status || statusStr !== m.statusStr) {
+          hasChanges = true;
+        }
+
+        return {
+          ...m,
+          homeScore: newHomeScore,
+          awayScore: newAwayScore,
+          completed,
+          status: state,
+          statusStr,
+          lastSync: Date.now()
+        };
+      });
+
+      if (hasChanges) {
+        await qRef.update({ matches: updatedMatches, lastSync: Date.now() });
+      }
+    } catch (e) {
+      console.warn('[QPlayer] Auto-sync background error:', e);
+    }
   }
 
   function renderPicksForm(q) {
@@ -130,8 +201,17 @@
     if (!formEl) return;
 
     if (titleEl) titleEl.textContent = q.name;
-    formEl.innerHTML = '';
 
+    // Preserve currently typed values before re-rendering
+    const currentInputs = {};
+    (q.matches || []).forEach(m => {
+      const awayInp = document.getElementById(`pick_away_${m.id}`);
+      const homeInp = document.getElementById(`pick_home_${m.id}`);
+      if (awayInp && awayInp.value !== '') currentInputs[`away_${m.id}`] = awayInp.value;
+      if (homeInp && homeInp.value !== '') currentInputs[`home_${m.id}`] = homeInp.value;
+    });
+
+    formEl.innerHTML = '';
     const matches = q.matches || [];
 
     if (matches.length === 0) {
@@ -141,52 +221,60 @@
 
     matches.forEach(m => {
       const existPick = picks[m.id] || { homeScore: '', awayScore: '' };
+      const currentAwayVal = currentInputs[`away_${m.id}`] !== undefined ? currentInputs[`away_${m.id}`] : existPick.awayScore;
+      const currentHomeVal = currentInputs[`home_${m.id}`] !== undefined ? currentInputs[`home_${m.id}`] : existPick.homeScore;
+
       const isLive = m.status === 'in';
       const isDone = m.completed;
-      const hasScore = m.homeScore !== null && m.awayScore !== null;
+      const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
 
       // Determine cell color from existing pick vs real score
       let statusClass = '';
       let statusLabel = '';
-      if (hasScore && existPick.homeScore !== '') {
-        const pickH = Number(existPick.homeScore);
-        const pickA = Number(existPick.awayScore);
+      if (hasScore && currentHomeVal !== '' && currentAwayVal !== '') {
+        const pickH = Number(currentHomeVal);
+        const pickA = Number(currentAwayVal);
         const exact = pickH === m.homeScore && pickA === m.awayScore;
         const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
         const pickWin = pickH > pickA ? 'home' : pickA > pickH ? 'away' : 'draw';
-        if (exact) { statusClass = 'q-match-green'; statusLabel = '🎯 +3 pts'; }
-        else if (realWin === pickWin) { statusClass = 'q-match-yellow'; statusLabel = '✓ +1 pt'; }
-        else { statusClass = 'q-match-red'; statusLabel = '✗ 0 pts'; }
+        if (exact) { statusClass = 'q-match-green'; statusLabel = '🎯 ¡Marcador Exacto! (+3 pts)'; }
+        else if (realWin === pickWin) { statusClass = 'q-match-yellow'; statusLabel = '✓ Ganador Correcto (+1 pt)'; }
+        else { statusClass = 'q-match-red'; statusLabel = '✗ Marcador Incorrecto (0 pts)'; }
       }
 
       const card = document.createElement('div');
       card.className = `q-match-card ${statusClass}`;
       card.innerHTML = `
         <div class="q-match-header">
-          <span style="font-size:11px; color:var(--text-muted);">${m.date || ''}</span>
-          ${isLive ? '<span class="badge danger" style="font-size:10px;">🔴 EN VIVO</span>' : ''}
-          ${isDone ? '<span class="badge" style="font-size:10px; background:rgba(255,255,255,0.1);">FINAL</span>' : ''}
-          ${statusLabel ? `<span style="font-weight:800; font-size:12px;">${statusLabel}</span>` : ''}
+          <div>
+            <span style="font-size:10px; color:var(--accent-color); font-weight:800; margin-right:6px;">${m.leagueLabel || ''}</span>
+            <span style="font-size:11px; color:var(--text-muted);">${m.date || ''}</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            ${isLive ? `<span class="badge danger" style="font-size:10px; animation: tvPulse 1s infinite;">🔴 EN VIVO ${m.statusStr ? '('+m.statusStr+')' : ''}</span>` : ''}
+            ${isDone ? '<span class="badge" style="font-size:10px; background:rgba(255,255,255,0.1);">FINAL</span>' : ''}
+            ${statusLabel ? `<span style="font-weight:800; font-size:11px;">${statusLabel}</span>` : ''}
+          </div>
         </div>
 
         <div class="q-match-teams">
-          <!-- Away -->
+          <!-- Away Team -->
           <div class="q-match-team">
             <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" class="q-match-logo" alt="${m.away}"/>
             <span class="q-match-team-name">${m.away}</span>
             ${hasScore ? `<span class="q-live-score ${m.awayScore > m.homeScore ? 'winning' : ''}">${m.awayScore}</span>` : ''}
           </div>
 
-          <!-- Score inputs -->
+          <!-- Score Inputs -->
           <div class="q-score-inputs">
             <input type="number" min="0" max="99" class="q-score-inp" id="pick_away_${m.id}"
-              value="${existPick.awayScore}" placeholder="0" ${isDone ? 'readonly' : ''} />
+              value="${currentAwayVal}" placeholder="0" ${isDone ? 'readonly' : ''} />
             <span class="q-score-dash">—</span>
             <input type="number" min="0" max="99" class="q-score-inp" id="pick_home_${m.id}"
-              value="${existPick.homeScore}" placeholder="0" ${isDone ? 'readonly' : ''} />
+              value="${currentHomeVal}" placeholder="0" ${isDone ? 'readonly' : ''} />
           </div>
 
-          <!-- Home -->
+          <!-- Home Team -->
           <div class="q-match-team q-match-team-home">
             ${hasScore ? `<span class="q-live-score ${m.homeScore > m.awayScore ? 'winning' : ''}">${m.homeScore}</span>` : ''}
             <span class="q-match-team-name">${m.home}</span>
@@ -266,7 +354,7 @@
     players.forEach(p => {
       let pts = 0;
       matches.forEach(m => {
-        if (m.homeScore === null || m.awayScore === null) return;
+        if (m.homeScore === null || m.awayScore === null || m.status === 'pre') return;
         const pick = p.picks?.[m.id];
         if (!pick) return;
         if (pick.homeScore === m.homeScore && pick.awayScore === m.awayScore) {
@@ -288,21 +376,22 @@
     }
 
     const wrap = document.createElement('div');
-    wrap.style.cssText = 'overflow-x:auto;';
+    wrap.style.cssText = 'overflow-x:auto; border-radius:12px;';
     const table = document.createElement('table');
     table.className = 'q-standings-table';
 
     const thead = table.createTHead();
     const hr = thead.insertRow();
-    hr.innerHTML = `<th style="text-align:left; padding:8px 12px;">Jugador</th>` +
-      matches.map(m => `<th style="text-align:center; padding:6px; min-width:80px;">
+    hr.innerHTML = `<th style="text-align:left; padding:8px 12px; min-width:110px;">Jugador</th>` +
+      matches.map(m => `<th style="text-align:center; padding:6px; min-width:85px;">
         <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
           <div style="display:flex; align-items:center; gap:3px;">
             <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:18px;height:18px;object-fit:contain;"/>
             <span style="font-size:9px;">vs</span>
             <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:18px;height:18px;object-fit:contain;"/>
           </div>
-          ${m.homeScore !== null ? `<span style="font-size:10px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore}</span>` : '<span style="font-size:9px; color:var(--text-muted);">—</span>'}
+          <span style="font-size:9px; color:var(--text-muted);">${m.awayAbbr || m.away.substring(0,3)} v ${m.homeAbbr || m.home.substring(0,3)}</span>
+          ${m.homeScore !== null && m.status !== 'pre' ? `<span style="font-size:11px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore} ${m.status === 'in' ? '🔴' : ''}</span>` : '<span style="font-size:9px; color:var(--text-muted);">—</span>'}
         </div>
       </th>`).join('') +
       `<th style="text-align:center; padding:8px;">Pts</th>`;
@@ -322,13 +411,13 @@
         const pick = p.picks?.[m.id];
         if (!pick) { cells += `<td class="q-s-cell q-cell-gray">—</td>`; return; }
         const pickStr = `${pick.awayScore}-${pick.homeScore}`;
-        if (m.homeScore === null) { cells += `<td class="q-s-cell q-cell-gray">${pickStr}</td>`; return; }
+        if (m.homeScore === null || m.status === 'pre') { cells += `<td class="q-s-cell q-cell-gray">${pickStr}</td>`; return; }
         const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
         const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
         const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
-        if (exact) cells += `<td class="q-s-cell q-cell-green" title="+3">🎯${pickStr}</td>`;
-        else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-yellow" title="+1">✓${pickStr}</td>`;
-        else cells += `<td class="q-s-cell q-cell-red" title="0">✗${pickStr}</td>`;
+        if (exact) cells += `<td class="q-s-cell q-cell-green" title="Exacto (+3 pts)">🎯${pickStr}</td>`;
+        else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-yellow" title="Ganador (+1 pt)">✓${pickStr}</td>`;
+        else cells += `<td class="q-s-cell q-cell-red" title="Incorrecto (0 pts)">✗${pickStr}</td>`;
       });
 
       cells += `<td style="text-align:center; font-weight:900; font-size:16px; color:${p.totalPoints>0?'var(--accent-color)':'var(--text-muted)'};">${p.totalPoints}</td>`;
