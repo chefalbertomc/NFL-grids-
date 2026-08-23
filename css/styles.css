@@ -2110,6 +2110,125 @@ input:focus, select:focus, textarea:focus {
   background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.85) 100%);
 }
 
+/* ==========================================================================
+   QUINIELA PRO LIVE MATRIX TABLE
+   ========================================================================== */
+.q-matrix-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  background: #0f141f;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  margin-top: 12px;
+  position: relative;
+}
+.q-matrix-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 650px;
+  font-size: 12px;
+}
+.q-matrix-th-fixed {
+  position: sticky;
+  left: 0;
+  background: #171d2b;
+  z-index: 5;
+  padding: 10px 8px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  font-weight: 900;
+  color: #ffd100;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+.q-matrix-th-match {
+  background: #141a27;
+  padding: 8px 6px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  border-left: 1px solid rgba(255,255,255,0.06);
+  min-width: 75px;
+}
+.q-matrix-real-score {
+  background: #00e676;
+  color: #000;
+  font-weight: 900;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-top: 4px;
+}
+.q-matrix-real-score.pending {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-muted);
+  font-size: 10px;
+}
+.q-matrix-row {
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.2s;
+}
+.q-matrix-row:nth-child(even) {
+  background: rgba(255,255,255,0.015);
+}
+.q-matrix-row.is-me {
+  background: rgba(255,209,0,0.08) !important;
+  border: 1px solid #ffd100;
+}
+.q-matrix-row:hover {
+  background: rgba(255,255,255,0.04);
+}
+.q-matrix-td-fixed {
+  position: sticky;
+  left: 0;
+  background: inherit;
+  z-index: 4;
+  padding: 8px 8px;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 2px 0 8px rgba(0,0,0,0.3);
+}
+.q-matrix-row.is-me .q-matrix-td-fixed {
+  background: #1c1d18 !important;
+}
+.q-matrix-cell-pick {
+  text-align: center;
+  padding: 8px 4px;
+  font-weight: 800;
+  font-size: 12px;
+  border-left: 1px solid rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.q-pick-exact {
+  color: #00e676 !important;
+  font-weight: 900;
+  background: rgba(0,230,118,0.15);
+  padding: 3px 6px;
+  border-radius: 6px;
+  display: inline-block;
+  border: 1px solid rgba(0,230,118,0.4);
+}
+.q-pick-winner {
+  color: #ffd100 !important;
+  font-weight: 900;
+  background: rgba(255,209,0,0.15);
+  padding: 3px 6px;
+  border-radius: 6px;
+  display: inline-block;
+  border: 1px solid rgba(255,209,0,0.3);
+}
+.q-pick-miss {
+  color: #ff5252 !important;
+  opacity: 0.85;
+}
+.q-pick-pending {
+  color: #ffffff;
+  opacity: 0.9;
+}
+
 
 
 

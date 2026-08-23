@@ -502,148 +502,36 @@
     const shouldShowEditor = isEditingPicks && !lockInfo.isLocked;
 
     const editorSec = document.getElementById('qPicksSection');
-    let summarySec = document.getElementById('qMyPicksSummarySection');
+    const standingsSec = document.getElementById('qStandingsSection');
 
-    if (!summarySec) {
-      summarySec = document.createElement('section');
-      summarySec.id = 'qMyPicksSummarySection';
-      summarySec.className = 'card';
-      summarySec.style.marginBottom = '16px';
-      if (editorSec && editorSec.parentNode) {
-        editorSec.parentNode.insertBefore(summarySec, editorSec);
+    // Button to edit picks in toolbar if open
+    let btnToggleEdit = document.getElementById('btnToolbarEditQPicks');
+    const toolbar = document.querySelector('.q-toolbar');
+    if (toolbar && !lockInfo.isLocked) {
+      if (!btnToggleEdit) {
+        btnToggleEdit = document.createElement('button');
+        btnToggleEdit.id = 'btnToolbarEditQPicks';
+        btnToggleEdit.type = 'button';
+        btnToggleEdit.className = 'btn btn-secondary';
+        btnToggleEdit.style.cssText = 'width:auto; padding:6px 12px; font-size:12px; font-weight:800; border-radius:8px; display:inline-flex; align-items:center; gap:4px;';
+        toolbar.appendChild(btnToggleEdit);
       }
+      btnToggleEdit.style.display = 'inline-flex';
+      btnToggleEdit.innerHTML = shouldShowEditor ? '📊 Ver Tabla Quiniela PRO' : '✏️ Modificar Pronósticos';
+      btnToggleEdit.onclick = () => toggleEditQuinielaPicks();
+    } else if (btnToggleEdit) {
+      btnToggleEdit.style.display = 'none';
     }
 
     if (hasSavedPicks && !shouldShowEditor) {
       if (editorSec) editorSec.style.display = 'none';
-      if (summarySec) {
-        summarySec.style.display = 'block';
-        renderMyPicksSummary(summarySec, q, lockInfo.isLocked);
-      }
+      if (standingsSec) standingsSec.style.display = 'block';
     } else {
-      if (summarySec) summarySec.style.display = 'none';
       if (editorSec) {
         editorSec.style.display = 'block';
         renderPicksForm(q, lockInfo.isLocked);
       }
     }
-  }
-
-  function renderMyPicksSummary(container, q, isLocked) {
-    const matches = q.matches || [];
-    let totalPts = 0;
-
-    const user = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
-    const displayName = playerName || (user && user.displayName) || 'Mi Usuario';
-    const userPhoto = (user && user.photoURL) || 'img/logo.jpg';
-
-    // Calculate user's score on these matches
-    matches.forEach(m => {
-      if (m.homeScore === null || m.awayScore === null || m.status === 'pre') return;
-      const pick = picks[m.id];
-      if (!pick) return;
-      if (pick.homeScore === m.homeScore && pick.awayScore === m.awayScore) {
-        totalPts += 3;
-      } else {
-        const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-        const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
-        if (realWin === pickWin) {
-          totalPts += 1;
-        }
-      }
-    });
-
-    let html = `
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:10px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <img src="${userPhoto}" alt="${displayName}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width:38px; height:38px; border-radius:50%; object-fit:cover; border:2px solid #ffd100;" />
-          <div>
-            <div style="font-weight:900; font-size:15px; color:#ffd100;">${displayName}</div>
-            <div style="font-size:11.5px; color:var(--text-muted);">Tus Pronósticos Guardados • <span style="color:#00e676; font-weight:800;">${totalPts} PTS EN VIVO</span></div>
-          </div>
-        </div>
-        ${!isLocked ? `
-          <button type="button" class="btn btn-secondary" onclick="toggleEditQuinielaPicks(true)" style="padding:6px 12px; font-size:12px; font-weight:800; border-radius:8px; width:auto; display:inline-flex; align-items:center; gap:4px;">
-            ✏️ Modificar Pronósticos
-          </button>
-        ` : `
-          <span class="badge danger" style="font-size:11px; font-weight:800;">🔒 PRONÓSTICOS CERRADOS</span>
-        `}
-      </div>
-
-      <div style="display:flex; flex-direction:column; gap:8px;">
-    `;
-
-    matches.forEach(m => {
-      const pick = picks[m.id];
-      const hasRealScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
-      const isLive = m.status === 'in';
-
-      let statusBadge = '';
-      let rowBorderColor = 'rgba(255,255,255,0.08)';
-      let rowBg = 'rgba(255,255,255,0.02)';
-
-      if (hasRealScore && pick) {
-        const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
-        const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-        const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
-        if (exact) {
-          statusBadge = '<span class="badge" style="background:#00e676; color:#000; font-weight:900; font-size:11px;">🎯 Exacto (+3 pts)</span>';
-          rowBorderColor = '#00e676';
-          rowBg = 'rgba(0,230,118,0.06)';
-        } else if (realWin === pickWin) {
-          statusBadge = '<span class="badge" style="background:#ffd100; color:#000; font-weight:900; font-size:11px;">✓ Ganador (+1 pt)</span>';
-          rowBorderColor = '#ffd100';
-          rowBg = 'rgba(255,209,0,0.06)';
-        } else {
-          statusBadge = '<span class="badge" style="background:rgba(255,68,68,0.2); color:#ff4444; border:1px solid #ff4444; font-weight:800; font-size:11px;">✗ 0 pts</span>';
-          rowBorderColor = 'rgba(255,68,68,0.3)';
-        }
-      } else if (isLive) {
-        statusBadge = '<span class="badge danger" style="font-size:10px; font-weight:800; animation:tvPulse 1s infinite;">🔴 EN VIVO</span>';
-      } else {
-        statusBadge = '<span class="badge" style="background:rgba(255,255,255,0.06); color:var(--text-muted); font-size:10.5px;">⏳ Por Jugar</span>';
-      }
-
-      const pickText = pick ? `${pick.awayScore} - ${pick.homeScore}` : 'Sin pronóstico';
-      const realText = hasRealScore ? `${m.awayScore} - ${m.homeScore}` : (isLive ? '0 - 0' : '—');
-
-      html += `
-        <div style="background:${rowBg}; border:1px solid ${rowBorderColor}; border-radius:10px; padding:10px 12px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-          <div style="flex:1; min-width:180px;">
-            <div style="font-size:10.5px; color:var(--text-muted); margin-bottom:3px;">${m.leagueLabel || ''} • ${m.date || ''}</div>
-            <div style="display:flex; align-items:center; gap:6px; font-weight:800; font-size:13px; color:#ffffff;">
-              <span style="display:inline-flex; align-items:center; gap:4px;">
-                <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:18px; height:18px; object-fit:contain;"/>
-                ${m.away}
-              </span>
-              <span style="color:var(--text-muted); font-size:11px;">vs</span>
-              <span style="display:inline-flex; align-items:center; gap:4px;">
-                <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:18px; height:18px; object-fit:contain;"/>
-                ${m.home}
-              </span>
-            </div>
-          </div>
-
-          <div style="display:flex; align-items:center; gap:14px; text-align:center;">
-            <div>
-              <div style="font-size:10px; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Tu Pronóstico</div>
-              <div style="font-weight:900; font-size:15px; color:#ffd100; background:rgba(255,209,0,0.12); padding:2px 8px; border-radius:6px; border:1px solid rgba(255,209,0,0.3);">${pickText}</div>
-            </div>
-            <div>
-              <div style="font-size:10px; color:var(--text-muted); font-weight:700; text-transform:uppercase;">Marcador Real</div>
-              <div style="font-weight:900; font-size:15px; color:#ffffff; background:rgba(255,255,255,0.06); padding:2px 8px; border-radius:6px; border:1px solid rgba(255,255,255,0.15);">${realText}</div>
-            </div>
-            <div>
-              ${statusBadge}
-            </div>
-          </div>
-        </div>
-      `;
-    });
-
-    html += `</div>`;
-    container.innerHTML = html;
   }
 
   function renderLockBannerAndTimer(lockInfo) {
@@ -971,7 +859,7 @@
     copyQuinielaLinkDirect(activeQuiniela.id);
   }
 
-  // Interactive Live Leaderboard & Leader Card
+  // Interactive Live Leaderboard & Quiniela PRO Matrix Table
   function renderLiveStandings(picksSnap, matches) {
     const leaderCardEl = document.getElementById('qLiveLeaderCard');
     const standingsListEl = document.getElementById('qLiveStandings');
@@ -1017,7 +905,7 @@
       return;
     }
 
-    // 1. Render Interactive Live Leader Card (Top Player or Tie)
+    // 1. Render Live Leader Card (Top Player or Tie)
     if (leaderCardEl) {
       const topPts = players[0].totalPoints;
       const leaders = players.filter(p => p.totalPoints === topPts && topPts > 0);
@@ -1031,7 +919,7 @@
             <div class="q-leader-crown">⏳</div>
             <div>
               <div class="q-leader-title">ESTADO DE LA QUINIELA</div>
-              <div class="q-leader-name" style="font-size:15px; color:#aaa;">Jornada por iniciar — ${players.length} participantes listos</div>
+              <div class="q-leader-name" style="font-size:14px; color:#aaa;">Jornada por iniciar — ${players.length} participantes listos</div>
             </div>
           </div>
           <div class="q-leader-pts-badge">
@@ -1047,7 +935,7 @@
             <div class="q-leader-crown">👑</div>
             <div>
               <div class="q-leader-title">🥇 LÍDER ACTUAL EN VIVO</div>
-              <div class="q-leader-name">${leader.playerName || 'Anónimo'} ${isMe ? '⭐ (¡Vas ganando!)' : ''}</div>
+              <div class="q-leader-name" style="font-size:16px;">${leader.playerName || 'Anónimo'} ${isMe ? '⭐ (¡Vas ganando!)' : ''}</div>
             </div>
           </div>
           <div class="q-leader-pts-badge">
@@ -1062,7 +950,7 @@
             <div class="q-leader-crown">🔥</div>
             <div>
               <div class="q-leader-title">🤝 EMPATE EN 1ER LUGAR</div>
-              <div class="q-leader-name" style="font-size:16px;">${names}</div>
+              <div class="q-leader-name" style="font-size:15px;">${names}</div>
             </div>
           </div>
           <div class="q-leader-pts-badge">
@@ -1071,90 +959,74 @@
           </div>
         `;
       }
-    }
+    // 2. Render Quiniela PRO Live Matrix Table
+    standingsListEl.innerHTML = `
+      <div class="q-matrix-container">
+        <table class="q-matrix-table">
+          <thead>
+            <tr>
+              <th class="q-matrix-th-fixed" style="min-width:145px;">POS • PARTICIPANTE</th>
+              ${matches.map(m => `
+                <th class="q-matrix-th-match">
+                  <div style="font-size:9.5px; color:var(--text-muted); font-weight:800; margin-bottom:2px;">${(m.awayAbbr || m.away.substring(0,3)).toUpperCase()} vs ${(m.homeAbbr || m.home.substring(0,3)).toUpperCase()}</div>
+                  <div style="display:flex; justify-content:center; align-items:center; gap:3px;">
+                    <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:14px; height:14px; object-fit:contain;"/>
+                    <span style="font-size:8.5px; color:#777;">vs</span>
+                    <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:14px; height:14px; object-fit:contain;"/>
+                  </div>
+                  ${m.homeScore !== null && m.awayScore !== null && m.status !== 'pre'
+                    ? `<div class="q-matrix-real-score">${m.awayScore} - ${m.homeScore}</div>`
+                    : (m.status === 'in' ? `<div class="q-matrix-real-score" style="background:#ff4444; color:#fff;">🔴 VIVO</div>` : `<div class="q-matrix-real-score pending">Pendiente</div>`)
+                  }
+                </th>
+              `).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${players.map((p, idx) => {
+              const isMe = (activeUser && (p.id === activeUser.uid || p.userUid === activeUser.uid)) || p.id === deviceId;
+              const photo = p.photoURL || 'img/logo.jpg';
+              const name = p.playerName || 'Participante';
+              const rankStr = idx === 0 ? '🥇 1' : idx === 1 ? '🥈 2' : idx === 2 ? '🥉 3' : `${idx + 1}.-`;
 
-    // 2. Render Interactive Ranking Accordion List
-    standingsListEl.innerHTML = '';
-    const rankList = document.createElement('div');
-    rankList.className = 'q-rank-list';
+              return `
+                <tr class="q-matrix-row ${isMe ? 'is-me' : ''}">
+                  <td class="q-matrix-td-fixed">
+                    <div style="display:flex; align-items:center; gap:5px;">
+                      <span style="font-weight:900; font-size:11px; color:#aaa; min-width:20px;">${rankStr}</span>
+                      <span style="font-weight:900; font-size:12px; color:#ffd100; background:rgba(255,209,0,0.15); padding:1px 4px; border-radius:4px; border:1px solid rgba(255,209,0,0.3);">${p.totalPoints} pts</span>
+                      <img src="${photo}" alt="${name}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width:22px; height:22px; border-radius:50%; object-fit:cover; border:1.5px solid ${isMe ? '#ffd100' : '#444'};" />
+                      <span style="font-weight:800; font-size:11.5px; color:${isMe ? '#ffd100' : '#ffffff'}; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name} ${isMe ? '(Tú)' : ''}</span>
+                    </div>
+                  </td>
+                  ${matches.map(m => {
+                    const pick = p.picks?.[m.id];
+                    const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
+                    if (!pick) return `<td class="q-matrix-cell-pick" style="color:#555;">—</td>`;
 
-    players.forEach((p, idx) => {
-      const isMe = (activeUser && (p.id === activeUser.uid || p.userUid === activeUser.uid)) || p.id === deviceId;
-      const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
+                    let pickClass = 'q-pick-pending';
+                    if (hasScore) {
+                      const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
+                      const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
+                      const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
+                      if (exact) pickClass = 'q-pick-exact';
+                      else if (realWin === pickWin) pickClass = 'q-pick-winner';
+                      else pickClass = 'q-pick-miss';
+                    }
 
-      const item = document.createElement('div');
-      item.className = `q-rank-item ${isMe ? 'is-me' : ''}`;
-
-      // Build accordion picks chips
-      const picksChips = matches.map(m => {
-        const pick = p.picks?.[m.id];
-        const hasRealScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
-        const pickStr = pick ? `${pick.awayScore} - ${pick.homeScore}` : '—';
-        const realStr = hasRealScore ? `${m.awayScore} - ${m.homeScore}` : 'Pendiente';
-
-        let hitClass = '';
-        let hitBadge = '';
-        if (hasRealScore && pick) {
-          const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
-          const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-          const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
-          if (exact) { hitClass = 'hit-exact'; hitBadge = '🎯 +3 pts'; }
-          else if (realWin === pickWin) { hitClass = 'hit-winner'; hitBadge = '✓ +1 pt'; }
-          else { hitClass = 'hit-miss'; hitBadge = '✗ 0 pts'; }
-        }
-
-        return `
-          <div class="q-pick-mini-card ${hitClass}">
-            <div>
-              <div style="font-weight:800; font-size:11px; color:#fff; display:flex; align-items:center; gap:4px;">
-                <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:14px; height:14px; object-fit:contain;"/>
-                <span>${m.awayAbbr || m.away.substring(0,3)}</span>
-                <span style="color:var(--text-muted); font-size:9px;">vs</span>
-                <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:14px; height:14px; object-fit:contain;"/>
-                <span>${m.homeAbbr || m.home.substring(0,3)}</span>
-              </div>
-              <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Real: <strong>${realStr}</strong></div>
-            </div>
-            <div style="text-align:right;">
-              <div style="font-weight:900; font-size:13px; color:var(--accent-color);">${pickStr}</div>
-              ${hitBadge ? `<span style="font-size:9px; font-weight:800;">${hitBadge}</span>` : ''}
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      item.innerHTML = `
-        <div class="q-rank-header">
-          <div class="q-rank-pos">${rankEmoji}</div>
-          <div class="q-rank-player">
-            <span>${p.playerName || 'Anónimo'}</span>
-            ${isMe ? '<span class="badge accent" style="font-size:10px; padding:2px 6px;">Tú</span>' : ''}
-          </div>
-          <div class="q-rank-stats">
-            <span class="q-rank-exact-badge">🎯 ${p.exactHits}</span>
-            <span class="q-rank-total-pts">${p.totalPoints} pts</span>
-            <span class="q-rank-toggle-icon">▼</span>
-          </div>
-        </div>
-        <div class="q-rank-detail">
-          <div style="font-size:11px; font-weight:800; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase;">
-            Pronósticos de ${p.playerName || 'este jugador'}:
-          </div>
-          <div class="q-picks-compact-grid">
-            ${picksChips}
-          </div>
-        </div>
-      `;
-
-      // Toggle accordion on click
-      item.querySelector('.q-rank-header').addEventListener('click', () => {
-        item.classList.toggle('open');
-      });
-
-      rankList.appendChild(item);
-    });
-
-    standingsListEl.appendChild(rankList);
+                    return `
+                      <td class="q-matrix-cell-pick">
+                        <span class="${pickClass}">${pick.awayScore} - ${pick.homeScore}</span>
+                      </td>
+                    `;
+                  }).join('')}
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
   }
 
   function norm(str) {
