@@ -1,62 +1,25 @@
-// Player View Module for Wings & Wins
+// Player Grid View Module — Drinks & Wins (v71.0)
 (function() {
   'use strict';
 
-  // --- Custom Premium Alerts ---
-  function customAlert(title, message) {
-    let overlay = document.getElementById('custom-alert-overlay');
-    if (!overlay) {
-      overlay = document.createElement('div');
-      overlay.id = 'custom-alert-overlay';
-      overlay.className = 'modal-overlay';
-      overlay.innerHTML = `
-        <div class="modal-box">
-          <div class="modal-header" id="custom-alert-title"></div>
-          <div class="modal-body" id="custom-alert-message"></div>
-          <div class="modal-footer">
-            <button class="btn btn-primary" id="custom-alert-ok" style="width: auto; padding: 8px 20px;">Aceptar</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(overlay);
-      document.getElementById('custom-alert-ok').addEventListener('click', () => {
-        overlay.classList.remove('active');
-      });
-    }
-    document.getElementById('custom-alert-title').textContent = title;
-    document.getElementById('custom-alert-message').textContent = message;
-    overlay.classList.add('active');
-  }
-
-  // Override standard alert
-  window.alert = function(msg) {
-    customAlert('Drink & Wins', msg);
-  };
-
-  // --- Parameters & DOM ---
-  const params = new URLSearchParams(location.search);
-  let code = (params.get('code') || '').trim().toUpperCase();
-  const pid = (params.get('pid') || '').trim();
-
-  const gameTitle = document.getElementById('gameTitle');
-  const lockBadge = document.getElementById('lockBadge');
-  const whoamiEl = document.getElementById('whoami');
-  const quotaInfo = document.getElementById('quotaInfo');
-  const nickChooser = document.getElementById('nickChooser');
-  const gridBoard = document.getElementById('gridBoard');
-  const gridMsg = document.getElementById('gridMsg');
-  const verticalTeam = document.getElementById('verticalTeam');
-  const horizontalTeam = document.getElementById('horizontalTeam');
-
-  // --- State ---
   let db = null;
-  let user = null;
+  let code = null;
+  let pid = null;
   let game = null;
-  let activePlayer = null; // { id, nickname, quota, taken, ref }
+  let activePlayer = null;
+  let user = null;
   let approvedPlayers = [];
   let pendingPlayers = [];
+  let currentDisplayMode = 'photos'; // 'photos' or 'names'
 
-  // --- Utils ---
+  const gameTitle = document.getElementById('gameTitle');
+  const gameCodeDisplay = document.getElementById('gameCodeDisplay');
+  const gameStoreDisplay = document.getElementById('gameStoreDisplay');
+  const lockBadge = document.getElementById('lockBadge');
+  const gridBoard = document.getElementById('gridBoard');
+  const quotaInfo = document.getElementById('quotaInfo');
+  const gridMsg = document.getElementById('gridMsg');
+
   const two = (n) => String(Number(n) || 0).padStart(2, '0');
   const norm = (s) => (s || '').trim().toLowerCase();
 
@@ -143,24 +106,30 @@
 
       if (!matchedEvent) return;
 
-      const comps = matchedEvent.competitions?.[0]?.competitors || [];
-      const homeC = comps.find(c => c.homeAway === 'home') || comps[1] || {};
-      const awayC = comps.find(c => c.homeAway === 'away') || comps[0] || {};
+      const comp = matchedEvent.competitions?.[0] || {};
+      const competitors = comp.competitors || [];
+      const homeComp = competitors.find(c => c.homeAway === 'home') || competitors[1] || {};
+      const awayComp = competitors.find(c => c.homeAway === 'away') || competitors[0] || {};
 
-      const sHome = parseInt(homeC.score ?? 0, 10);
-      const sAway = parseInt(awayC.score ?? 0, 10);
-      const isCompleted = !!matchedEvent.status?.type?.completed;
-      const statusText = matchedEvent.status?.type?.shortDetail || 'EN VIVO';
-      const displayClock = matchedEvent.status?.displayClock || (isCompleted ? '0:00' : '15:00');
-      const periodNum = matchedEvent.status?.period || 1;
-      const periodName = isCompleted ? 'FINAL' : (periodNum === 1 ? '1ST' : periodNum === 2 ? '2ND' : periodNum === 3 ? '3RD' : periodNum === 4 ? '4TH' : 'OT');
+      const sHome = parseInt(homeComp.score || 0, 10);
+      const sAway = parseInt(awayComp.score || 0, 10);
 
-      const sit = matchedEvent.competitions?.[0]?.situation || {};
-      const downDist = sit.shortDownDistanceText || sit.downDistanceText || (isCompleted ? 'FINAL DEL JUEGO' : 'EN VIVO');
-      const isRedZone = !!sit.isRedZone;
+      const status = matchedEvent.status || {};
+      const statusType = status.type || {};
+      const statusText = statusType.shortDetail || statusType.detail || 'Q1';
+      const periodName = statusType.description || statusText;
+      const displayClock = status.displayClock || '15:00';
+      const periodNum = status.period || 1;
+      const isCompleted = !!statusType.completed;
 
-      const awayLs = (awayC.linescores || []).map(ls => Number(ls.value || 0));
-      const homeLs = (homeC.linescores || []).map(ls => Number(ls.value || 0));
+      // Down & distance situation
+      const situation = comp.situation || {};
+      const downDist = situation.downDistanceText || '';
+      const isRedZone = !!situation.isRedZone;
+
+      // Quarter-by-quarter line scores
+      const homeLs = (homeComp.linescores || []).map(l => parseInt(l.value || 0, 10));
+      const awayLs = (awayComp.linescores || []).map(l => parseInt(l.value || 0, 10));
 
       const topNums = Array.isArray(game.numsTop) ? game.numsTop : [];
       const leftNums = Array.isArray(game.numsLeft) ? game.numsLeft : [];
@@ -220,7 +189,7 @@
         game.winCol = curWin.col;
       }
 
-      // Update in-memory game object immediately for instant UI update
+      // Update in-memory game object
       game.scoreHome = sHome;
       game.scoreAway = sAway;
       game.quarter = statusText;
@@ -233,7 +202,6 @@
       updateGameHeader(game);
       renderGrid(game);
 
-      // Persist to Firestore
       try {
         await db.collection('games').doc(code).update({
           scoreHome: sHome,
@@ -251,60 +219,52 @@
           q3_winner: game.q3_winner || null,
           q4_score: game.q4_score || null,
           q4_winner: game.q4_winner || null,
-          winRow: game.winRow ?? null,
-          winCol: game.winCol ?? null,
-          lastEspnSync: Date.now()
+          winRow: typeof game.winRow === 'number' ? game.winRow : null,
+          winCol: typeof game.winCol === 'number' ? game.winCol : null,
+          lastEspnSync: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
         });
-      } catch (e) {}
-
-    } catch (err) {
-      console.warn('[player-view] Live ESPN sync error:', err);
+      } catch (err) {}
+    } catch (e) {
+      console.warn('[player-view] ESPN auto-sync note:', e);
     }
   }
 
-  async function startGameListener() {
-    if (unsubGame) unsubGame();
-    if (playerEspnInterval) { clearInterval(playerEspnInterval); playerEspnInterval = null; }
+  function startGameListener() {
+    const params = new URLSearchParams(window.location.search);
+    code = (params.get('code') || params.get('game') || '').toUpperCase();
+    pid = params.get('pid') || localStorage.getItem('bww_player_id');
 
-    // Si la URL no trae código de juego, buscar automáticamente el juego más reciente en Firestore
     if (!code) {
-      try {
-        const snap = await db.collection('games').orderBy('createdAt', 'desc').limit(1).get();
-        if (!snap.empty) {
-          code = snap.docs[0].id;
-          const newUrl = new URL(window.location.href);
-          newUrl.searchParams.set('code', code);
-          window.history.replaceState(null, '', newUrl.toString());
-        }
-      } catch (err) {
-        try {
-          const snap = await db.collection('games').limit(1).get();
-          if (!snap.empty) code = snap.docs[0].id;
-        } catch (e) {}
+      if (gridMsg) {
+        gridMsg.textContent = '❌ No se especificó el código del juego en el enlace.';
+        gridMsg.style.display = 'block';
       }
-    }
-
-    if (!code) {
-      if (gridMsg) gridMsg.textContent = 'No hay juegos activos en este momento.';
       return;
     }
 
-    unsubGame = db.collection('games').doc(code).onSnapshot((snap) => {
-      if (!snap.exists) {
-        if (gridMsg) gridMsg.textContent = 'El juego no existe en la base de datos.';
+    if (unsubGame) unsubGame();
+
+    unsubGame = db.collection('games').doc(code).onSnapshot((doc) => {
+      if (!doc.exists) {
+        if (gridMsg) {
+          gridMsg.textContent = `❌ El juego con código "${code}" no existe.`;
+          gridMsg.style.display = 'block';
+        }
         return;
       }
-      game = snap.data() || {};
+      game = { id: doc.id, ...doc.data() };
+      
       updateGameHeader(game);
-      renderGrid(game);
       startPlayersListener();
-    }, err => {
-      console.error('[player-view] Game listen error:', err);
-    });
+      renderGrid(game);
 
-    // Start direct live background sync every 10 seconds on player view
-    syncPlayerGridESPN();
-    playerEspnInterval = setInterval(syncPlayerGridESPN, 10000);
+      if (!playerEspnInterval) {
+        syncPlayerGridESPN();
+        playerEspnInterval = setInterval(syncPlayerGridESPN, 15000);
+      }
+    }, (err) => {
+      console.error('[player-view] Game listener error:', err);
+    });
   }
 
   let unsubPlayers = null;
@@ -323,6 +283,9 @@
             id: doc.id,
             playerId: d.playerId || doc.id,
             nickname: d.nickname || d.name || '',
+            userName: d.userName || d.name || '',
+            userPhoto: d.userPhoto || d.photoURL || '',
+            waiter: d.waiter || '',
             quota: Number(d.quota || d.pack || 0),
             taken: Number(d.taken || 0),
             picks: Array.isArray(d.picks) ? d.picks : [],
@@ -336,14 +299,13 @@
           }
         });
 
-        const urlParams = new URLSearchParams(window.location.search);
         const userUid = user ? user.uid : null;
         const userEmail = user && user.email ? user.email.toLowerCase() : null;
 
         // STRICT MATCH: Only bind to the authenticated player's account
-        activePlayer = approvedPlayers.find(p => (userUid && (p.id === userUid || p.playerId === userUid || p.userUid === userUid))) ||
+        activePlayer = approvedPlayers.find(p => (userUid && (p.id === userUid || p.playerId === userUid))) ||
                        approvedPlayers.find(p => (userEmail && p.userEmail && p.userEmail.toLowerCase() === userEmail)) ||
-                       pendingPlayers.find(p => (userUid && (p.id === userUid || p.playerId === userUid || p.userUid === userUid))) ||
+                       pendingPlayers.find(p => (userUid && (p.id === userUid || p.playerId === userUid))) ||
                        null;
 
         if (activePlayer) {
@@ -361,35 +323,37 @@
   function updateGameHeader(g) {
     const home = g.homeTeam || g.home || 'Local';
     const away = g.awayTeam || g.away || 'Visitante';
+    const codeStr = g.code || code || '';
+    const storeStr = g.store || g.tienda || '';
 
-    const homeInfo = window.getTeamInfo ? window.getTeamInfo(home) : { color: '#ffd100', logo: '' };
-    const awayInfo = window.getTeamInfo ? window.getTeamInfo(away) : { color: '#ffd100', logo: '' };
-
-    const gameCodeDisplay = document.getElementById('gameCodeDisplay');
-    const gameStoreDisplay = document.getElementById('gameStoreDisplay');
-    if (gameCodeDisplay) gameCodeDisplay.textContent = g.code || code;
+    if (gameCodeDisplay) gameCodeDisplay.textContent = codeStr;
     if (gameStoreDisplay) {
-      if (g.store) {
-        gameStoreDisplay.textContent = g.store;
-        gameStoreDisplay.style.display = 'inline-block';
+      if (storeStr) {
+        gameStoreDisplay.textContent = storeStr;
+        gameStoreDisplay.style.display = 'inline-flex';
       } else {
         gameStoreDisplay.style.display = 'none';
       }
     }
 
-    // Apply team colors to CSS variables on the grid wrapper
-    const gridWrapper = document.querySelector('.grid-wrapper');
-    if (gridWrapper) {
-      gridWrapper.style.setProperty('--team-home-color', homeInfo.color);
-      gridWrapper.style.setProperty('--team-home-secondary', homeInfo.secondaryColor || '#ffffff');
-      gridWrapper.style.setProperty('--team-away-color', awayInfo.color);
-      gridWrapper.style.setProperty('--team-away-secondary', awayInfo.secondaryColor || '#ffffff');
+    const homeInfo = window.getTeamInfo ? window.getTeamInfo(home) : { color: '#ffd100', logo: 'img/logo.jpg' };
+    const awayInfo = window.getTeamInfo ? window.getTeamInfo(away) : { color: '#ff5722', logo: 'img/logo.jpg' };
+
+    const verticalTeam = document.getElementById('verticalTeam');
+    const horizontalTeam = document.getElementById('horizontalTeam');
+
+    if (verticalTeam) {
+      verticalTeam.style.setProperty('--team-away-color', awayInfo.color);
+      verticalTeam.style.setProperty('--team-away-secondary', awayInfo.secondaryColor || '#ffffff');
+    }
+    if (horizontalTeam) {
+      horizontalTeam.style.setProperty('--team-home-color', homeInfo.color);
+      horizontalTeam.style.setProperty('--team-home-secondary', homeInfo.secondaryColor || '#ffffff');
     }
 
-    // Update axis labels with logos
     const awayLogoEl = document.getElementById('awayLogo');
-    const awayNameEl = document.getElementById('awayTeamName');
     const homeLogoEl = document.getElementById('homeLogo');
+    const awayNameEl = document.getElementById('awayTeamName');
     const homeNameEl = document.getElementById('homeTeamName');
 
     if (awayLogoEl && awayInfo.logo) {
@@ -532,9 +496,13 @@
         const pPicks = Array.isArray(p.picks) ? p.picks : [];
         pPicks.forEach(cellKey => {
           merged[cellKey] = {
-            name: p.nickname || p.name || '—',
+            name: p.nickname || p.name || 'Jugador',
+            userName: p.userName || '',
+            userPhoto: p.userPhoto || '',
+            waiter: p.waiter || '',
+            playerId: p.playerId || p.id,
             playerDocId: p.id,
-            playerId: p.playerId || p.id
+            timestamp: p.updatedAt || p.createdAt || Date.now()
           };
         });
       });
@@ -546,7 +514,7 @@
     if (!gridBoard) return;
     gridBoard.innerHTML = '';
 
-    const reveal = !!g.showNumbers;
+    const reveal = !!(g.showNumbers || g.locked);
     const topNums = Array.isArray(g.numsTop) ? g.numsTop : [];
     const leftNums = Array.isArray(g.numsLeft) ? g.numsLeft : [];
     const cells = buildMergedCells(g.cells || {}, approvedPlayers);
@@ -581,7 +549,13 @@
         cell.className = 'grid-cell';
 
         if (info) {
-          cell.textContent = info.name || '—';
+          if (currentDisplayMode === 'photos') {
+            const photoSrc = info.userPhoto || 'img/logo.jpg';
+            cell.innerHTML = `<img class="cell-avatar-img" src="${photoSrc}" onerror="this.onerror=null;this.src='img/logo.jpg'" alt="${info.name}"/>`;
+          } else {
+            cell.textContent = info.name || '—';
+          }
+
           if (cellOwnerIsMe(info)) {
             cell.classList.add('own');
           } else {
@@ -604,25 +578,6 @@
       }
     }
 
-    // Help Text
-    if (gridMsg) {
-      if (g.locked) {
-        gridMsg.textContent = '🔒 El juego está bloqueado por el administrador.';
-        gridMsg.style.color = 'var(--danger-color)';
-      } else if (!activePlayer) {
-        if (pendingPlayers.length > 0) {
-          gridMsg.textContent = '⏳ Registro enviado. Espera aprobación del mesero.';
-          gridMsg.style.color = 'var(--accent-color)';
-        } else {
-          gridMsg.textContent = '📌 Para jugar, selecciona este Grid en la pantalla principal e inscríbete.';
-          gridMsg.style.color = 'var(--text-muted)';
-        }
-      } else {
-        gridMsg.textContent = '⚡ Toca una casilla vacía para marcarla, o toca tu casilla para desmarcarla.';
-        gridMsg.style.color = 'var(--success-color)';
-      }
-    }
-
     // Quota details
     const myUsed = countMyUsed(cells);
     const myQuota = activePlayer ? Number(activePlayer.quota || 0) : 0;
@@ -631,47 +586,122 @@
     }
   }
 
+  window.toggleGridDisplayMode = function() {
+    currentDisplayMode = currentDisplayMode === 'photos' ? 'names' : 'photos';
+    const btn = document.getElementById('btnToggleViewMode');
+    if (btn) {
+      btn.textContent = currentDisplayMode === 'photos' ? '🖼️ Modo Fotos' : '👤 Modo Nombres';
+    }
+    if (game) renderGrid(game);
+  };
+
+  function showCellPopover(info, key, g, isOwn) {
+    let popover = document.getElementById('cellDetailPopover');
+    if (!popover) {
+      popover = document.createElement('div');
+      popover.id = 'cellDetailPopover';
+      popover.className = 'cell-popover-overlay';
+      document.body.appendChild(popover);
+    }
+
+    const parts = key.split('-');
+    const r = parseInt(parts[0], 10);
+    const c = parseInt(parts[1], 10);
+    const awayNum = (g.numsLeft && g.numsLeft[r] !== undefined && (g.showNumbers || g.locked)) ? g.numsLeft[r] : '?';
+    const homeNum = (g.numsTop && g.numsTop[c] !== undefined && (g.showNumbers || g.locked)) ? g.numsTop[c] : '?';
+
+    const photo = info.userPhoto || 'img/logo.jpg';
+    const nick = info.name || 'Jugador';
+    const fullName = info.userName && info.userName !== nick ? ` (${info.userName})` : '';
+
+    popover.innerHTML = `
+      <img src="${photo}" onerror="this.onerror=null;this.src='img/logo.jpg'" class="cell-popover-avatar" alt="${nick}" />
+      <div class="cell-popover-info">
+        <div class="cell-popover-name">${isOwn ? '⭐ Tu Casilla: ' : '👤 '}${nick}${fullName}</div>
+        <div class="cell-popover-sub">
+          🏈 Marcador: <strong>${g.away || 'Vis'}: ${awayNum}</strong> @ <strong>${g.home || 'Loc'}: ${homeNum}</strong>
+          ${info.waiter ? `<br>🍽️ Mesero: ${info.waiter}` : ''}
+        </div>
+      </div>
+      <div class="cell-popover-actions">
+        ${isOwn && !g.locked ? `<button type="button" class="btn btn-danger" onclick="window.unpickMyCell('${key}')" style="padding:6px 10px; font-size:11px; width:auto; border-radius:8px;">🗑️ Quitar</button>` : ''}
+        <button type="button" class="btn btn-secondary" onclick="window.closeCellPopover()" style="padding:6px 10px; font-size:11px; width:auto; border-radius:8px;">✕</button>
+      </div>
+    `;
+    popover.style.display = 'flex';
+
+    clearTimeout(window._cellPopoverTimer);
+    window._cellPopoverTimer = setTimeout(() => {
+      window.closeCellPopover();
+    }, 6000);
+  }
+
+  window.closeCellPopover = function() {
+    const popover = document.getElementById('cellDetailPopover');
+    if (popover) popover.style.display = 'none';
+  };
+
+  window.unpickMyCell = async function(key) {
+    window.closeCellPopover();
+    if (!activePlayer) return;
+    try {
+      const playerDocRef = db.collection('games').doc(code).collection('players').doc(activePlayer.id);
+      const myPicks = Array.isArray(activePlayer.picks) ? activePlayer.picks : [];
+      await playerDocRef.update({
+        picks: firebase.firestore.FieldValue.arrayRemove(key),
+        taken: Math.max(0, myPicks.length - 1),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
+      });
+    } catch (err) {
+      alert('Error al desmarcar: ' + err.message);
+    }
+  };
+
   async function onCellClick(key, info, g) {
-    if (g.locked) return;
+    if (g.locked) {
+      if (info) showCellPopover(info, key, g, cellOwnerIsMe(info));
+      return;
+    }
+
     if (!activePlayer) {
-      alert('Tu apodo aún está pendiente de aprobación por el administrador en el panel Admin.');
+      if (info) {
+        showCellPopover(info, key, g, false);
+      } else {
+        alert('Tu apodo aún está pendiente de aprobación por el administrador o mesero.');
+      }
       return;
     }
 
     const myPicks = Array.isArray(activePlayer.picks) ? activePlayer.picks : [];
     const isPickedByMe = myPicks.includes(key);
 
-    if (!isPickedByMe && info && info.playerDocId && info.playerDocId !== activePlayer.id) {
-      alert('Esta casilla ya está ocupada por otro jugador.');
+    if (info && !isPickedByMe) {
+      // Cell is occupied by another player -> Show detail popover with photo & name
+      showCellPopover(info, key, g, false);
       return;
     }
 
+    if (isPickedByMe) {
+      // Show detail popover with quick unpick option
+      showCellPopover(info || { name: activePlayer.nickname, userPhoto: user?.photoURL }, key, g, true);
+      return;
+    }
+
+    // Cell is empty -> Pick it directly
     const quota = Number(activePlayer.quota || 0);
 
+    if (myPicks.length >= quota) {
+      alert(`¡Límite alcanzado! Ya marcaste tus ${quota} casillas permitidas. Si deseas cambiar una, toca tu casilla para desmarcarla.`);
+      return;
+    }
+
     try {
-      if (window.ensurePlayerAuth) {
-        await window.ensurePlayerAuth();
-      }
-
       const playerDocRef = db.collection('games').doc(code).collection('players').doc(activePlayer.id);
-
-      if (isPickedByMe) {
-        await playerDocRef.update({
-          picks: firebase.firestore.FieldValue.arrayRemove(key),
-          taken: Math.max(0, myPicks.length - 1),
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
-        });
-      } else {
-        if (myPicks.length >= quota) {
-          alert('¡Límite alcanzado! No tienes más cuadros disponibles en tu paquete para este registro.');
-          return;
-        }
-        await playerDocRef.update({
-          picks: firebase.firestore.FieldValue.arrayUnion(key),
-          taken: myPicks.length + 1,
-          updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
-        });
-      }
+      await playerDocRef.update({
+        picks: firebase.firestore.FieldValue.arrayUnion(key),
+        taken: myPicks.length + 1,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
+      });
     } catch (err) {
       console.error('[player-view] Error updating pick:', err);
       alert('Error al marcar casilla: ' + err.message);

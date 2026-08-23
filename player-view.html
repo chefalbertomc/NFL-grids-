@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Tablero NFL Grid — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=70.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=71.0"/>
   <style>
     /* Custom zoom styles for mobile */
     .grid-view-header {
@@ -121,13 +121,20 @@
     <div class="card" style="padding: 12px;">
       <!-- Grid Zoom Toolbar -->
       <div class="grid-zoom-toolbar">
-        <span style="font-size:12px; font-weight:800; color:var(--text-muted);">🔍 Zoom:</span>
-        <div class="zoom-btn-group">
-          <button type="button" class="btn-zoom-step" id="btnZoomOut" onclick="window.changeGridZoom(-0.25)" title="Alejar">➖</button>
-          <span id="zoomLevelIndicator" class="zoom-level-text">100%</span>
-          <button type="button" class="btn-zoom-step" id="btnZoomIn" onclick="window.changeGridZoom(+0.25)" title="Agrandar">➕</button>
-          <button type="button" class="btn-zoom-step" onclick="window.resetGridZoom()" title="Ajustar">↔️ Ajustar</button>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="font-size:12px; font-weight:800; color:var(--text-muted);">🔍 Zoom:</span>
+          <div class="zoom-btn-group">
+            <button type="button" class="btn-zoom-step" id="btnZoomOut" onclick="window.changeGridZoom(-0.25)" title="Alejar">➖</button>
+            <span id="zoomLevelIndicator" class="zoom-level-text">100%</span>
+            <button type="button" class="btn-zoom-step" id="btnZoomIn" onclick="window.changeGridZoom(+0.25)" title="Agrandar">➕</button>
+            <button type="button" class="btn-zoom-step" onclick="window.resetGridZoom()" title="Ajustar">↔️ Ajustar</button>
+          </div>
         </div>
+
+        <!-- View Mode Switch: Photos vs Nicknames -->
+        <button type="button" class="btn-zoom-step" id="btnToggleViewMode" onclick="window.toggleGridDisplayMode()" style="background:rgba(255,209,0,0.15); border-color:#ffd100; color:#ffd100;">
+          🖼️ Modo Fotos
+        </button>
       </div>
 
       <!-- Interactive Grid Component -->
@@ -201,10 +208,10 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Initializer & View Logic -->
-  <script src="js/firebase-config.js?v=70.0"></script>
-  <script src="js/auth.js?v=70.0"></script>
-  <script src="js/team-logos.js?v=70.0"></script>
-  <script src="js/player-view.js?v=70.0"></script>
+  <script src="js/firebase-config.js?v=71.0"></script>
+  <script src="js/auth.js?v=71.0"></script>
+  <script src="js/team-logos.js?v=71.0"></script>
+  <script src="js/player-view.js?v=71.0"></script>
 
   <!-- Global Google Login Modal Gate -->
   <div id="globalLoginModal" class="login-modal-overlay">

@@ -441,11 +441,9 @@
       } catch (e) {}
       selectedGridLabel.textContent = `Registrarse en: ${g.away} @ ${g.home} (${g.code})`;
       if (gridJoinStatus) gridJoinStatus.textContent = '';
-      
-      const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
-      const savedNick = (activeUser && activeUser.displayName) || localStorage.getItem('player_nick');
-      if (savedNick && inpNick) {
-        inpNick.value = savedNick.toUpperCase();
+      if (inpNick) {
+        inpNick.value = '';
+        inpNick.focus();
       }
     }
   }
@@ -510,6 +508,7 @@
         userUid: activeUser.uid,
         userEmail: activeUser.email || '',
         userName: activeUser.displayName || nick,
+        userPhoto: activeUser.photoURL || '',
         name: nick,
         nickname: nick,
         waiter: waiter || 'Sin mesero',
