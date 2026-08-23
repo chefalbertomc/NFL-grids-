@@ -858,12 +858,12 @@ input:focus, select:focus, textarea:focus {
   min-width: 80px;
 }
 
-/* ---- Player: Match Cards ---- */
+/* ---- Player: Compact Horizontal Match Cards with +/- Steppers ---- */
 .q-match-card {
   background: var(--card-bg-hover);
   border: 1.5px solid var(--border-color);
-  border-radius: 16px;
-  padding: 14px 16px;
+  border-radius: 14px;
+  padding: 10px 14px;
   transition: border-color 0.3s, background 0.3s;
 }
 .q-match-green {
@@ -884,69 +884,145 @@ input:focus, select:focus, textarea:focus {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 4px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
 }
-.q-match-teams {
+
+/* Horizontal Row Container */
+.q-match-row-horizontal {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-}
-.q-match-team {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
   gap: 6px;
-  flex: 1;
-}
-.q-match-team-home {
-  align-items: flex-end;
-}
-.q-match-logo {
-  width: 44px;
-  height: 44px;
-  object-fit: contain;
-  border-radius: 8px;
-}
-.q-match-team-name {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--text-color);
-  text-align: center;
-  max-width: 100px;
-  line-height: 1.2;
-}
-.q-live-score {
-  font-size: 22px;
-  font-weight: 900;
-  color: var(--text-muted);
-  line-height: 1;
-}
-.q-live-score.winning {
-  color: var(--accent-color);
-  text-shadow: 0 0 12px rgba(255,209,0,0.4);
+  width: 100%;
 }
 
-/* Score inputs */
-.q-score-inputs {
+.q-team-side {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
-.q-score-inp {
-  width: 58px;
-  height: 58px;
-  border: 2px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--card-bg);
+.q-team-side.q-team-home {
+  justify-content: flex-end;
+}
+
+.q-team-text-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.q-team-text-block.text-right {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.q-team-row-name {
+  font-size: 13px;
+  font-weight: 800;
   color: var(--text-color);
-  font-size: 22px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+}
+.q-team-row-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.q-row-live-badge {
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--text-muted);
+}
+.q-row-live-badge.winning {
+  color: var(--accent-color);
+  text-shadow: 0 0 8px rgba(255,209,0,0.5);
+}
+
+/* Steppers Center Widget */
+.q-steppers-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  background: rgba(0,0,0,0.3);
+  padding: 4px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.q-counter-box {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.q-step-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  font-size: 18px;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  touch-action: manipulation;
+}
+.q-step-btn:hover {
+  background: var(--accent-color);
+  color: #000;
+  border-color: var(--accent-color);
+  transform: scale(1.08);
+}
+.q-step-btn:active {
+  transform: scale(0.92);
+}
+.q-step-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.q-score-box {
+  width: 38px;
+  height: 34px;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  background: #0f1318;
+  color: #fff;
+  font-size: 18px;
   font-weight: 900;
   text-align: center;
   font-family: var(--font-family);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  user-select: none;
+  cursor: default;
+  outline: none;
   -moz-appearance: textfield;
+}
+.q-score-box::-webkit-outer-spin-button,
+.q-score-box::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.q-vs-separator {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--text-muted);
+  padding: 0 2px;
 }
 .q-score-inp:focus {
   border-color: var(--accent-color);

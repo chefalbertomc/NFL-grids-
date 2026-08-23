@@ -252,6 +252,38 @@
     }
   }
 
+  window.stepScore = function(matchId, side, delta) {
+    const inp = document.getElementById(`pick_${side}_${matchId}`);
+    if (!inp) return;
+    let val = parseInt(inp.value, 10);
+    if (isNaN(val)) val = 0;
+    val += delta;
+    if (val < 0) val = 0;
+    if (val > 99) val = 99;
+    inp.value = val;
+
+    if (activeQuiniela) {
+      const match = (activeQuiniela.matches || []).find(m => m.id === matchId);
+      if (match && match.homeScore !== null && match.awayScore !== null) {
+        const awayInp = document.getElementById(`pick_away_${matchId}`);
+        const homeInp = document.getElementById(`pick_home_${matchId}`);
+        const card = document.getElementById(`card_match_${matchId}`);
+        const statusLabel = document.getElementById(`status_label_${matchId}`);
+        if (awayInp && homeInp && card) {
+          const pickA = parseInt(awayInp.value, 10);
+          const pickH = parseInt(homeInp.value, 10);
+          const exact = pickH === match.homeScore && pickA === match.awayScore;
+          const realWin = match.homeScore > match.awayScore ? 'home' : match.awayScore > match.homeScore ? 'away' : 'draw';
+          const pickWin = pickH > pickA ? 'home' : pickA > pickH ? 'away' : 'draw';
+          card.className = 'q-match-card ' + (exact ? 'q-match-green' : realWin === pickWin ? 'q-match-yellow' : 'q-match-red');
+          if (statusLabel) {
+            statusLabel.textContent = exact ? '🎯 Exacto (+3 pts)' : realWin === pickWin ? '✓ Ganador (+1 pt)' : '✗ 0 pts';
+          }
+        }
+      }
+    }
+  };
+
   function renderPicksForm(q) {
     const formEl = document.getElementById('qMatchPicksForm');
     const titleEl = document.getElementById('qPicksTitle');
@@ -259,7 +291,7 @@
 
     if (titleEl) titleEl.textContent = q.name;
 
-    // Preserve currently typed values before re-rendering
+    // Preserve currently chosen values before re-rendering
     const currentInputs = {};
     (q.matches || []).forEach(m => {
       const awayInp = document.getElementById(`pick_away_${m.id}`);
@@ -277,9 +309,9 @@
     }
 
     matches.forEach(m => {
-      const existPick = picks[m.id] || { homeScore: '', awayScore: '' };
-      const currentAwayVal = currentInputs[`away_${m.id}`] !== undefined ? currentInputs[`away_${m.id}`] : existPick.awayScore;
-      const currentHomeVal = currentInputs[`home_${m.id}`] !== undefined ? currentInputs[`home_${m.id}`] : existPick.homeScore;
+      const existPick = picks[m.id] || { homeScore: 0, awayScore: 0 };
+      const currentAwayVal = currentInputs[`away_${m.id}`] !== undefined ? currentInputs[`away_${m.id}`] : (existPick.awayScore !== '' && existPick.awayScore !== undefined ? existPick.awayScore : 0);
+      const currentHomeVal = currentInputs[`home_${m.id}`] !== undefined ? currentInputs[`home_${m.id}`] : (existPick.homeScore !== '' && existPick.homeScore !== undefined ? existPick.homeScore : 0);
 
       const isLive = m.status === 'in';
       const isDone = m.completed;
@@ -294,12 +326,13 @@
         const exact = pickH === m.homeScore && pickA === m.awayScore;
         const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
         const pickWin = pickH > pickA ? 'home' : pickA > pickH ? 'away' : 'draw';
-        if (exact) { statusClass = 'q-match-green'; statusLabel = '🎯 ¡Marcador Exacto! (+3 pts)'; }
-        else if (realWin === pickWin) { statusClass = 'q-match-yellow'; statusLabel = '✓ Ganador Correcto (+1 pt)'; }
-        else { statusClass = 'q-match-red'; statusLabel = '✗ Marcador Incorrecto (0 pts)'; }
+        if (exact) { statusClass = 'q-match-green'; statusLabel = '🎯 Exacto (+3 pts)'; }
+        else if (realWin === pickWin) { statusClass = 'q-match-yellow'; statusLabel = '✓ Ganador (+1 pt)'; }
+        else { statusClass = 'q-match-red'; statusLabel = '✗ 0 pts'; }
       }
 
       const card = document.createElement('div');
+      card.id = `card_match_${m.id}`;
       card.className = `q-match-card ${statusClass}`;
       card.innerHTML = `
         <div class="q-match-header">
@@ -310,32 +343,46 @@
           <div style="display:flex; align-items:center; gap:6px;">
             ${isLive ? `<span class="badge danger" style="font-size:10px; animation: tvPulse 1s infinite;">🔴 EN VIVO ${m.statusStr ? '('+m.statusStr+')' : ''}</span>` : ''}
             ${isDone ? '<span class="badge" style="font-size:10px; background:rgba(255,255,255,0.1);">FINAL</span>' : ''}
-            ${statusLabel ? `<span style="font-weight:800; font-size:11px;">${statusLabel}</span>` : ''}
+            <span id="status_label_${m.id}" style="font-weight:800; font-size:11px;">${statusLabel}</span>
           </div>
         </div>
 
-        <div class="q-match-teams">
-          <!-- Away Team -->
-          <div class="q-match-team">
-            <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" class="q-match-logo" alt="${m.away}"/>
-            <span class="q-match-team-name">${m.away}</span>
-            ${hasScore ? `<span class="q-live-score ${m.awayScore > m.homeScore ? 'winning' : ''}">${m.awayScore}</span>` : ''}
+        <div class="q-match-row-horizontal">
+          <!-- Away Team (Left) -->
+          <div class="q-team-side q-team-away">
+            <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" class="q-team-row-logo" alt="${m.away}"/>
+            <div class="q-team-text-block">
+              <span class="q-team-row-name" title="${m.away}">${m.away}</span>
+              ${hasScore ? `<span class="q-row-live-badge ${m.awayScore > m.homeScore ? 'winning' : ''}">Marcador: ${m.awayScore}</span>` : ''}
+            </div>
           </div>
 
-          <!-- Score Inputs -->
-          <div class="q-score-inputs">
-            <input type="number" min="0" max="99" class="q-score-inp" id="pick_away_${m.id}"
-              value="${currentAwayVal}" placeholder="0" ${isDone ? 'readonly' : ''} />
-            <span class="q-score-dash">—</span>
-            <input type="number" min="0" max="99" class="q-score-inp" id="pick_home_${m.id}"
-              value="${currentHomeVal}" placeholder="0" ${isDone ? 'readonly' : ''} />
+          <!-- Steppers Widget (Center) -->
+          <div class="q-steppers-center">
+            <!-- Away Counter -->
+            <div class="q-counter-box">
+              <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', -1)" ${isDone ? 'disabled' : ''} title="Restar">−</button>
+              <input type="number" min="0" max="99" class="q-score-box" id="pick_away_${m.id}" value="${currentAwayVal}" readonly />
+              <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', 1)" ${isDone ? 'disabled' : ''} title="Sumar">+</button>
+            </div>
+
+            <span class="q-vs-separator">:</span>
+
+            <!-- Home Counter -->
+            <div class="q-counter-box">
+              <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'home', -1)" ${isDone ? 'disabled' : ''} title="Restar">−</button>
+              <input type="number" min="0" max="99" class="q-score-box" id="pick_home_${m.id}" value="${currentHomeVal}" readonly />
+              <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'home', 1)" ${isDone ? 'disabled' : ''} title="Sumar">+</button>
+            </div>
           </div>
 
-          <!-- Home Team -->
-          <div class="q-match-team q-match-team-home">
-            ${hasScore ? `<span class="q-live-score ${m.homeScore > m.awayScore ? 'winning' : ''}">${m.homeScore}</span>` : ''}
-            <span class="q-match-team-name">${m.home}</span>
-            <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" class="q-match-logo" alt="${m.home}"/>
+          <!-- Home Team (Right) -->
+          <div class="q-team-side q-team-home">
+            <div class="q-team-text-block text-right">
+              <span class="q-team-row-name" title="${m.home}">${m.home}</span>
+              ${hasScore ? `<span class="q-row-live-badge ${m.homeScore > m.awayScore ? 'winning' : ''}">Marcador: ${m.homeScore}</span>` : ''}
+            </div>
+            <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" class="q-team-row-logo" alt="${m.home}"/>
           </div>
         </div>
       `;
