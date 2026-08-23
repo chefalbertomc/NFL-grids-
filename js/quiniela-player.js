@@ -322,13 +322,6 @@
         statusBadge = `<span class="badge success" style="font-weight:800;">🟢 ABIERTA</span>`;
       }
 
-      // Extract unique logos for teams preview strip
-      const logos = [];
-      matches.forEach(m => {
-        if (m.awayLogo && !logos.includes(m.awayLogo)) logos.push(m.awayLogo);
-        if (m.homeLogo && !logos.includes(m.homeLogo)) logos.push(m.homeLogo);
-      });
-
       const card = document.createElement('div');
       card.className = 'q-catalog-card';
       card.innerHTML = `
@@ -349,26 +342,15 @@
             </span>
             ${isMine ? `<span class="badge accent" style="font-weight:900; background:rgba(255,209,0,0.18);">✅ Ya Participas</span>` : `<span class="badge" style="font-weight:700; color:var(--text-muted);">📝 Sin Pronosticar</span>`}
           </div>
-
-          <!-- Teams Logos Strip -->
-          ${logos.length > 0 ? `
-            <div class="q-catalog-teams-strip" title="Equipos participantes">
-              ${logos.slice(0, 8).map(src => `<img src="${src}" class="q-strip-logo" onerror="this.src='img/logo.jpg'" alt="Team"/>`).join('')}
-              ${logos.length > 8 ? `<span style="font-size:10px; color:var(--text-muted); font-weight:800; padding:0 4px;">+${logos.length - 8}</span>` : ''}
-            </div>
-          ` : ''}
         </div>
 
-        <!-- Card Actions (Enter Quiniela & Share) -->
-        <div class="q-catalog-actions" style="margin-top:12px;">
-          <button class="btn btn-primary" data-open-q="${q.id}" style="flex:1; padding:10px 14px; font-size:13px; font-weight:900; border-radius:10px;">
+        <!-- Card Actions (Enter Quiniela & 1 Single Share Button) -->
+        <div class="q-catalog-actions" style="margin-top:14px; display:flex; gap:8px;">
+          <button class="btn btn-primary" data-open-q="${q.id}" style="flex:1; padding:11px 14px; font-size:13px; font-weight:900; border-radius:10px;">
             ${isLocked ? '📊 Ver Resultados & Tabla' : '📝 Pronosticar Marcadores'}
           </button>
-          <button class="btn btn-secondary btn-whatsapp-share" data-share-q="${q.id}" style="width:auto; padding:10px 12px; font-size:13px; border-radius:10px;" title="Compartir en WhatsApp">
-            💬
-          </button>
-          <button class="btn btn-secondary" data-copy-q="${q.id}" style="width:auto; padding:10px 12px; font-size:13px; border-radius:10px;" title="Copiar enlace directo">
-            🔗
+          <button class="btn btn-secondary btn-whatsapp-share" data-share-q="${q.id}" style="width:auto; padding:11px 14px; font-size:13px; border-radius:10px; display:inline-flex; align-items:center; gap:6px;" title="Compartir en WhatsApp">
+            <span>💬</span>
           </button>
         </div>
       `;
@@ -379,6 +361,11 @@
     grid.querySelectorAll('[data-open-q]').forEach(btn => {
       btn.addEventListener('click', () => {
         const qId = btn.getAttribute('data-open-q');
+        const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+        if (!activeUser) {
+          window.requireUserAuth(() => openQuiniela(qId), '¡Inicia Sesión con Google!', 'Para ingresar a la quiniela, registrar tus pronósticos y competir en la tabla, inicia sesión con Google.');
+          return;
+        }
         openQuiniela(qId);
       });
     });
@@ -389,14 +376,6 @@
         const qId = btn.getAttribute('data-share-q');
         const q = allQuinielas.find(x => x.id === qId);
         if (q) shareQuinielaWhatsAppDirect(q);
-      });
-    });
-
-    grid.querySelectorAll('[data-copy-q]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const qId = btn.getAttribute('data-copy-q');
-        copyQuinielaLinkDirect(qId);
       });
     });
   }
@@ -411,6 +390,12 @@
   // Open single Quiniela view
   async function openQuiniela(quinielaId) {
     if (!db) return;
+    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    if (!activeUser) {
+      window.requireUserAuth(() => openQuiniela(quinielaId), '¡Inicia Sesión con Google!', 'Para entrar a la quiniela, guardar tus marcadores y seguir las posiciones en vivo, inicia sesión.');
+      return;
+    }
+
     const qObj = allQuinielas.find(x => x.id === quinielaId);
     if (!qObj) return;
 
