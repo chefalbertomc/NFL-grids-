@@ -1,4 +1,4 @@
-// Grids Module for Wings & Wins — Live Scoreboard & Unified Smart Cards (v64.0)
+// Grids Module for Wings & Wins — Authentic NFL TV Scorebug & Clean Smart Cards (v65.0)
 (function() {
   'use strict';
 
@@ -88,6 +88,7 @@
           scoreAway: d.scoreAway !== undefined ? d.scoreAway : null,
           quarter: d.quarter || d.periodName || '',
           clock: d.clock || '',
+          periodName: d.periodName || '',
           kickoff: d.kickoff || d.gameDate || d.date || ''
         });
 
@@ -174,42 +175,57 @@
       const isApproved = reg && (reg.status === 'approved' || !!reg.approved);
       const isPending = reg && !isApproved;
 
-      // Live status variables
+      // Team visuals from team-logos.js
+      const awayInfo = window.getTeamInfo ? window.getTeamInfo(g.away) : { abbr: g.away.substring(0,3).toUpperCase(), color: '#003594', logo: 'img/logo.jpg' };
+      const homeInfo = window.getTeamInfo ? window.getTeamInfo(g.home) : { abbr: g.home.substring(0,3).toUpperCase(), color: '#97233F', logo: 'img/logo.jpg' };
+
+      const awayAbbr = awayInfo.abbr ? awayInfo.abbr.toUpperCase() : g.away.substring(0,3).toUpperCase();
+      const homeAbbr = homeInfo.abbr ? homeInfo.abbr.toUpperCase() : g.home.substring(0,3).toUpperCase();
+      const awayLogo = awayInfo.logo || 'img/logo.jpg';
+      const homeLogo = homeInfo.logo || 'img/logo.jpg';
+      const awayColor = awayInfo.color || '#162238';
+      const homeColor = homeInfo.color || '#381622';
+
+      // Scores & Status
       const isLive = g.isLive || (g.quarter && (g.quarter.includes('Q') || g.quarter.toLowerCase().includes('medio') || g.quarter.toLowerCase().includes('cuarto')));
       const isDone = g.isDone || (g.quarter && g.quarter.toLowerCase().includes('final'));
-      const hasScores = g.scoreHome !== null && g.scoreAway !== null;
+      const sAway = g.scoreAway !== null && g.scoreAway !== undefined ? g.scoreAway : 0;
+      const sHome = g.scoreHome !== null && g.scoreHome !== undefined ? g.scoreHome : 0;
+
+      let centerQuarter = 'POR INICIAR';
+      let centerClock = '';
+      let centerSub = g.kickoff || 'PREVIA';
+
+      if (isDone) {
+        centerQuarter = 'FINAL';
+        centerClock = '0:00';
+        centerSub = 'FINAL DEL JUEGO';
+      } else if (isLive) {
+        centerQuarter = g.quarter ? g.quarter.toUpperCase() : 'EN VIVO';
+        centerClock = g.clock || '';
+        centerSub = g.periodName ? g.periodName.toUpperCase() : 'EN JUEGO';
+      }
 
       const card = document.createElement('div');
       card.className = 'card';
-      card.style.padding = '16px 18px';
-      card.style.margin = '0 0 14px 0';
+      card.style.padding = '14px 16px';
+      card.style.margin = '0 0 16px 0';
       card.style.borderRadius = '18px';
-      card.style.boxShadow = '0 6px 20px rgba(0,0,0,0.4)';
+      card.style.boxShadow = '0 8px 24px rgba(0,0,0,0.5)';
       card.style.transition = 'all 0.25s ease';
 
       if (isApproved) {
         card.style.border = '2px solid #00e676';
-        card.style.background = 'linear-gradient(145deg, rgba(14,28,18,0.95), rgba(8,16,11,0.98))';
+        card.style.background = 'linear-gradient(145deg, rgba(12,24,16,0.96), rgba(8,16,11,0.98))';
       } else if (isPending) {
         card.style.border = '2px solid #ffc107';
-        card.style.background = 'linear-gradient(145deg, rgba(32,25,12,0.95), rgba(18,14,7,0.98))';
+        card.style.background = 'linear-gradient(145deg, rgba(28,22,10,0.96), rgba(16,12,6,0.98))';
       } else if (isSelected) {
         card.style.border = '2px solid var(--accent-color)';
         card.style.background = 'rgba(255,209,0,0.06)';
       } else {
         card.style.border = '1px solid var(--border-color)';
         card.style.background = 'var(--card-bg-hover)';
-      }
-
-      // Live Status Header Badge
-      let statusBadge = '';
-      if (isLive) {
-        const clockStr = g.clock ? `(${g.clock} ${g.quarter || ''})` : `(${g.quarter || 'EN VIVO'})`;
-        statusBadge = `<span class="badge danger" style="background:#ff4444; color:#fff; font-weight:900; animation: tvPulse 1s infinite; font-size:11px; padding:3px 8px; border-radius:10px;">🔴 EN VIVO ${clockStr}</span>`;
-      } else if (isDone) {
-        statusBadge = `<span class="badge" style="background:rgba(255,255,255,0.12); color:#aaa; font-weight:800; font-size:11px; padding:3px 8px;">🏁 FINAL</span>`;
-      } else {
-        statusBadge = `<span class="badge" style="background:rgba(255,255,255,0.06); font-weight:700; font-size:11px; padding:3px 8px; color:var(--text-muted);">🕒 ${g.kickoff || 'Por Iniciar'}</span>`;
       }
 
       // Middle Badges Strip (CLEAN & NON-REPETITIVE)
@@ -268,38 +284,42 @@
       }
 
       card.innerHTML = `
-        <!-- Card Top: Matchup, Live Scores & Status -->
-        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap; flex: 1;">
-            <!-- Away Team -->
-            <div style="display: inline-flex; align-items: center; gap: 6px;">
-              <img src="${window.getTeamLogoURL(g.away)}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width: 30px; height: 30px; object-fit: contain;" alt="${g.away}"/>
-              <span style="font-weight: 900; font-size: 16px; color: #fff;">${g.away}</span>
-              ${hasScores ? `<span class="badge" style="font-size:15px; font-weight:900; background:rgba(255,255,255,0.12); color:#ffd100; padding:2px 8px; border-radius:8px;">${g.scoreAway}</span>` : ''}
+        <!-- NFL TV Broadcast Scorebug Header (Exact Styling) -->
+        <div class="tv-scorebug-main" style="margin-bottom: 12px; border-radius: 12px;">
+          <!-- Away Team Wing: [Logo] [Abbr] [Score] -->
+          <div class="tv-team-wing tv-away" style="--team-bg: ${awayColor};">
+            <div class="tv-team-logo-frame">
+              <img src="${awayLogo}" onerror="this.onerror=null;this.src='img/logo.jpg'" alt="${g.away}" />
             </div>
-
-            <span style="font-size: 13px; color: var(--text-muted); font-weight: 900;">@</span>
-
-            <!-- Home Team -->
-            <div style="display: inline-flex; align-items: center; gap: 6px;">
-              <img src="${window.getTeamLogoURL(g.home)}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width: 30px; height: 30px; object-fit: contain;" alt="${g.home}"/>
-              <span style="font-weight: 900; font-size: 16px; color: #fff;">${g.home}</span>
-              ${hasScores ? `<span class="badge" style="font-size:15px; font-weight:900; background:rgba(255,255,255,0.12); color:#ffd100; padding:2px 8px; border-radius:8px;">${g.scoreHome}</span>` : ''}
-            </div>
+            <span class="tv-team-abbr-huge">${awayAbbr}</span>
+            <div class="tv-team-score">${sAway}</div>
           </div>
 
-          <!-- Top Right Live / Kickoff Badge -->
-          <div>
-            ${statusBadge}
+          <!-- Center Segment: [Quarter Clock] [Period Description] -->
+          <div class="tv-center-segment">
+            <div class="tv-clock-quarter">
+              <span class="tv-quarter-text">${centerQuarter}</span>
+              ${centerClock ? `<span class="tv-clock-text">${centerClock}</span>` : ''}
+            </div>
+            <span class="tv-situation-bar" style="text-transform: uppercase;">${centerSub}</span>
+          </div>
+
+          <!-- Home Team Wing: [Score] [Abbr] [Logo] -->
+          <div class="tv-team-wing tv-home" style="--team-bg: ${homeColor};">
+            <div class="tv-team-score">${sHome}</div>
+            <span class="tv-team-abbr-huge">${homeAbbr}</span>
+            <div class="tv-team-logo-frame">
+              <img src="${homeLogo}" onerror="this.onerror=null;this.src='img/logo.jpg'" alt="${g.home}" />
+            </div>
           </div>
         </div>
 
-        <!-- Card Middle: Badges Strip -->
-        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 14px;">
+        <!-- Middle: Badges Strip -->
+        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
           ${badgesHtml}
         </div>
 
-        <!-- Card Bottom: Action Button & WhatsApp Share -->
+        <!-- Bottom: Action Button & WhatsApp Share -->
         <div style="display: flex; gap: 8px; align-items: center;">
           ${actionButtonHtml}
           <button class="btn btn-secondary" data-share-code="${g.code}" title="Compartir enlace por WhatsApp" style="width: auto; padding: 12px 14px; font-size: 13px; background: rgba(37,211,102,0.14); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 4px; border-radius: 12px; flex-shrink: 0; font-weight: 900;">
@@ -381,10 +401,11 @@
           g.isDone = completed || state === 'post';
           g.quarter = statusText;
           g.clock = clock;
+          g.periodName = ev.status?.type?.description || '';
 
           if (ev.date && !g.kickoff) {
             const d = new Date(ev.date);
-            g.kickoff = `${d.toLocaleDateString('es-MX', { weekday: 'short' })} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} hrs`;
+            g.kickoff = `${d.toLocaleDateString('es-MX', { weekday: 'short' }).toUpperCase()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} HRS`;
           }
 
           changed = true;
