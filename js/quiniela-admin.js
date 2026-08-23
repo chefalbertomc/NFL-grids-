@@ -1,4 +1,4 @@
-// Quiniela & Pick'em Admin Module — Wings & Wins v53 (Sport-Isolated Real-Time Engine)
+// Quiniela & Pick'em Admin Module — Wings & Wins v54
 (function () {
   'use strict';
 
@@ -27,7 +27,7 @@
     'ncaab':            { group: "🏈 ⚾ 🏀 PICK'EM (US Sports)", sport: 'basketball', slug: 'mens-college-basketball', label: '🎓 NCAA Basketball' },
   };
 
-  let qSelectedMatches = {}; // Persists across searches
+  let qSelectedMatches = {};
   let activeQuinielaId = null;
 
   function initQAdmin() {
@@ -432,10 +432,17 @@
     hr.innerHTML = `<th style="text-align:left; padding:10px 12px; min-width:120px;">Jugador</th>` +
       matches.map(m => {
         const isLive = m.status === 'in';
+        const isDone = m.completed || m.status === 'post';
         const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
-        let scoreHtml = '<span style="font-size:9px; color:var(--text-muted);">PENDIENTE</span>';
-        if (hasScore) {
-          scoreHtml = `<span style="font-size:10px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore} ${isLive ? '🔴' : ''}</span>`;
+
+        let scoreHtml = '<span style="font-size:9px; color:var(--text-muted); font-weight:700;">PENDIENTE</span>';
+        if (isLive && hasScore) {
+          scoreHtml = `<div style="background:rgba(255,68,68,0.25); border:1px solid #ff4444; border-radius:6px; padding:2px 4px; margin-top:2px;">
+            <span style="font-size:11px; font-weight:900; color:#ff4444;">🔴 ${m.awayScore}-${m.homeScore}</span>
+            <div style="font-size:8px; color:#fff; font-weight:800;">${m.statusStr || 'EN VIVO'}</div>
+          </div>`;
+        } else if (hasScore) {
+          scoreHtml = `<span style="font-size:11px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore}</span><div style="font-size:8px; color:var(--text-muted);">FINAL</div>`;
         }
 
         return `<th style="text-align:center; padding:6px; min-width:90px;">
@@ -445,7 +452,7 @@
               <span style="font-size:9px; font-weight:700;">vs</span>
               <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:20px; height:20px; object-fit:contain;"/>
             </div>
-            <span style="font-size:9px; color:var(--text-muted);">${m.awayAbbr || m.away.substring(0,3)} v ${m.homeAbbr || m.home.substring(0,3)}</span>
+            <span style="font-size:9px; color:var(--text-muted); font-weight:800;">${m.awayAbbr || m.away.substring(0,3)} v ${m.homeAbbr || m.home.substring(0,3)}</span>
             ${scoreHtml}
           </div>
         </th>`;
@@ -483,7 +490,7 @@
   }
 
   function detectSport(m) {
-    if (m.sport) return m.sport;
+    if (m.sport && m.sport !== 'mixed') return m.sport;
     const label = (m.leagueLabel || '').toLowerCase();
     if (label.includes('nfl') || label.includes('ncaa football') || label.includes('football')) return 'football';
     if (label.includes('mlb') || label.includes('beisbol') || label.includes('baseball')) return 'baseball';
@@ -502,6 +509,14 @@
       const q = snap.data() || {};
       const matches = q.matches || [];
 
+      const today = new Date();
+      const start = new Date();
+      start.setDate(today.getDate() - 2);
+      const end = new Date();
+      end.setDate(today.getDate() + 21);
+      const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+      const dateParam = `dates=${fmt(start)}-${fmt(end)}&limit=100`;
+
       const endpoints = [
         { sport: 'soccer', slug: 'mex.1' },
         { sport: 'soccer', slug: 'eng.1' },
@@ -518,7 +533,7 @@
 
       const eventsBySport = {};
       const fetchPromises = endpoints.map(ep => 
-        fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?limit=100`)
+        fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?${dateParam}`)
           .then(r => r.json())
           .then(data => {
             if (data && data.events) {
@@ -557,21 +572,24 @@
           });
         }
 
-        if (!ev) return m;
-
-        const comps = ev.competitions?.[0]?.competitors || [];
-        const homeC = comps.find(c => c.homeAway === 'home') || comps[1] || {};
-        const awayC = comps.find(c => c.homeAway === 'away') || comps[0] || {};
-        const completed = !!ev.status?.type?.completed;
-        const state = ev.status?.type?.state || 'pre';
-        const statusStr = ev.status?.type?.shortDetail || '';
-
         let newHomeScore = null;
         let newAwayScore = null;
+        let state = 'pre';
+        let statusStr = '';
+        let completed = false;
 
-        if (state === 'in' || state === 'post' || completed) {
-          newHomeScore = (homeC && homeC.score !== undefined && homeC.score !== null) ? parseInt(homeC.score, 10) : null;
-          newAwayScore = (awayC && awayC.score !== undefined && awayC.score !== null) ? parseInt(awayC.score, 10) : null;
+        if (ev) {
+          const comps = ev.competitions?.[0]?.competitors || [];
+          const homeC = comps.find(c => c.homeAway === 'home') || comps[1] || {};
+          const awayC = comps.find(c => c.homeAway === 'away') || comps[0] || {};
+          completed = !!ev.status?.type?.completed;
+          state = ev.status?.type?.state || 'pre';
+          statusStr = ev.status?.type?.shortDetail || '';
+
+          if (state === 'in' || state === 'post' || completed) {
+            newHomeScore = (homeC && homeC.score !== undefined && homeC.score !== null) ? parseInt(homeC.score, 10) : null;
+            newAwayScore = (awayC && awayC.score !== undefined && awayC.score !== null) ? parseInt(awayC.score, 10) : null;
+          }
         }
 
         updated++;

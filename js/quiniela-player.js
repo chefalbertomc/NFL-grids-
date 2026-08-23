@@ -1,10 +1,10 @@
-// Quiniela & Pick'em Player Module — Wings & Wins v53 (Sport-Isolated Real-Time Engine)
+// Quiniela & Pick'em Player Module — Wings & Wins v54 (Live Score Engine & Prominent En Vivo Badges)
 (function () {
   'use strict';
 
   let db = null;
   let activeQuiniela = null;
-  let picks = {}; // { matchId: { homeScore, awayScore } }
+  let picks = {};
   let playerName = '';
   let liveUnsubscribe = null;
   let standingsUnsubscribe = null;
@@ -122,8 +122,9 @@
       renderLiveStandings(snap, activeQuiniela.matches || []);
     }, err => console.error('[QPlayer] standings error:', err));
 
+    // Instant sync & background loop every 12s
     syncESPNLiveScores(quinielaId);
-    autoSyncInterval = setInterval(() => syncESPNLiveScores(quinielaId), 15000);
+    autoSyncInterval = setInterval(() => syncESPNLiveScores(quinielaId), 12000);
   }
 
   function norm(str) {
@@ -134,9 +135,8 @@
       .replace(/[^a-z0-9]/g, '');
   }
 
-  // Detect sport from match attributes
   function detectSport(m) {
-    if (m.sport) return m.sport;
+    if (m.sport && m.sport !== 'mixed') return m.sport;
     const label = (m.leagueLabel || '').toLowerCase();
     if (label.includes('nfl') || label.includes('ncaa football') || label.includes('football')) return 'football';
     if (label.includes('mlb') || label.includes('beisbol') || label.includes('baseball')) return 'baseball';
@@ -144,7 +144,6 @@
     return 'soccer';
   }
 
-  // Background ESPN Live Score fetcher strictly isolated by sport
   async function syncESPNLiveScores(quinielaId) {
     if (!db || !quinielaId) return;
     try {
@@ -153,6 +152,15 @@
       if (!snap.exists) return;
       const q = snap.data();
       const matches = q.matches || [];
+
+      // Build date window from -2 days to +21 days so all matches (past, live, upcoming) are found
+      const today = new Date();
+      const start = new Date();
+      start.setDate(today.getDate() - 2);
+      const end = new Date();
+      end.setDate(today.getDate() + 21);
+      const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+      const dateParam = `dates=${fmt(start)}-${fmt(end)}&limit=100`;
 
       const endpoints = [
         { sport: 'soccer', slug: 'mex.1' },
@@ -168,10 +176,9 @@
         { sport: 'basketball', slug: 'nba' },
       ];
 
-      // Store events grouped strictly by sport
       const eventsBySport = {};
       const fetchPromises = endpoints.map(ep => 
-        fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?limit=100`)
+        fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?${dateParam}`)
           .then(r => r.json())
           .then(data => {
             if (data && data.events) {
@@ -189,13 +196,13 @@
         const matchSport = detectSport(m);
         const candidateEvents = eventsBySport[matchSport] || [];
 
-        // 1. Try exact ID match within candidate events
+        // Match by ESPN Event ID within the same sport
         let ev = null;
         if (m.espnEventId) {
           ev = candidateEvents.find(e => String(e.id) === String(m.espnEventId));
         }
 
-        // 2. Fallback: match by home AND away team names strictly within the same sport
+        // Fallback match by team names strictly within the same sport
         if (!ev) {
           const mHome = norm(m.home);
           const mAway = norm(m.away);
@@ -212,23 +219,24 @@
           });
         }
 
-        // If no matching live event found in today's scoreboard, keep existing or set pending if scheduled
-        if (!ev) return m;
-
-        const comps = ev.competitions?.[0]?.competitors || [];
-        const homeC = comps.find(c => c.homeAway === 'home') || comps[1] || {};
-        const awayC = comps.find(c => c.homeAway === 'away') || comps[0] || {};
-        const completed = !!ev.status?.type?.completed;
-        const state = ev.status?.type?.state || 'pre';
-        const statusStr = ev.status?.type?.shortDetail || '';
-
-        // If match hasn't started yet (pre / scheduled), score is null!
         let newHomeScore = null;
         let newAwayScore = null;
+        let state = 'pre';
+        let statusStr = '';
+        let completed = false;
 
-        if (state === 'in' || state === 'post' || completed) {
-          newHomeScore = (homeC && homeC.score !== undefined && homeC.score !== null) ? parseInt(homeC.score, 10) : null;
-          newAwayScore = (awayC && awayC.score !== undefined && awayC.score !== null) ? parseInt(awayC.score, 10) : null;
+        if (ev) {
+          const comps = ev.competitions?.[0]?.competitors || [];
+          const homeC = comps.find(c => c.homeAway === 'home') || comps[1] || {};
+          const awayC = comps.find(c => c.homeAway === 'away') || comps[0] || {};
+          completed = !!ev.status?.type?.completed;
+          state = ev.status?.type?.state || 'pre';
+          statusStr = ev.status?.type?.shortDetail || '';
+
+          if (state === 'in' || state === 'post' || completed) {
+            newHomeScore = (homeC && homeC.score !== undefined && homeC.score !== null) ? parseInt(homeC.score, 10) : null;
+            newAwayScore = (awayC && awayC.score !== undefined && awayC.score !== null) ? parseInt(awayC.score, 10) : null;
+          }
         }
 
         if (newHomeScore !== m.homeScore || newAwayScore !== m.awayScore || state !== m.status || statusStr !== m.statusStr) {
@@ -246,7 +254,6 @@
         };
       });
 
-      // Update in-memory activeQuiniela immediately for zero-delay UI update
       if (activeQuiniela && activeQuiniela.id === quinielaId) {
         activeQuiniela.matches = updatedMatches;
         renderPicksForm(activeQuiniela);
@@ -255,12 +262,11 @@
         }
       }
 
-      // Persist to Firestore if changed
       if (hasChanges) {
         try {
           await qRef.update({ matches: updatedMatches, lastSync: Date.now() });
         } catch (errWrite) {
-          console.log('[QPlayer] Local live sync active (Firestore write skipped/guest):', errWrite);
+          console.log('[QPlayer] Live sync in-memory active (Firestore guest write skipped):', errWrite);
         }
       }
     } catch (e) {
@@ -329,10 +335,9 @@
       const currentHomeVal = currentInputs[`home_${m.id}`] !== undefined ? currentInputs[`home_${m.id}`] : (existPick.homeScore !== '' && existPick.homeScore !== undefined ? existPick.homeScore : 0);
 
       const isLive = m.status === 'in';
-      const isDone = m.completed;
+      const isDone = m.completed || m.status === 'post';
       const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
 
-      // Determine cell color from existing pick vs real score
       let statusClass = '';
       let statusLabel = '';
       if (hasScore && currentHomeVal !== '' && currentAwayVal !== '') {
@@ -356,7 +361,7 @@
             <span style="font-size:11px; color:var(--text-muted);">${m.date || ''}</span>
           </div>
           <div style="display:flex; align-items:center; gap:6px;">
-            ${isLive ? `<span class="badge danger" style="font-size:10px; animation: tvPulse 1s infinite;">🔴 EN VIVO ${m.statusStr ? '('+m.statusStr+')' : ''}</span>` : ''}
+            ${isLive ? `<span class="badge danger" style="font-size:11px; font-weight:900; background:#ff4444; color:#fff; padding:3px 8px; border-radius:12px; animation: tvPulse 1s infinite;">🔴 EN VIVO ${m.statusStr ? '('+m.statusStr+')' : ''}</span>` : ''}
             ${isDone ? '<span class="badge" style="font-size:10px; background:rgba(255,255,255,0.1);">FINAL</span>' : ''}
             <span id="status_label_${m.id}" style="font-weight:800; font-size:11px;">${statusLabel}</span>
           </div>
@@ -368,7 +373,7 @@
             <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" class="q-team-row-logo" alt="${m.away}"/>
             <div class="q-team-text-block">
               <span class="q-team-row-name" title="${m.away}">${m.away}</span>
-              ${hasScore ? `<span class="q-row-live-badge ${m.awayScore > m.homeScore ? 'winning' : ''}">Marcador: ${m.awayScore}</span>` : ''}
+              ${hasScore ? `<span class="q-row-live-badge ${m.awayScore > m.homeScore ? 'winning' : ''}">${isLive ? '🔴 ' : ''}Marcador: ${m.awayScore}</span>` : ''}
             </div>
           </div>
 
@@ -395,7 +400,7 @@
           <div class="q-team-side q-team-home">
             <div class="q-team-text-block text-right">
               <span class="q-team-row-name" title="${m.home}">${m.home}</span>
-              ${hasScore ? `<span class="q-row-live-badge ${m.homeScore > m.awayScore ? 'winning' : ''}">Marcador: ${m.homeScore}</span>` : ''}
+              ${hasScore ? `<span class="q-row-live-badge ${m.homeScore > m.awayScore ? 'winning' : ''}">${isLive ? '🔴 ' : ''}Marcador: ${m.homeScore}</span>` : ''}
             </div>
             <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" class="q-team-row-logo" alt="${m.home}"/>
           </div>
@@ -500,9 +505,14 @@
         const isDone = m.completed || m.status === 'post';
         const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
 
-        let scoreHtml = '<span style="font-size:9px; color:var(--text-muted);">PENDIENTE</span>';
-        if (hasScore) {
-          scoreHtml = `<span style="font-size:11px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore} ${isLive ? '🔴' : ''}</span>`;
+        let scoreHtml = '<span style="font-size:9px; color:var(--text-muted); font-weight:700;">PENDIENTE</span>';
+        if (isLive && hasScore) {
+          scoreHtml = `<div style="background:rgba(255,68,68,0.25); border:1px solid #ff4444; border-radius:6px; padding:2px 4px; margin-top:2px;">
+            <span style="font-size:11px; font-weight:900; color:#ff4444; animation: tvPulse 1s infinite;">🔴 ${m.awayScore}-${m.homeScore}</span>
+            <div style="font-size:8px; color:#fff; font-weight:800;">${m.statusStr || 'EN VIVO'}</div>
+          </div>`;
+        } else if (hasScore) {
+          scoreHtml = `<span style="font-size:11px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore}</span><div style="font-size:8px; color:var(--text-muted);">FINAL</div>`;
         }
 
         return `<th style="text-align:center; padding:6px; min-width:85px;">
@@ -512,7 +522,7 @@
               <span style="font-size:9px;">vs</span>
               <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:18px;height:18px;object-fit:contain;"/>
             </div>
-            <span style="font-size:9px; color:var(--text-muted);">${m.awayAbbr || m.away.substring(0,3)} v ${m.homeAbbr || m.home.substring(0,3)}</span>
+            <span style="font-size:9px; color:var(--text-muted); font-weight:800;">${m.awayAbbr || m.away.substring(0,3)} v ${m.homeAbbr || m.home.substring(0,3)}</span>
             ${scoreHtml}
           </div>
         </th>`;
