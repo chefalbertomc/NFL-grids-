@@ -1,4 +1,4 @@
-// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v76.0)
+// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v77.0)
 (function() {
   'use strict';
 
@@ -8,17 +8,6 @@
 
   const authCallbacks = [];
   let pendingAuthAction = null;
-
-  const AVATAR_PRESETS = [
-    { name: '🏈 Balón', url: 'https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=150&auto=format&fit=crop&q=80' },
-    { name: '🏆 Trofeo', url: 'https://images.unsplash.com/photo-1578269174936-2709b6aeb913?w=150&auto=format&fit=crop&q=80' },
-    { name: '🍺 Cerveza', url: 'https://images.unsplash.com/photo-1608270199182-3d75fb513a96?w=150&auto=format&fit=crop&q=80' },
-    { name: '🍗 Alitas', url: 'https://images.unsplash.com/photo-1567620832903-9fc6debc209f?w=150&auto=format&fit=crop&q=80' },
-    { name: '🛡️ Casco', url: 'https://images.unsplash.com/photo-1587280501635-68a0e82cd5ff?w=150&auto=format&fit=crop&q=80' },
-    { name: '🔥 Fuego', url: 'https://images.unsplash.com/photo-1520110120835-c965c4731b84?w=150&auto=format&fit=crop&q=80' },
-    { name: '👑 Corona', url: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=150&auto=format&fit=crop&q=80' },
-    { name: '🎯 Diana', url: 'https://images.unsplash.com/photo-1511193311914-0346f16efe90?w=150&auto=format&fit=crop&q=80' }
-  ];
 
   window.onAuthChange = function(cb) {
     if (typeof cb === 'function') {
@@ -149,8 +138,8 @@
           <div style="font-size:11px; color:var(--text-muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${email}</div>
         </div>
       </div>
-      <button type="button" class="user-profile-menu-item" onclick="window.openAvatarPickerModal(event)">
-        📷 Cambiar Foto / Avatar
+      <button type="button" class="user-profile-menu-item" onclick="window.openPhotoUploaderModal(event)">
+        📷 Cambiar Foto de Perfil
       </button>
       <button type="button" class="user-profile-menu-item danger" onclick="window.logoutUser(event)">
         🚪 Cerrar Sesión
@@ -196,46 +185,46 @@
     }
   };
 
-  // --- Global Avatar Picker Modal ---
-  window.openAvatarPickerModal = function(e) {
+  // --- Real Photo Uploader / Camera & Gallery Picker Modal ---
+  let tempCroppedPhotoData = null;
+
+  window.openPhotoUploaderModal = function(e) {
     if (e) e.stopPropagation();
     const menu = document.getElementById('userProfileMenuDropdown');
     if (menu) menu.remove();
 
-    let modal = document.getElementById('avatarPickerModalGlobal');
+    let modal = document.getElementById('photoUploaderModalGlobal');
     if (!modal) {
       modal = document.createElement('div');
-      modal.id = 'avatarPickerModalGlobal';
+      modal.id = 'photoUploaderModalGlobal';
       modal.className = 'login-modal-overlay';
       modal.innerHTML = `
-        <div class="login-modal-card" style="max-width: 420px; text-align: left;">
+        <div class="login-modal-card" style="max-width: 400px; text-align: center;">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h3 style="margin:0; font-size:16px; font-weight:900; color:#ffd100;">📷 Elige tu Foto / Avatar</h3>
-            <button type="button" class="login-modal-close" onclick="document.getElementById('avatarPickerModalGlobal').style.display='none'">✕</button>
+            <h3 style="margin:0; font-size:16px; font-weight:900; color:#ffd100;">📷 Cambiar Foto de Perfil</h3>
+            <button type="button" class="login-modal-close" onclick="document.getElementById('photoUploaderModalGlobal').style.display='none'">✕</button>
           </div>
-          <p style="font-size:12px; color:var(--text-muted); margin-bottom:14px;">Esta imagen aparecerá en tu perfil y dentro de tus casillas en el tablero.</p>
+          <p style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Sube cualquier foto desde tu galería o cámara para tus casillas.</p>
 
-          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px; padding:10px; background:rgba(255,255,255,0.04); border-radius:12px; border:1px solid rgba(255,255,255,0.1);">
-            <img id="avatarGlobalCurrentPreview" src="img/logo.jpg" alt="Preview" style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid #ffd100;" />
-            <div>
-              <div style="font-size:13px; font-weight:800; color:#ffffff;" id="avatarGlobalPreviewNick">Mi Avatar</div>
-              <div style="font-size:11px; color:var(--text-muted);">Foto activa en tu cuenta</div>
-            </div>
+          <!-- Photo Circular Preview Frame -->
+          <div style="position:relative; width:90px; height:90px; margin:0 auto 16px auto;">
+            <img id="photoUploadPreviewImg" src="img/logo.jpg" alt="Preview" style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:3px solid #ffd100; box-shadow:0 0 16px rgba(255,209,0,0.4);" />
           </div>
 
-          <div style="font-size:11px; font-weight:800; color:#ffd100; text-transform:uppercase; margin-bottom:8px;">Avatars Disponibles:</div>
-          <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:8px; margin-bottom:16px;" id="avatarGlobalPresetsGrid"></div>
+          <!-- Hidden File Input -->
+          <input type="file" id="inpPhotoFileInput" accept="image/*" style="display:none;" onchange="window.handlePhotoFileSelected(event)" />
 
-          <div class="form-group" style="margin-bottom:14px;">
-            <label style="font-size:11px; font-weight:700; color:var(--text-muted);">O pega un enlace de imagen (URL):</label>
-            <input type="url" id="inpGlobalCustomAvatarUrl" placeholder="https://ejemplo.com/mifoto.jpg" style="font-size:12px; padding:8px 10px; border-radius:8px;" />
-          </div>
+          <!-- Action Button: Choose Photo from Gallery / Camera -->
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('inpPhotoFileInput').click()" style="width:100%; padding:12px; font-size:13px; font-weight:900; border-radius:12px; background:rgba(255,255,255,0.08); border:1.5px solid rgba(255,255,255,0.25); color:#ffffff; display:inline-flex; align-items:center; justify-content:center; gap:8px; margin-bottom:14px;">
+            📁 Elegir Foto de mi Celular o Cámara
+          </button>
 
+          <!-- Save and Restore Buttons -->
           <div style="display:flex; gap:8px;">
-            <button type="button" class="btn btn-primary" onclick="window.saveGlobalCustomAvatar()" style="flex:1; padding:10px; font-size:13px; font-weight:900; border-radius:10px;">
-              💾 Guardar Avatar
+            <button type="button" id="btnSaveUploadedPhoto" class="btn btn-primary" onclick="window.saveUploadedPhoto()" style="flex:1; padding:11px; font-size:13px; font-weight:900; border-radius:10px;">
+              💾 Guardar Mi Foto
             </button>
-            <button type="button" class="btn btn-secondary" onclick="window.resetGlobalToGoogleAvatar()" style="width:auto; padding:10px 12px; font-size:12px; font-weight:800; border-radius:10px;" title="Restaurar foto original de Google">
+            <button type="button" class="btn btn-secondary" onclick="window.resetToGooglePhoto()" style="width:auto; padding:11px 14px; font-size:12px; font-weight:800; border-radius:10px;" title="Restaurar foto original de Google">
               Google
             </button>
           </div>
@@ -246,66 +235,92 @@
 
     const user = window.currentUser;
     const currentPhoto = getUserActivePhoto(user);
-    const previewImg = document.getElementById('avatarGlobalCurrentPreview');
-    const previewNick = document.getElementById('avatarGlobalPreviewNick');
-    const presetsGrid = document.getElementById('avatarGlobalPresetsGrid');
-    const inpUrl = document.getElementById('inpGlobalCustomAvatarUrl');
-
+    const previewImg = document.getElementById('photoUploadPreviewImg');
     if (previewImg) previewImg.src = currentPhoto;
-    if (previewNick) previewNick.textContent = (user && user.displayName) || 'Mi Avatar';
-    if (inpUrl) inpUrl.value = '';
-
-    if (presetsGrid) {
-      presetsGrid.innerHTML = '';
-      AVATAR_PRESETS.forEach(p => {
-        const item = document.createElement('div');
-        item.style.cssText = 'text-align:center; cursor:pointer; padding:6px; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid rgba(255,255,255,0.08); transition:all 0.2s;';
-        item.innerHTML = `
-          <img src="${p.url}" alt="${p.name}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1.5px solid rgba(255,255,255,0.2);" />
-          <div style="font-size:9.5px; color:var(--text-muted); margin-top:4px; font-weight:700;">${p.name}</div>
-        `;
-        item.addEventListener('click', () => {
-          if (previewImg) previewImg.src = p.url;
-          if (inpUrl) inpUrl.value = p.url;
-        });
-        presetsGrid.appendChild(item);
-      });
-    }
+    tempCroppedPhotoData = null;
 
     modal.style.display = 'flex';
   };
 
-  window.saveGlobalCustomAvatar = async function() {
-    const previewImg = document.getElementById('avatarGlobalCurrentPreview');
-    const inpUrl = document.getElementById('inpGlobalCustomAvatarUrl');
-    const chosenUrl = (inpUrl && inpUrl.value.trim()) || (previewImg ? previewImg.src : '');
+  // Image compressor & reader
+  window.handlePhotoFileSelected = function(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
 
-    if (!chosenUrl) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      const img = new Image();
+      img.onload = function() {
+        // Resize & compress on Canvas to max 160x160
+        const canvas = document.createElement('canvas');
+        const size = 160;
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
 
-    localStorage.setItem('user_custom_avatar', chosenUrl);
+        // Center crop
+        const minDim = Math.min(img.width, img.height);
+        const sx = (img.width - minDim) / 2;
+        const sy = (img.height - minDim) / 2;
 
-    const userAvatar = document.getElementById('userAvatar');
-    if (userAvatar) userAvatar.src = chosenUrl;
+        ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, size, size);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
 
-    const modal = document.getElementById('avatarPickerModalGlobal');
-    if (modal) modal.style.display = 'none';
-
-    // If on player-view.html, update in Firestore
-    const params = new URLSearchParams(window.location.search);
-    const code = (params.get('code') || params.get('game') || '').toUpperCase();
-    const user = window.currentUser;
-    if (code && user && window.db) {
-      try {
-        await window.db.collection('games').doc(code).collection('players').doc(user.uid).update({
-          userPhoto: chosenUrl
-        });
-      } catch (e) {}
-    }
-
-    window.location.reload();
+        tempCroppedPhotoData = compressedDataUrl;
+        const previewImg = document.getElementById('photoUploadPreviewImg');
+        if (previewImg) previewImg.src = compressedDataUrl;
+      };
+      img.src = evt.target.result;
+    };
+    reader.readAsDataURL(file);
   };
 
-  window.resetGlobalToGoogleAvatar = async function() {
+  window.saveUploadedPhoto = async function() {
+    const previewImg = document.getElementById('photoUploadPreviewImg');
+    const photoToSave = tempCroppedPhotoData || (previewImg ? previewImg.src : '');
+
+    if (!photoToSave) {
+      alert('Por favor selecciona una foto de tu celular.');
+      return;
+    }
+
+    const btn = document.getElementById('btnSaveUploadedPhoto');
+    if (btn) { btn.textContent = 'Guardando...'; btn.disabled = true; }
+
+    try {
+      localStorage.setItem('user_custom_avatar', photoToSave);
+
+      const userAvatar = document.getElementById('userAvatar');
+      if (userAvatar) userAvatar.src = photoToSave;
+
+      const modal = document.getElementById('photoUploaderModalGlobal');
+      if (modal) modal.style.display = 'none';
+
+      // Update in active game if currently on player-view.html
+      const params = new URLSearchParams(window.location.search);
+      const code = (params.get('code') || params.get('game') || '').toUpperCase();
+      const user = window.currentUser;
+
+      if (code && user && window.db) {
+        try {
+          await window.db.collection('games').doc(code).collection('players').doc(user.uid).update({
+            userPhoto: photoToSave
+          });
+        } catch (err) {
+          console.warn('Firestore player photo update note:', err);
+        }
+      }
+
+      window.location.reload();
+    } catch (err) {
+      console.error('Error saving photo:', err);
+      alert('Error al guardar foto: ' + err.message);
+    } finally {
+      if (btn) { btn.textContent = '💾 Guardar Mi Foto'; btn.disabled = false; }
+    }
+  };
+
+  window.resetToGooglePhoto = async function() {
     const user = window.currentUser;
     const googlePhoto = user && user.photoURL ? user.photoURL : 'img/logo.jpg';
     localStorage.removeItem('user_custom_avatar');
@@ -313,7 +328,7 @@
     const userAvatar = document.getElementById('userAvatar');
     if (userAvatar) userAvatar.src = googlePhoto;
 
-    const modal = document.getElementById('avatarPickerModalGlobal');
+    const modal = document.getElementById('photoUploaderModalGlobal');
     if (modal) modal.style.display = 'none';
 
     const params = new URLSearchParams(window.location.search);
