@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=57.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=58.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -115,44 +115,12 @@
     <!-- 2. TAB QUINIELA -->
     <main id="tab-pools" class="tab-content hidden">
 
-      <!-- Top Stats Bar -->
-      <div class="q-stats-bar" id="qTopStatsBar">
-        <div class="q-stat-card">
-          <div class="q-stat-icon">📋</div>
-          <div>
-            <div class="q-stat-val" id="statActiveQuinielas">0</div>
-            <div class="q-stat-lbl">Quinielas Activas</div>
-          </div>
-        </div>
-        <div class="q-stat-card">
-          <div class="q-stat-icon">⚽</div>
-          <div>
-            <div class="q-stat-val" id="statTotalMatches">0</div>
-            <div class="q-stat-lbl">Partidos en Juego</div>
-          </div>
-        </div>
-        <div class="q-stat-card">
-          <div class="q-stat-icon">🎟️</div>
-          <div>
-            <div class="q-stat-val" id="statMyParticipations">0</div>
-            <div class="q-stat-lbl">Mis Quinielas</div>
-          </div>
-        </div>
-        <div class="q-stat-card">
-          <div class="q-stat-icon">🏆</div>
-          <div>
-            <div class="q-stat-val" id="statMyTotalPoints" style="color:var(--accent-color);">0 pts</div>
-            <div class="q-stat-lbl">Puntos Acumulados</div>
-          </div>
-        </div>
-      </div>
-
       <!-- VIEW A: MULTI-QUINIELA CATALOG & CARDS GRID -->
       <section id="qCatalogSection" class="card highlight" style="margin-bottom:16px;">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
           <div>
             <h3 class="card-title" style="margin:0;">🏆 Quinielas & Pick'ems Disponibles</h3>
-            <p class="card-subtitle" style="margin:2px 0 0 0;">Elige una quiniela para pronosticar o ver las posiciones en tiempo real.</p>
+            <p class="card-subtitle" style="margin:2px 0 0 0;">Elige una quiniela para pronosticar o seguir las posiciones en tiempo real.</p>
           </div>
         </div>
 
@@ -188,9 +156,6 @@
             </button>
             <button type="button" class="btn btn-secondary" id="btnCopyQLink" style="width:auto; padding:6px 12px; font-size:12px;" title="Copiar enlace de esta quiniela">
               🔗 Copiar Enlace
-            </button>
-            <button type="button" class="btn btn-secondary" id="btnShareTicketWhatsApp" style="width:auto; padding:6px 12px; font-size:12px; display:none;" title="Compartir mis pronósticos guardados">
-              📲 Mi Boleto
             </button>
           </div>
         </div>
@@ -243,19 +208,17 @@
 
         <!-- Live Standings / Leaderboard Section -->
         <section id="qStandingsSection" class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-            <h3 class="card-title" style="margin:0;">📊 Tabla de Posiciones en Vivo</h3>
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <h3 class="card-title" style="margin:0;">📊 Posiciones de esta Quiniela</h3>
             <span class="badge" style="background:rgba(255,209,0,0.15); color:var(--accent-color); font-weight:800; font-size:11px;">
-              ⚡ Sincronización Automática ESPN
+              ⚡ En Vivo
             </span>
           </div>
-          <p class="card-subtitle" style="margin-bottom:12px;">
-            <span class="q-legend-dot q-cell-green" style="display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px;"></span> Marcador exacto (+3 pts)
-            &nbsp;
-            <span class="q-legend-dot q-cell-yellow" style="display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px;"></span> Solo ganador (+1 pt)
-            &nbsp;
-            <span class="q-legend-dot q-cell-red" style="display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px;"></span> Incorrecto (0 pts)
-          </p>
+
+          <!-- Interactive Live Leader Card -->
+          <div id="qLiveLeaderCard" style="display:none;"></div>
+
+          <!-- Interactive Rankings Accordion List -->
           <div id="qLiveStandings">
             <div class="text-center hint-text py-3">Cargando posiciones...</div>
           </div>
@@ -361,13 +324,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=57.0"></script>
-  <script src="js/auth.js?v=57.0"></script>
-  <script src="js/team-logos.js?v=57.0"></script>
-  <script src="js/grids.js?v=57.0"></script>
-  <script src="js/quiniela-player.js?v=57.0"></script>
-  <script src="js/survivor.js?v=57.0"></script>
-  <script src="js/firstgoal.js?v=57.0"></script>
+  <script src="js/firebase-config.js?v=58.0"></script>
+  <script src="js/auth.js?v=58.0"></script>
+  <script src="js/team-logos.js?v=58.0"></script>
+  <script src="js/grids.js?v=58.0"></script>
+  <script src="js/quiniela-player.js?v=58.0"></script>
+  <script src="js/survivor.js?v=58.0"></script>
+  <script src="js/firstgoal.js?v=58.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>

@@ -1,4 +1,4 @@
-// Quiniela & Pick'em Player Module — Wings & Wins v57.0 (Multi-Quinielas Grid, Strict First-Match Lock, Sharing & Countdown)
+// Quiniela & Pick'em Player Module — Wings & Wins v58.0 (Interactive Live Leader, Clean Accordion Standings & Multi-Quinielas)
 (function () {
   'use strict';
 
@@ -76,11 +76,6 @@
       btnCopy.addEventListener('click', copyActiveQuinielaLink);
     }
 
-    const btnShareTicket = document.getElementById('btnShareTicketWhatsApp');
-    if (btnShareTicket) {
-      btnShareTicket.addEventListener('click', sharePlayerTicketWhatsApp);
-    }
-
     // Auto-select quiniela if in URL query string (e.g. ?q=ID or ?quiniela=ID)
     window.addEventListener('popstate', checkUrlParams);
   }
@@ -147,15 +142,12 @@
 
       // Load user participations for each quiniela
       await loadUserParticipations();
-
-      updateTopStats();
       renderQuinielasCatalog();
 
       // Check if URL has quiniela ID
       const params = new URLSearchParams(window.location.search);
       const targetQId = params.get('q') || params.get('quiniela');
       if (targetQId && !activeQuiniela && allQuinielas.some(q => q.id === targetQId)) {
-        // Auto-switch to tab-pools if not active
         const poolTabBtn = document.querySelector('[data-target="tab-pools"]');
         if (poolTabBtn) poolTabBtn.click();
         openQuiniela(targetQId);
@@ -180,45 +172,6 @@
       } catch (e) {}
     });
     await Promise.all(promises);
-  }
-
-  function updateTopStats() {
-    let totalMatches = 0;
-    let myPointsSum = 0;
-    let myCount = 0;
-
-    allQuinielas.forEach(q => {
-      const matches = q.matches || [];
-      totalMatches += matches.length;
-
-      const userPickDoc = myParticipations[q.id];
-      if (userPickDoc) {
-        myCount++;
-        const userPicks = userPickDoc.picks || {};
-        matches.forEach(m => {
-          if (m.homeScore === null || m.awayScore === null || m.status === 'pre') return;
-          const p = userPicks[m.id];
-          if (!p) return;
-          if (p.homeScore === m.homeScore && p.awayScore === m.awayScore) {
-            myPointsSum += 3;
-          } else {
-            const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-            const pickWin = p.homeScore > p.awayScore ? 'home' : p.awayScore > p.homeScore ? 'away' : 'draw';
-            if (realWin === pickWin) myPointsSum += 1;
-          }
-        });
-      }
-    });
-
-    const elActive = document.getElementById('statActiveQuinielas');
-    const elMatches = document.getElementById('statTotalMatches');
-    const elMine = document.getElementById('statMyParticipations');
-    const elPoints = document.getElementById('statMyTotalPoints');
-
-    if (elActive) elActive.textContent = allQuinielas.length;
-    if (elMatches) elMatches.textContent = totalMatches;
-    if (elMine) elMine.textContent = myCount;
-    if (elPoints) elPoints.textContent = `${myPointsSum} pts`;
   }
 
   // Intelligent Lock Check: Lock if manual lock is on, or if first game started / kickoff date has passed
@@ -353,7 +306,7 @@
           <!-- Header -->
           <div class="q-catalog-card-header">
             <div>
-              <span class="q-catalog-league-tag">${q.leagueLabel || 'TORNEO MULTI-DEPORTE'}</span>
+              <span class="q-catalog-league-tag">${q.leagueLabel || 'TORNEO'}</span>
               <h4 class="q-catalog-title">${q.name}</h4>
             </div>
             ${statusBadge}
@@ -453,13 +406,6 @@
         myParticipations[quinielaId] = data;
         const nameInp = document.getElementById('qPlayerName');
         if (nameInp) nameInp.value = playerName;
-        
-        // Show share ticket button
-        const btnTicket = document.getElementById('btnShareTicketWhatsApp');
-        if (btnTicket) btnTicket.style.display = 'inline-flex';
-      } else {
-        const btnTicket = document.getElementById('btnShareTicketWhatsApp');
-        if (btnTicket) btnTicket.style.display = 'none';
       }
     } catch (e) {}
 
@@ -764,12 +710,7 @@
       await db.collection('quinielas').doc(activeQuiniela.id).collection('picks').doc(deviceId).set(pickData);
       myParticipations[activeQuiniela.id] = pickData;
 
-      // Show share ticket button
-      const btnTicket = document.getElementById('btnShareTicketWhatsApp');
-      if (btnTicket) btnTicket.style.display = 'inline-flex';
-
       showToast(`¡Pronósticos guardados para "${name}"! 🏆`);
-      updateTopStats();
       updateQuinielaView(activeQuiniela);
     } catch (err) {
       alert('Error al guardar: ' + err.message);
@@ -816,29 +757,16 @@
     copyQuinielaLinkDirect(activeQuiniela.id);
   }
 
-  function sharePlayerTicketWhatsApp() {
-    if (!activeQuiniela) return;
-    const matches = activeQuiniela.matches || [];
-    const myName = playerName || 'Jugador';
-    const lines = matches.map(m => {
-      const p = picks[m.id];
-      const pStr = p ? `${p.awayScore} - ${p.homeScore}` : '—';
-      return `• ${m.away} vs ${m.home} ➔ *${pStr}*`;
-    }).join('\n');
-
-    const url = getShareUrl(activeQuiniela.id);
-    const text = `🎟️ *MI BOLETO DE QUINIELA*\n🏆 *Torneo:* ${activeQuiniela.name}\n👤 *Jugador:* ${myName}\n\n*Mis Pronósticos:*\n${lines}\n\n📲 *Participa o sigue los resultados aquí:*\n${url}`;
-    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
-  }
-
+  // Interactive Live Leaderboard & Leader Card
   function renderLiveStandings(picksSnap, matches) {
-    const el = document.getElementById('qLiveStandings');
-    if (!el) return;
+    const leaderCardEl = document.getElementById('qLiveLeaderCard');
+    const standingsListEl = document.getElementById('qLiveStandings');
+    if (!standingsListEl) return;
 
     const players = [];
     picksSnap.forEach(doc => players.push({ id: doc.id, ...doc.data() }));
 
-    // Calculate live points & exact hits count
+    // Calculate live points & exact hits count for THIS quiniela
     players.forEach(p => {
       let pts = 0;
       let exactHits = 0;
@@ -868,80 +796,152 @@
 
     players.sort((a, b) => b.totalPoints - a.totalPoints || b.exactHits - a.exactHits);
 
-    el.innerHTML = '';
     if (players.length === 0) {
-      el.innerHTML = '<div class="text-center hint-text py-3">Aún no hay participantes registrados en esta quiniela. ¡Sé el primero en guardar tus pronósticos!</div>';
+      if (leaderCardEl) leaderCardEl.style.display = 'none';
+      standingsListEl.innerHTML = '<div class="text-center hint-text py-3">Aún no hay participantes registrados en esta quiniela. ¡Sé el primero en guardar tus pronósticos!</div>';
       return;
     }
 
-    const wrap = document.createElement('div');
-    wrap.style.cssText = 'overflow-x:auto; border-radius:12px;';
-    const table = document.createElement('table');
-    table.className = 'q-standings-table';
+    // 1. Render Interactive Live Leader Card (Top Player or Tie)
+    if (leaderCardEl) {
+      const topPts = players[0].totalPoints;
+      const leaders = players.filter(p => p.totalPoints === topPts && topPts > 0);
 
-    const thead = table.createTHead();
-    const hr = thead.insertRow();
-    hr.innerHTML = `<th style="text-align:left; padding:8px 12px; min-width:130px;">Jugador</th>` +
-      matches.map(m => {
-        const isLive = m.status === 'in';
-        const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
+      leaderCardEl.style.display = 'flex';
+      leaderCardEl.className = 'q-leader-card';
 
-        let scoreHtml = '<span style="font-size:9px; color:var(--text-muted); font-weight:700;">PENDIENTE</span>';
-        if (isLive && hasScore) {
-          scoreHtml = `<div style="background:rgba(255,68,68,0.25); border:1px solid #ff4444; border-radius:6px; padding:2px 4px; margin-top:2px;">
-            <span style="font-size:11px; font-weight:900; color:#ff4444; animation: tvPulse 1s infinite;">🔴 ${m.awayScore}-${m.homeScore}</span>
-            <div style="font-size:8px; color:#fff; font-weight:800;">${m.statusStr || 'EN VIVO'}</div>
-          </div>`;
-        } else if (hasScore) {
-          scoreHtml = `<span style="font-size:11px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore}</span><div style="font-size:8px; color:var(--text-muted);">FINAL</div>`;
-        }
-
-        return `<th style="text-align:center; padding:6px; min-width:85px;">
-          <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
-            <div style="display:flex; align-items:center; gap:3px;">
-              <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:18px;height:18px;object-fit:contain;"/>
-              <span style="font-size:9px;">vs</span>
-              <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:18px;height:18px;object-fit:contain;"/>
+      if (leaders.length === 0 || topPts === 0) {
+        // No points scored yet
+        leaderCardEl.innerHTML = `
+          <div class="q-leader-left">
+            <div class="q-leader-crown">⏳</div>
+            <div>
+              <div class="q-leader-title">ESTADO DE LA QUINIELA</div>
+              <div class="q-leader-name" style="font-size:15px; color:#aaa;">Jornada por iniciar — ${players.length} participantes listos</div>
             </div>
-            <span style="font-size:9px; color:var(--text-muted); font-weight:800;">${m.awayAbbr || m.away.substring(0,3)} v ${m.homeAbbr || m.home.substring(0,3)}</span>
-            ${scoreHtml}
           </div>
-        </th>`;
-      }).join('') +
-      `<th style="text-align:center; padding:8px; min-width:60px;">Exactos</th>` +
-      `<th style="text-align:center; padding:8px; min-width:60px;">Total Pts</th>`;
+          <div class="q-leader-pts-badge">
+            <div class="q-leader-pts-val" style="color:var(--text-muted);">0 pts</div>
+            <div class="q-leader-pts-sub">Líder pendiente</div>
+          </div>
+        `;
+      } else if (leaders.length === 1) {
+        const leader = leaders[0];
+        const isMe = leader.id === deviceId;
+        leaderCardEl.innerHTML = `
+          <div class="q-leader-left">
+            <div class="q-leader-crown">👑</div>
+            <div>
+              <div class="q-leader-title">🥇 LÍDER ACTUAL EN VIVO</div>
+              <div class="q-leader-name">${leader.playerName || 'Anónimo'} ${isMe ? '⭐ (¡Vas ganando!)' : ''}</div>
+            </div>
+          </div>
+          <div class="q-leader-pts-badge">
+            <div class="q-leader-pts-val">${leader.totalPoints} PTS</div>
+            <div class="q-leader-pts-sub">🎯 ${leader.exactHits} Marcadores exactos</div>
+          </div>
+        `;
+      } else {
+        // Tie
+        const names = leaders.slice(0, 3).map(l => l.playerName).join(' y ');
+        leaderCardEl.innerHTML = `
+          <div class="q-leader-left">
+            <div class="q-leader-crown">🔥</div>
+            <div>
+              <div class="q-leader-title">🤝 EMPATE EN 1ER LUGAR</div>
+              <div class="q-leader-name" style="font-size:16px;">${names}</div>
+            </div>
+          </div>
+          <div class="q-leader-pts-badge">
+            <div class="q-leader-pts-val">${topPts} PTS</div>
+            <div class="q-leader-pts-sub">Empate en la cima</div>
+          </div>
+        `;
+      }
+    }
 
-    const tbody = table.createTBody();
+    // 2. Render Interactive Ranking Accordion List
+    standingsListEl.innerHTML = '';
+    const rankList = document.createElement('div');
+    rankList.className = 'q-rank-list';
+
     players.forEach((p, idx) => {
       const isMe = p.id === deviceId;
-      const tr = tbody.insertRow();
-      if (isMe) tr.style.background = 'rgba(255,209,0,0.12)';
       const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
 
-      let cells = `<td style="padding:8px 12px; font-weight:${isMe ? '900' : '600'}; white-space:nowrap; color:${isMe ? 'var(--accent-color)' : 'var(--text-color)'};">
-        ${rankEmoji} ${p.playerName || 'Anónimo'} ${isMe ? '⭐ (Tú)' : ''}
-      </td>`;
+      const item = document.createElement('div');
+      item.className = `q-rank-item ${isMe ? 'is-me' : ''}`;
 
-      matches.forEach(m => {
+      // Build accordion picks chips
+      const picksChips = matches.map(m => {
         const pick = p.picks?.[m.id];
-        if (!pick) { cells += `<td class="q-s-cell q-cell-gray">—</td>`; return; }
-        const pickStr = `${pick.awayScore}-${pick.homeScore}`;
-        if (m.homeScore === null || m.status === 'pre') { cells += `<td class="q-s-cell q-cell-gray">${pickStr}</td>`; return; }
-        const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
-        const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-        const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
-        if (exact) cells += `<td class="q-s-cell q-cell-green" title="Exacto (+3 pts)">🎯 ${pickStr}</td>`;
-        else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-yellow" title="Ganador (+1 pt)">✓ ${pickStr}</td>`;
-        else cells += `<td class="q-s-cell q-cell-red" title="Incorrecto (0 pts)">✗ ${pickStr}</td>`;
+        const hasRealScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
+        const pickStr = pick ? `${pick.awayScore} - ${pick.homeScore}` : '—';
+        const realStr = hasRealScore ? `${m.awayScore} - ${m.homeScore}` : 'Pendiente';
+
+        let hitClass = '';
+        let hitBadge = '';
+        if (hasRealScore && pick) {
+          const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
+          const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
+          const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
+          if (exact) { hitClass = 'hit-exact'; hitBadge = '🎯 +3 pts'; }
+          else if (realWin === pickWin) { hitClass = 'hit-winner'; hitBadge = '✓ +1 pt'; }
+          else { hitClass = 'hit-miss'; hitBadge = '✗ 0 pts'; }
+        }
+
+        return `
+          <div class="q-pick-mini-card ${hitClass}">
+            <div>
+              <div style="font-weight:800; font-size:11px; color:#fff; display:flex; align-items:center; gap:4px;">
+                <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:14px; height:14px; object-fit:contain;"/>
+                <span>${m.awayAbbr || m.away.substring(0,3)}</span>
+                <span style="color:var(--text-muted); font-size:9px;">vs</span>
+                <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:14px; height:14px; object-fit:contain;"/>
+                <span>${m.homeAbbr || m.home.substring(0,3)}</span>
+              </div>
+              <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Real: <strong>${realStr}</strong></div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:900; font-size:13px; color:var(--accent-color);">${pickStr}</div>
+              ${hitBadge ? `<span style="font-size:9px; font-weight:800;">${hitBadge}</span>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      item.innerHTML = `
+        <div class="q-rank-header">
+          <div class="q-rank-pos">${rankEmoji}</div>
+          <div class="q-rank-player">
+            <span>${p.playerName || 'Anónimo'}</span>
+            ${isMe ? '<span class="badge accent" style="font-size:10px; padding:2px 6px;">Tú</span>' : ''}
+          </div>
+          <div class="q-rank-stats">
+            <span class="q-rank-exact-badge">🎯 ${p.exactHits}</span>
+            <span class="q-rank-total-pts">${p.totalPoints} pts</span>
+            <span class="q-rank-toggle-icon">▼</span>
+          </div>
+        </div>
+        <div class="q-rank-detail">
+          <div style="font-size:11px; font-weight:800; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase;">
+            Pronósticos de ${p.playerName || 'este jugador'}:
+          </div>
+          <div class="q-picks-compact-grid">
+            ${picksChips}
+          </div>
+        </div>
+      `;
+
+      // Toggle accordion on click
+      item.querySelector('.q-rank-header').addEventListener('click', () => {
+        item.classList.toggle('open');
       });
 
-      cells += `<td style="text-align:center; font-weight:800; font-size:13px; color:#00e676;">🎯 ${p.exactHits}</td>`;
-      cells += `<td style="text-align:center; font-weight:900; font-size:16px; color:${p.totalPoints>0?'var(--accent-color)':'var(--text-muted)'};">${p.totalPoints}</td>`;
-      tr.innerHTML = cells;
+      rankList.appendChild(item);
     });
 
-    wrap.appendChild(table);
-    el.appendChild(wrap);
+    standingsListEl.appendChild(rankList);
   }
 
   function norm(str) {
