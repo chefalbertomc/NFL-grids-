@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=92.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=93.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -151,11 +151,8 @@
             ← Ver Todas las Quinielas
           </button>
           <div class="q-share-group">
-            <button type="button" class="btn btn-secondary btn-whatsapp-share" id="btnShareQWhatsApp" style="width:auto; padding:6px 12px; font-size:12px;" title="Compartir quiniela en WhatsApp">
-              💬 Compartir WhatsApp
-            </button>
-            <button type="button" class="btn btn-secondary" id="btnCopyQLink" style="width:auto; padding:6px 12px; font-size:12px;" title="Copiar enlace de esta quiniela">
-              🔗 Copiar Enlace
+            <button type="button" class="btn btn-secondary btn-whatsapp-share" id="btnShareQWhatsApp" style="width:auto; padding:8px 14px; font-size:13px; font-weight:900; border-radius:10px; display:inline-flex; align-items:center; gap:6px;" title="Compartir en WhatsApp">
+              💬 <span class="hide-mobile">Compartir WhatsApp</span>
             </button>
           </div>
         </div>
@@ -324,13 +321,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=92.0"></script>
-  <script src="js/auth.js?v=92.0"></script>
-  <script src="js/team-logos.js?v=92.0"></script>
-  <script src="js/grids.js?v=92.0"></script>
-  <script src="js/quiniela-player.js?v=92.0"></script>
-  <script src="js/survivor.js?v=92.0"></script>
-  <script src="js/firstgoal.js?v=92.0"></script>
+  <script src="js/firebase-config.js?v=93.0"></script>
+  <script src="js/auth.js?v=93.0"></script>
+  <script src="js/team-logos.js?v=93.0"></script>
+  <script src="js/grids.js?v=93.0"></script>
+  <script src="js/quiniela-player.js?v=93.0"></script>
+  <script src="js/survivor.js?v=93.0"></script>
+  <script src="js/firstgoal.js?v=93.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -462,7 +459,7 @@
   <!-- Service Worker: Auto Silent Update -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
 
       // When SW sends SW_UPDATED message, reload silently so all clients get fresh code
       navigator.serviceWorker.addEventListener('message', event => {

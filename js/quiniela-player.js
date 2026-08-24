@@ -508,6 +508,14 @@
       btnToggleEdit.style.display = 'none';
     }
 
+    // LOCKED: always show standings table, never picks form
+    if (lockInfo.isLocked) {
+      if (editorSec) editorSec.style.display = 'none';
+      if (standingsSec) standingsSec.style.display = 'block';
+      return;
+    }
+
+    // OPEN: if user has saved picks and is not editing, show standings
     if (hasSavedPicks && !shouldShowEditor) {
       if (editorSec) editorSec.style.display = 'none';
       if (standingsSec) standingsSec.style.display = 'block';
