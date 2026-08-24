@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=89.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=90.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -459,6 +459,39 @@
         </button>
       </div>
     </div>
+  <!-- Update Notification Banner (hidden by default) -->
+  <div id="swUpdateBanner" style="display:none; position:fixed; bottom:0; left:0; right:0; z-index:99999; background:linear-gradient(135deg,#ffd100,#ff8c00); color:#000; padding:12px 16px; text-align:center; font-weight:900; font-size:13px; box-shadow:0 -4px 20px rgba(0,0,0,0.5);">
+    🚀 ¡Nueva versión disponible!
+    <button onclick="window.location.reload(true)" style="margin-left:12px; padding:6px 16px; background:#000; color:#ffd100; border:none; border-radius:8px; font-weight:900; font-size:13px; cursor:pointer;">Actualizar Ahora ↺</button>
+    <button onclick="document.getElementById('swUpdateBanner').style.display='none'" style="margin-left:8px; padding:6px 12px; background:rgba(0,0,0,0.2); color:#000; border:none; border-radius:8px; font-weight:800; font-size:12px; cursor:pointer;">Después</button>
   </div>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(reg => {
+          reg.onupdatefound = () => {
+            const newWorker = reg.installing;
+            newWorker.onstatechange = () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // New SW is ready — show update banner
+                document.getElementById('swUpdateBanner').style.display = 'block';
+              }
+            };
+          };
+        })
+        .catch(err => console.warn('[SW] registration failed:', err));
+
+      // Listen for controller change (user clicked update)
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    }
+  </script>
 </body>
 </html>
