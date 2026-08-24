@@ -1,7 +1,7 @@
 // Service Worker: Network-First + Auto Silent Update
 // Siempre descarga la versión más nueva del servidor. Cuando hay una actualización,
 // se activa sola y recarga todos los clientes automáticamente sin que el usuario haga nada.
-const CACHE_NAME = 'dw-v90';
+const CACHE_NAME = 'dw-v92';
 
 // Install: skip waiting to activate immediately without user action
 self.addEventListener('install', event => {
