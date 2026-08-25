@@ -197,10 +197,14 @@
 
   const activePlayerUnsubs = {};
 
+  function getActiveUser() {
+    return window.currentUser || (window.firebase && firebase.auth && firebase.auth() ? firebase.auth().currentUser : null);
+  }
+
   // Load user registrations for each game & attach realtime listeners for status change
   async function loadMyRegistrations() {
     if (!db) return;
-    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const activeUser = getActiveUser();
     const userUid = activeUser ? activeUser.uid : null;
     const userEmail = activeUser && activeUser.email ? activeUser.email.toLowerCase() : null;
 
@@ -257,7 +261,7 @@
       return;
     }
 
-    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const activeUser = getActiveUser();
 
     gridsList.innerHTML = '';
     filtered.forEach(g => {
@@ -543,7 +547,7 @@
     if (!SELECTED_GRID_CODE || !db) return;
 
     // MANDATORY AUTH CHECK: User must be signed in with Google
-    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const activeUser = getActiveUser();
     if (!activeUser) {
       window.requireUserAuth(joinGrid, '¡Inicia Sesión para Registrarte!', 'Para unirte a un Grid y asegurar tus casillas, necesitas iniciar sesión con Google.');
       return;

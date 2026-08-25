@@ -26,10 +26,14 @@
     return id;
   })();
 
+  function getActiveUser() {
+    return window.currentUser || (window.firebase && firebase.auth && firebase.auth() ? firebase.auth().currentUser : null);
+  }
+
   function initQPlayer() {
     if (window.db) {
       db = window.db;
-      const user = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+      const user = getActiveUser();
       playerName = (user && user.displayName) || localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '';
       setupEventListeners();
       listenQuinielasCatalog();
@@ -187,7 +191,7 @@
 
   async function loadUserParticipations() {
     if (!db) return;
-    const user = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const user = getActiveUser();
     const authUid = user ? user.uid : null;
 
     if (!authUid) return;
@@ -513,7 +517,7 @@
     grid.querySelectorAll('[data-open-q]').forEach(btn => {
       btn.addEventListener('click', () => {
         const qId = btn.getAttribute('data-open-q');
-        const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+        const activeUser = getActiveUser();
         if (!activeUser) {
           window.requireUserAuth(() => openQuiniela(qId), '¡Inicia Sesión con Google!', 'Para ingresar a la quiniela, registrar tus pronósticos y competir en la tabla, inicia sesión con Google.');
           return;
@@ -548,7 +552,7 @@
     const q = allQuinielas.find(x => x.id === qId);
     if (!q) return;
 
-    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const activeUser = getActiveUser();
     if (!activeUser) {
       window.requireUserAuth(() => selectQuinielaToJoin(qId), '¡Inicia Sesión con Google!', 'Para solicitar tu entrada a la quiniela, inicia sesión con Google.');
       return;
@@ -605,7 +609,7 @@
 
   window.submitInlineJoin = async function(qId) {
     if (!db || !qId) return;
-    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const activeUser = getActiveUser();
     if (!activeUser) {
       window.requireUserAuth(() => window.submitInlineJoin(qId), '¡Inicia Sesión con Google!', 'Para solicitar entrada a la quiniela, inicia sesión con Google.');
       return;
@@ -681,7 +685,7 @@
   // Open single Quiniela view
   async function openQuiniela(quinielaId) {
     if (!db) return;
-    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const activeUser = getActiveUser();
     if (!activeUser) {
       window.requireUserAuth(() => openQuiniela(quinielaId), '¡Inicia Sesión con Google!', 'Para entrar a la quiniela, guardar tus marcadores y seguir las posiciones en vivo, inicia sesión.');
       return;
@@ -713,7 +717,7 @@
 
     picks = {};
     isEditingPicks = false;
-    const user = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const user = getActiveUser();
     const authUid = user ? user.uid : null;
 
     try {
@@ -1259,7 +1263,7 @@
     if (!db || !activeQuiniela) return;
 
     // MANDATORY AUTH CHECK
-    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const activeUser = getActiveUser();
     if (!activeUser) {
       window.requireUserAuth(savePlayerPicks, '¡Inicia Sesión para Pronosticar!', 'Para registrar tus pronósticos y competir en la quiniela, inicia sesión con Google, Apple o Facebook.');
       return;
@@ -1436,7 +1440,7 @@
     const standingsListEl = document.getElementById('qLiveStandings');
     if (!standingsListEl) return;
 
-    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const activeUser = getActiveUser();
     const players = [];
     picksSnap.forEach(doc => players.push({ id: doc.id, ...doc.data() }));
 
