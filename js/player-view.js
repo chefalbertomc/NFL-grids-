@@ -77,6 +77,13 @@
       });
     }
 
+    if (window.onAuthChange) {
+      window.onAuthChange((u) => {
+        user = u || null;
+        if (code && db) startPlayersListener();
+      });
+    }
+
     firebase.auth().onAuthStateChanged((u) => {
       user = u || null;
       startGameListener();
@@ -317,13 +324,19 @@
           }
         });
 
-        const userUid = user ? user.uid : null;
-        const userEmail = user && user.email ? user.email.toLowerCase() : null;
+        const userUid = user ? user.uid : (window.currentUser ? window.currentUser.uid : null);
+        const userEmail = (user && user.email) ? user.email.toLowerCase() : (window.currentUser && window.currentUser.email ? window.currentUser.email.toLowerCase() : null);
+        const savedNick = localStorage.getItem('player_nick') || (window.currentUser && window.currentUser.displayName ? window.currentUser.displayName : '');
+        const savedPid = localStorage.getItem('bww_player_id');
 
-        // STRICT MATCH: Only bind to the authenticated player's account
+        // BIND TO ACTIVE PLAYER BY UID, PID, EMAIL, OR NICKNAME
         activePlayer = approvedPlayers.find(p => (userUid && (p.id === userUid || p.playerId === userUid))) ||
+                       approvedPlayers.find(p => (savedPid && (p.id === savedPid || p.playerId === savedPid))) ||
                        approvedPlayers.find(p => (userEmail && p.userEmail && p.userEmail.toLowerCase() === userEmail)) ||
+                       approvedPlayers.find(p => (savedNick && norm(p.nickname) === norm(savedNick))) ||
                        pendingPlayers.find(p => (userUid && (p.id === userUid || p.playerId === userUid))) ||
+                       pendingPlayers.find(p => (savedPid && (p.id === savedPid || p.playerId === savedPid))) ||
+                       pendingPlayers.find(p => (savedNick && norm(p.nickname) === norm(savedNick))) ||
                        null;
 
         if (activePlayer) {

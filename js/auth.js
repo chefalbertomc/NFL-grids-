@@ -114,28 +114,17 @@
         }
       } catch (err) {
         console.warn('[auth] Popup sign-in error:', err);
-        const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-        if (isStandalone && (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment' || (err.message && err.message.includes('popup')))) {
-          // On iOS standalone PWA, WebKit blocks both popup and cross-origin redirect token delivery.
-          // Prompt user for their display name / nickname so they can play inside the PWA without blockage!
-          const nick = prompt('📱 En la app instalada de iPhone, escribe tu nombre o apodo para jugar:', localStorage.getItem('player_nick') || '');
-          if (nick && nick.trim()) {
-            await window.loginAsGuest(nick.trim().toUpperCase());
-          }
+        if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+          // Closed by user, no action needed
           return;
         }
 
-        if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment' || (err.message && err.message.includes('popup'))) {
-          try {
-            await auth.signInWithRedirect(provider);
-            return;
-          } catch (redErr) {
-            handleAuthError(redErr);
-          }
-        } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-          // Closed by user, no alert needed
-        } else {
-          handleAuthError(err);
+        // On mobile / Safari / PWA where popups or third-party cookies are blocked by Apple ITP:
+        // Prompt user directly for their nickname so they can play instantly without being blocked in a loop
+        const saved = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '';
+        const nick = prompt('📱 Escribe tu Nombre o Apodo para ingresar a jugar:', saved);
+        if (nick && nick.trim()) {
+          await window.loginAsGuest(nick.trim().toUpperCase());
         }
       }
     } catch (err) {
@@ -215,6 +204,13 @@
           isAnonymous: true
         };
       }
+
+      localStorage.setItem('bww_last_auth_user', JSON.stringify({
+        uid: window.currentUser.uid,
+        displayName: nick,
+        email: window.currentUser.email || '',
+        photoURL: window.currentUser.photoURL || 'img/logo.jpg'
+      }));
 
       window.hideLoginModal();
       updateHeaderUI(window.currentUser);
