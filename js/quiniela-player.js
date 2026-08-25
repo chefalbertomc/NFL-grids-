@@ -1021,8 +1021,6 @@
     const isAllSoccer = matches.every(m => detectSport(m) === 'soccer');
 
     // 2. Check Player Registration & Approval State
-    const myReg = myParticipations[q.id];
-    const isApproved = myReg && (myReg.approved === true || myReg.status === 'approved');
     const isPending = myReg && !isApproved;
     const isNotJoined = !myReg;
     const btnSave = document.getElementById('btnSaveQPicks');
