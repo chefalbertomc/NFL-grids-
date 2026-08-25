@@ -87,7 +87,7 @@
       <button class="tab-btn" data-target="tab-grids">🏈 NFL Grids</button>
       <button class="tab-btn" data-target="tab-pools">📋 Quiniela / Pick'em</button>
       <button class="tab-btn" data-target="tab-survivor">🏆 Survivor</button>
-      <button class="tab-btn" data-target="tab-firstgoal">⚽ Primer Gol</button>
+      <button class="tab-btn" data-target="tab-firstgoal">⚽ Minuto del Gol</button>
       <a href="admin.html" class="tab-btn admin-only hidden" style="text-decoration: none; display: inline-block;">⚙️ Admin</a>
     </div>
 
@@ -255,6 +255,31 @@
               <li>Confirma presionando **"Instalar"**. ¡Y listo!</li>
             </ol>
           </div>
+        </div>
+      </section>
+
+      <!-- Links Section: WhatsApp Channel & Virtual Store -->
+      <section class="card" style="background: linear-gradient(135deg, rgba(37,211,102,0.08) 0%, rgba(10,15,24,0.9) 100%); border: 1px solid rgba(37,211,102,0.3); margin-top: 14px;">
+        <h3 class="card-title" style="color:#25D366; display:flex; align-items:center; gap:8px;">
+          <span>💬</span> Canal de WhatsApp Oficial
+        </h3>
+        <p class="card-subtitle">Únete a nuestro canal para enterarte antes que nadie de las nuevas quinielas, grids del fin de semana y promociones especiales del bar.</p>
+        <div style="margin-top:12px;">
+          <a href="https://chat.whatsapp.com/JCcB5lQ1d0L2Q5L2Q5L2Q5" target="_blank" class="btn" style="background:#25D366; color:#fff; border-color:#25D366; font-weight:900; font-size:13.5px; border-radius:10px; width:auto; display:inline-flex; align-items:center; gap:8px; padding:10px 20px; text-decoration:none; transition:transform 0.2s ease;" class="hover-scale">
+            <span>💬 Únete al Grupo de WhatsApp</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="card" style="background: linear-gradient(135deg, rgba(255,209,0,0.05) 0%, rgba(10,15,24,0.9) 100%); border: 1px dashed rgba(255,209,0,0.3); margin-top: 14px;">
+        <h3 class="card-title" style="color:#ffd100; display:flex; align-items:center; gap:8px;">
+          <span>🛍️</span> Tienda Virtual Drinks & Wins
+        </h3>
+        <p class="card-subtitle">Próximamente podrás ordenar alimentos, bebidas y productos oficiales directamente desde nuestra tienda virtual enlazada.</p>
+        <div style="margin-top:12px;">
+          <button class="btn btn-secondary" style="font-weight:900; font-size:13.5px; border-radius:10px; width:auto; cursor:not-allowed; opacity:0.6; display:inline-flex; align-items:center; gap:8px; padding:10px 20px;" disabled>
+            <span>🛍️ Tienda Virtual (Próximamente)</span>
+          </button>
         </div>
       </section>
     </main>
@@ -466,8 +491,8 @@
     <!-- 4. TAB FIRST GOAL -->
     <main id="tab-firstgoal" class="tab-content hidden">
       <section class="card highlight">
-        <h3 class="card-title">Atínale al Primer Gol / Touchdown</h3>
-        <p class="card-subtitle">Apuesta quién anotará los primeros puntos en el partido en curso.</p>
+        <h3 class="card-title">⚽ Minuto del Gol</h3>
+        <p class="card-subtitle">Selecciona el equipo y el rango de tiempo de 5 minutos en el que creas que caerá el primer gol del partido. ¡Tablero tipo Grid en tiempo real!</p>
 
         <div id="firstGoalGamesList" class="flex-row" style="flex-direction: column; gap: 16px;">
           <!-- Loaded dynamically -->
@@ -523,7 +548,7 @@
     <a href="#" class="nav-item" data-target="tab-survivor" title="Survivor">
       <img src="img/games/badge_survivor.png" alt="Survivor" class="nav-game-badge" />
     </a>
-    <a href="#" class="nav-item" data-target="tab-firstgoal" title="Primer Gol">
+    <a href="#" class="nav-item" data-target="tab-firstgoal" title="Minuto del Gol">
       <img src="img/games/badge_firstgoal.png" alt="Primer Gol" class="nav-game-badge" />
     </a>
     <a href="#" class="nav-item" data-target="tab-trivia" title="Trivia">
@@ -546,13 +571,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=142.0"></script>
-  <script src="js/auth.js?v=142.0"></script>
-  <script src="js/team-logos.js?v=142.0"></script>
-  <script src="js/grids.js?v=142.0"></script>
-  <script src="js/quiniela-player.js?v=142.0"></script>
-  <script src="js/survivor.js?v=142.0"></script>
-  <script src="js/firstgoal.js?v=142.0"></script>
+  <script src="js/firebase-config.js?v=143.0"></script>
+  <script src="js/auth.js?v=143.0"></script>
+  <script src="js/team-logos.js?v=143.0"></script>
+  <script src="js/grids.js?v=143.0"></script>
+  <script src="js/quiniela-player.js?v=143.0"></script>
+  <script src="js/survivor.js?v=143.0"></script>
+  <script src="js/firstgoal.js?v=143.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -789,7 +814,7 @@
   <!-- Service Worker: Auto Silent Update -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=142.0', { updateViaCache: 'none' }).then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=143.0', { updateViaCache: 'none' }).then(reg => {
         reg.update().catch(() => {});
       }).catch(() => {});
 

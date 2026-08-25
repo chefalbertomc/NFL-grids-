@@ -48,7 +48,7 @@
       <button class="tab-btn active" data-target="admin-grids">🏈 Grids</button>
       <button class="tab-btn" data-target="admin-pools">📋 Quinielas & Pick'em</button>
       <button class="tab-btn" data-target="admin-survivor">🏆 Survivor</button>
-      <button class="tab-btn" data-target="admin-firstgoal">⚽ Primer Gol</button>
+      <button class="tab-btn" data-target="admin-firstgoal">⚽ Minuto del Gol</button>
     </div>
 
     <!-- ADMIN SECTIONS -->
@@ -344,25 +344,128 @@
       </section>
     </main>
 
-    <!-- 4. ADMIN FIRST GOAL -->
+    <!-- 4. ADMIN MINUTO DEL GOL -->
     <main id="admin-firstgoal" class="admin-tab-content hidden">
+      <!-- Create Minuto del Gol Game -->
       <section class="card highlight">
-        <h3 class="card-title">Crear Apuesta de Primer Gol / Touchdown</h3>
+        <h3 class="card-title">⚽ Crear Juego de Minuto del Gol</h3>
+        <p class="card-subtitle">Crea un juego de rango de minutos para un partido en curso.</p>
+
         <div class="form-group">
-          <label>Nombre del Partido / Evento</label>
-          <input type="text" id="inpFGGameName" placeholder="Ej. Dallas Cowboys @ NY Giants"/>
+          <label>Sucursal</label>
+          <select id="fgStore" style="font-size:14px; font-weight:700;">
+            <option value="Juriquilla">Juriquilla</option>
+            <option value="Álamos">Álamos</option>
+            <option value="Paseo Qro">Paseo Qro</option>
+          </select>
         </div>
+
         <div class="form-group">
-          <label>Opciones (Separadas por comas)</label>
-          <textarea id="txtFGOptions" rows="3" placeholder="Ej. CeeDee Lamb, Brandin Cooks, Daniel Jones, Nadie, Otro"></textarea>
+          <label>Nombre del Juego / Título</label>
+          <input type="text" id="fgGameName" placeholder="Ej. Tigres vs Chivas — Gran Final" style="font-size:14px; font-weight:700;"/>
         </div>
-        <button id="btnCreateFG" class="btn btn-primary">Crear Juego Primer Gol</button>
+
+        <div class="flex-row" style="flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+          <div class="form-group" style="flex:1; min-width:140px; margin:0;">
+            <label>Equipo Local</label>
+            <input type="text" id="fgHomeTeam" placeholder="Ej. Tigres" style="font-size:13px; font-weight:700;"/>
+          </div>
+          <div class="form-group" style="flex:1; min-width:140px; margin:0;">
+            <label>Equipo Visitante</label>
+            <input type="text" id="fgAwayTeam" placeholder="Ej. Chivas" style="font-size:13px; font-weight:700;"/>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="fgAutoApprove" style="width: 18px; height: 18px; cursor: pointer;" checked />
+          <label for="fgAutoApprove" style="font-size: 12.5px; font-weight: 800; cursor: pointer; color: #ffd100; user-select: none; margin: 0;">
+            ⚡ Auto-aprobar participantes (entrar directo sin esperar mesero)
+          </label>
+        </div>
+
+        <button id="btnCreateFGGame" class="btn btn-primary" style="margin-top:14px;">Crear Juego Minuto del Gol</button>
       </section>
 
+      <!-- Manage Active Minuto del Gol Games -->
       <section class="card">
-        <h3 class="card-title">Juegos Activos de Primer Gol</h3>
-        <div id="adminFGActiveGames" class="flex-row" style="flex-direction: column; gap: 12px;">
-          <!-- Loaded dynamically -->
+        <h3 class="card-title">⚙️ Administrar Minuto del Gol</h3>
+
+        <div class="form-group">
+          <label>Seleccionar Juego Activo</label>
+          <div style="display:flex; gap:8px;">
+            <select id="fgActiveGamesDropdown" style="flex:1;"></select>
+            <button id="btnLoadFGGame" class="btn btn-primary" style="width:auto; padding:10px 18px;">Cargar</button>
+            <button id="btnDeleteFGGame" class="btn btn-danger" style="width:auto; padding:10px 14px;">🗑️ Eliminar</button>
+          </div>
+        </div>
+
+        <div id="fgManagePanel" style="display:none;">
+          <h4 style="color:#ffd100; font-weight:900; margin-bottom:8px;" id="fgSelectedGameTitle">Gestionando: Tigres vs Chivas</h4>
+          
+          <div class="flex-row" style="margin-bottom:16px; gap:8px;">
+            <button id="btnLockFG" class="btn btn-secondary" style="flex:1;">🔒 Bloquear Selecciones</button>
+            <button id="btnUnlockFG" class="btn btn-secondary" style="flex:1;">🔓 Desbloquear Selecciones</button>
+          </div>
+
+          <!-- Approvals lists -->
+          <div class="flex-row" style="flex-direction:column; gap:12px; margin-bottom:20px;">
+            <div>
+              <h5 style="font-size:13px; color:var(--danger-color); margin-bottom:6px; font-weight:800;">🚫 Solicitudes Pendientes</h5>
+              <div id="fgListPend" class="hint-text py-2" style="background:rgba(0,0,0,0.1); padding:10px; border-radius:12px; border:1px solid var(--border-color);">
+                No hay solicitudes pendientes.
+              </div>
+            </div>
+            <div>
+              <h5 style="font-size:13px; color:var(--success-color); margin-bottom:6px; font-weight:800;">✅ Participantes Aprobados</h5>
+              <div id="fgListAppr" class="hint-text py-2" style="background:rgba(0,0,0,0.1); padding:10px; border-radius:12px; border:1px solid var(--border-color);">
+                No hay participantes aprobados.
+              </div>
+            </div>
+          </div>
+
+          <!-- Tiempos Extras Panel -->
+          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); padding:14px; border-radius:12px; margin-bottom:16px;">
+            <h5 style="font-size:14px; font-weight:900; color:#ffd100; margin-bottom:4px;">⏱️ Gestión de Tiempo Extra</h5>
+            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:10px;">Selecciona qué jugadores de la lista participarán en los Tiempos Extras:</p>
+            
+            <div id="fgExtraTimePlayersCheckboxes" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; background:rgba(0,0,0,0.2); padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:12px;">
+              <!-- Loaded dynamically -->
+            </div>
+
+            <button id="btnToggleFGExtraTime" class="btn btn-primary" style="width:auto; padding:8px 16px; font-size:12.5px;">
+              Activar Tiempo Extra
+            </button>
+          </div>
+
+          <!-- Penales Panel -->
+          <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); padding:14px; border-radius:12px; margin-bottom:16px;">
+            <h5 style="font-size:14px; font-weight:900; color:#ffd100; margin-bottom:4px;">🎯 Gestión de Penales (Sorteo)</h5>
+            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:10px;">Selecciona qué jugadores de la lista participarán en la tanda de Penales (se sortearán al azar):</p>
+            
+            <div id="fgPenaltyPlayersCheckboxes" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; background:rgba(0,0,0,0.2); padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:12px;">
+              <!-- Loaded dynamically -->
+            </div>
+
+            <button id="btnDrawFGPenalties" class="btn btn-primary" style="width:auto; padding:8px 16px; font-size:12.5px;">
+              🎲 Sortear y Activar Penales
+            </button>
+          </div>
+
+          <!-- Result Settler (Declare Winner) -->
+          <div style="background:rgba(255,209,0,0.05); border:1.5px solid var(--accent-color); padding:14px; border-radius:12px;">
+            <h5 style="font-size:14px; font-weight:900; color:#ffd100; margin-bottom:4px;">🏁 Declarar Resultado Ganador</h5>
+            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:12px;">Elige el bloque donde cayó el gol o el penal fallado para coronar al ganador.</p>
+            
+            <div class="flex-row" style="flex-wrap:wrap; gap:10px; align-items:flex-end;">
+              <div class="form-group" style="flex:1; min-width:180px; margin:0;">
+                <label>Bloque o Penal Ganador</label>
+                <select id="fgWinningCellSelect" style="font-size:13px; font-weight:700;"></select>
+              </div>
+              <button id="btnResolveFGWinner" class="btn btn-primary" style="width:auto; padding:10px 18px; font-size:13px; font-weight:900; color:var(--bg-color);">
+                🏆 Finalizar y Declarar Ganador
+              </button>
+            </div>
+          </div>
         </div>
       </section>
     </main>
@@ -379,7 +482,7 @@
     <a href="index.html#tab-survivor" class="nav-item" title="Survivor">
       <img src="img/games/badge_survivor.png" alt="Survivor" class="nav-game-badge" />
     </a>
-    <a href="index.html#tab-firstgoal" class="nav-item" title="Primer Gol">
+    <a href="index.html#tab-firstgoal" class="nav-item" title="Minuto del Gol">
       <img src="img/games/badge_firstgoal.png" alt="Primer Gol" class="nav-game-badge" />
     </a>
     <a href="index.html#tab-trivia" class="nav-item" title="Trivia">
@@ -402,11 +505,11 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=142.0"></script>
-  <script src="js/auth.js?v=142.0"></script>
-  <script src="js/team-logos.js?v=142.0"></script>
-  <script src="js/admin.js?v=142.0"></script>
-  <script src="js/quiniela-admin.js?v=142.0"></script>
+  <script src="js/firebase-config.js?v=143.0"></script>
+  <script src="js/auth.js?v=143.0"></script>
+  <script src="js/team-logos.js?v=143.0"></script>
+  <script src="js/admin.js?v=143.0"></script>
+  <script src="js/quiniela-admin.js?v=143.0"></script>
 
   <!-- Admin Tab Switching with Bottom Nav integration -->
   <script>
@@ -459,7 +562,7 @@
   <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=142.0', { updateViaCache: 'none' }).then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=143.0', { updateViaCache: 'none' }).then(reg => {
         reg.update().catch(() => {});
       }).catch(() => {});
       navigator.serviceWorker.addEventListener('message', event => {

@@ -1608,23 +1608,56 @@
     }
   }
 
-  // --- First Goal Admin Logic ---
+  // --- Minuto del Gol Admin Logic ---
+  let fgSelectedGameId = null;
+  let fgUnsubSelectedGame = null;
+  let fgUnsubSelectedPlayers = null;
+  let fgUnsubGamesDropdown = null;
+
   function setupFirstGoalUI() {
-    if (btnCreateFG) btnCreateFG.addEventListener('click', createFirstGoalGame);
+    const btnCreateFGGame = document.getElementById('btnCreateFGGame');
+    const btnLoadFGGame = document.getElementById('btnLoadFGGame');
+    const btnDeleteFGGame = document.getElementById('btnDeleteFGGame');
+    const btnLockFG = document.getElementById('btnLockFG');
+    const btnUnlockFG = document.getElementById('btnUnlockFG');
+    const btnToggleFGExtraTime = document.getElementById('btnToggleFGExtraTime');
+    const btnDrawFGPenalties = document.getElementById('btnDrawFGPenalties');
+    const btnResolveFGWinner = document.getElementById('btnResolveFGWinner');
+
+    if (btnCreateFGGame) btnCreateFGGame.addEventListener('click', createFirstGoalGame);
+    if (btnLoadFGGame) btnLoadFGGame.addEventListener('click', () => {
+      const drop = document.getElementById('fgActiveGamesDropdown');
+      if (drop && drop.value) {
+        loadFGGameDetails(drop.value);
+      } else {
+        alert('Selecciona un juego de la lista primero.');
+      }
+    });
+    if (btnDeleteFGGame) btnDeleteFGGame.addEventListener('click', () => {
+      const drop = document.getElementById('fgActiveGamesDropdown');
+      if (drop && drop.value) {
+        deleteFGGame(drop.value);
+      } else {
+        alert('Selecciona un juego de la lista primero.');
+      }
+    });
+
+    if (btnLockFG) btnLockFG.addEventListener('click', () => setFGLock(true));
+    if (btnUnlockFG) btnUnlockFG.addEventListener('click', () => setFGLock(false));
+    if (btnToggleFGExtraTime) btnToggleFGExtraTime.addEventListener('click', toggleFGExtraTime);
+    if (btnDrawFGPenalties) btnDrawFGPenalties.addEventListener('click', drawFGPenalties);
+    if (btnResolveFGWinner) btnResolveFGWinner.addEventListener('click', resolveFGWinner);
   }
 
   async function createFirstGoalGame() {
-    const gameName = inpFGGameName.value.trim();
-    const optsStr = txtFGOptions.value.trim();
+    const store = document.getElementById('fgStore').value;
+    const gameName = document.getElementById('fgGameName').value.trim();
+    const homeTeam = document.getElementById('fgHomeTeam').value.trim();
+    const awayTeam = document.getElementById('fgAwayTeam').value.trim();
+    const autoApprove = document.getElementById('fgAutoApprove').checked;
 
-    if (!gameName || !optsStr) {
-      alert('Rellena el nombre del partido y las opciones.');
-      return;
-    }
-
-    const options = optsStr.split(',').map(s => s.trim()).filter(Boolean);
-    if (options.length === 0) {
-      alert('Proporciona al menos una opción.');
+    if (!gameName || !homeTeam || !awayTeam) {
+      alert('Rellena el nombre del juego y los nombres de ambos equipos.');
       return;
     }
 
@@ -1632,150 +1665,533 @@
       const code = 'fg_' + Math.random().toString(36).substring(2, 8).toUpperCase();
       await db.collection('first_goal_games').doc(code).set({
         gameName: gameName,
-        options: options,
-        winner: '',
+        homeTeam: homeTeam,
+        awayTeam: awayTeam,
+        store: store,
+        autoApprove: autoApprove,
         active: true,
+        locked: false,
+        status: 'scheduled',
+        cells: {},
+        activeExtraTime: false,
+        activePenalties: false,
         createdAt: Date.now()
       });
 
-      alert('Juego de Primer Gol creado exitosamente.');
-      inpFGGameName.value = '';
-      txtFGOptions.value = '';
+      alert('Juego de Minuto del Gol creado exitosamente.');
+      document.getElementById('fgGameName').value = '';
+      document.getElementById('fgHomeTeam').value = '';
+      document.getElementById('fgAwayTeam').value = '';
     } catch (err) {
       alert('Error al crear: ' + err.message);
     }
   }
 
-  let unsubFG = null;
   function loadFGGamesList() {
-    if (!db || !adminFGActiveGames) return;
-    if (unsubFG) unsubFG();
+    if (!db) return;
+    const dropdown = document.getElementById('fgActiveGamesDropdown');
+    if (!dropdown) return;
 
-    unsubFG = db.collection('first_goal_games').onSnapshot(snap => {
-      adminFGActiveGames.innerHTML = '';
-      
-      if (snap.empty) {
-        adminFGActiveGames.innerHTML = '<div class="hint-text py-2">No hay juegos de primer gol creados.</div>';
-        return;
-      }
+    if (fgUnsubGamesDropdown) fgUnsubGamesDropdown();
 
-      snap.forEach(doc => {
-        const game = doc.data() || {};
-        const code = doc.id;
-        const options = game.options || [];
+    fgUnsubGamesDropdown = db.collection('first_goal_games')
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(snap => {
+        dropdown.innerHTML = '';
+        if (snap.empty) {
+          dropdown.innerHTML = '<option value="">-- No hay juegos --</option>';
+          return;
+        }
 
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.style.background = 'rgba(255,255,255,0.02)';
-        card.style.border = game.active ? '1px solid var(--border-focus)' : '1px solid var(--border-color)';
-
-        // Options selector to declare winner
-        let selectorOptions = '<option value="" disabled selected>— Declarar Ganador —</option>';
-        options.forEach(opt => {
-          selectorOptions += `<option value="${opt}" ${game.winner === opt ? 'selected' : ''}>${opt}</option>`;
+        snap.forEach(doc => {
+          const game = doc.data();
+          const opt = document.createElement('option');
+          opt.value = doc.id;
+          opt.textContent = `${game.store || 'Gral'} — ${game.gameName} (${game.active ? 'Activo' : 'Cerrado'})`;
+          dropdown.appendChild(opt);
         });
 
-        card.innerHTML = `
-          <div class="flex-between" style="margin-bottom: 12px;">
-            <h4 style="font-size: 15px;">${game.gameName}</h4>
-            <span class="badge ${game.active ? 'success' : ''}">${game.active ? 'Activo' : 'Cerrado'}</span>
-          </div>
-
-          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
-            Opciones: ${options.join(', ')}
-          </div>
-
-          <div class="flex-row" style="flex-wrap: wrap; gap: 8px;">
-            <select id="winner_${code}" style="flex: 1; padding: 6px; font-size: 12px;">
-              ${selectorOptions}
-            </select>
-            <button class="btn btn-primary" data-fg-win-code="${code}" style="width: auto; padding: 6px 12px; font-size: 12px; color: var(--bg-color);">
-              Declarar Ganador
-            </button>
-            <button class="btn btn-secondary" data-fg-toggle-code="${code}" style="width: auto; padding: 6px 12px; font-size: 12px;">
-              ${game.active ? 'Pausar' : 'Activar'}
-            </button>
-            <button class="btn btn-danger" data-fg-del-code="${code}" style="width: auto; padding: 6px 12px; font-size: 12px;">
-              Eliminar
-            </button>
-          </div>
-        `;
-
-        adminFGActiveGames.appendChild(card);
+        // Auto load first game if none loaded yet
+        if (!fgSelectedGameId && dropdown.value) {
+          loadFGGameDetails(dropdown.value);
+        }
+      }, err => {
+        console.error('[fg] Error loading games dropdown:', err);
       });
-
-      // Actions bindings
-      adminFGActiveGames.querySelectorAll('[data-fg-win-code]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const code = btn.getAttribute('data-fg-win-code');
-          const winnerSel = document.getElementById(`winner_${code}`);
-          const winner = winnerSel ? winnerSel.value : '';
-          
-          if (winner) {
-            declareFGWinner(code, winner);
-          } else {
-            alert('Selecciona un ganador de la lista.');
-          }
-        });
-      });
-
-      adminFGActiveGames.querySelectorAll('[data-fg-toggle-code]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const code = btn.getAttribute('data-fg-toggle-code');
-          const game = snap.docs.find(d => d.id === code).data();
-          toggleFGActiveStatus(code, !game.active);
-        });
-      });
-
-      adminFGActiveGames.querySelectorAll('[data-fg-del-code]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const code = btn.getAttribute('data-fg-del-code');
-          deleteFGGame(code);
-        });
-      });
-    }, err => {
-      console.error('[firstgoal] Admin list load error:', err);
-    });
   }
 
-  async function declareFGWinner(gameId, winner) {
-    try {
-      await db.collection('first_goal_games').doc(gameId).update({
-        winner: winner,
-        active: false // Close game when winner is declared
+  function loadFGGameDetails(gameId) {
+    fgSelectedGameId = gameId;
+    
+    const panel = document.getElementById('fgManagePanel');
+    if (panel) panel.style.display = 'block';
+
+    if (fgUnsubSelectedGame) fgUnsubSelectedGame();
+    if (fgUnsubSelectedPlayers) fgUnsubSelectedPlayers();
+
+    // 1. Listen to game doc changes
+    fgUnsubSelectedGame = db.collection('first_goal_games').doc(gameId).onSnapshot(doc => {
+      if (!doc.exists) return;
+      const game = doc.data();
+      
+      const titleEl = document.getElementById('fgSelectedGameTitle');
+      if (titleEl) {
+        titleEl.textContent = `Gestionando: ${game.gameName} [${game.store}] (${game.active ? 'Activo' : 'Cerrado'})`;
+      }
+
+      // Lock/Unlock buttons state
+      const btnLock = document.getElementById('btnLockFG');
+      const btnUnlock = document.getElementById('btnUnlockFG');
+      if (btnLock && btnUnlock) {
+        if (game.locked) {
+          btnLock.classList.add('btn-primary');
+          btnLock.classList.remove('btn-secondary');
+          btnUnlock.classList.add('btn-secondary');
+          btnUnlock.classList.remove('btn-primary');
+        } else {
+          btnLock.classList.add('btn-secondary');
+          btnLock.classList.remove('btn-primary');
+          btnUnlock.classList.add('btn-primary');
+          btnUnlock.classList.remove('btn-secondary');
+        }
+      }
+
+      // Extra time button label
+      const btnET = document.getElementById('btnToggleFGExtraTime');
+      if (btnET) {
+        btnET.textContent = game.activeExtraTime ? 'Desactivar Tiempo Extra' : 'Activar Tiempo Extra';
+        btnET.className = game.activeExtraTime ? 'btn btn-danger' : 'btn btn-primary';
+      }
+
+      // Penalties button label
+      const btnPen = document.getElementById('btnDrawFGPenalties');
+      if (btnPen) {
+        btnPen.textContent = game.activePenalties ? '🎲 Re-Sortear Penales' : '🎲 Sortear y Activar Penales';
+        btnPen.className = game.activePenalties ? 'btn btn-success' : 'btn btn-primary';
+      }
+
+      // Populate Winner select
+      populateWinningSelect(game);
+    });
+
+    // 2. Listen to players subcollection
+    fgUnsubSelectedPlayers = db.collection('first_goal_games').doc(gameId).collection('players')
+      .onSnapshot(snap => {
+        const listPend = document.getElementById('fgListPend');
+        const listAppr = document.getElementById('fgListAppr');
+        const etContainer = document.getElementById('fgExtraTimePlayersCheckboxes');
+        const penContainer = document.getElementById('fgPenaltyPlayersCheckboxes');
+
+        if (listPend) listPend.innerHTML = '';
+        if (listAppr) listAppr.innerHTML = '';
+        if (etContainer) etContainer.innerHTML = '';
+        if (penContainer) penContainer.innerHTML = '';
+
+        let pendCount = 0;
+        let apprCount = 0;
+
+        // Get game doc snapshot to read existing selections
+        db.collection('first_goal_games').doc(gameId).get().then(gameSnap => {
+          const game = gameSnap.data() || {};
+          const etPlayers = game.extraTimePlayers || {};
+          const penPlayers = game.penaltyPlayers || {};
+
+          snap.forEach(pDoc => {
+            const p = pDoc.data();
+            const pId = pDoc.id;
+            const isApproved = p.approved === true || p.status === 'approved';
+
+            if (!isApproved) {
+              pendCount++;
+              const div = document.createElement('div');
+              div.className = 'flex-between';
+              div.style.padding = '8px; border-bottom: 1px solid rgba(255,255,255,0.05);';
+              div.innerHTML = `
+                <span><strong>${p.nickname || 'Socio'}</strong> (Mesa: ${p.waiter || '—'})</span>
+                <div style="display:flex; gap:6px;">
+                  <button class="btn btn-primary" onclick="approveFGPlayer('${gameId}', '${pId}')" style="padding:4px 8px; font-size:11px; width:auto;">Aprobar</button>
+                  <button class="btn btn-danger" onclick="rejectFGPlayer('${gameId}', '${pId}')" style="padding:4px 8px; font-size:11px; width:auto;">Rechazar</button>
+                </div>
+              `;
+              if (listPend) listPend.appendChild(div);
+            } else {
+              apprCount++;
+              const div = document.createElement('div');
+              div.className = 'flex-between';
+              div.style.padding = '8px; border-bottom: 1px solid rgba(255,255,255,0.05);';
+              div.innerHTML = `
+                <span><strong>${p.nickname || 'Socio'}</strong> (Mesa: ${p.waiter || '—'})</span>
+                <button class="btn btn-danger" onclick="rejectFGPlayer('${gameId}', '${pId}')" style="padding:4px 8px; font-size:11px; width:auto;">Remover</button>
+              `;
+              if (listAppr) listAppr.appendChild(div);
+
+              // Checkbox inside ET list
+              const etLabel = document.createElement('label');
+              etLabel.style.display = 'flex';
+              etLabel.style.alignItems = 'center';
+              etLabel.style.gap = '8px';
+              etLabel.style.fontSize = '12.5px';
+              etLabel.style.cursor = 'pointer';
+              const isEtChecked = etPlayers[pId] === true;
+              etLabel.innerHTML = `
+                <input type="checkbox" class="fg-et-cb" data-player-id="${pId}" ${isEtChecked ? 'checked' : ''} style="width:16px; height:16px;"/>
+                <span>${p.nickname}</span>
+              `;
+              if (etContainer) etContainer.appendChild(etLabel);
+
+              // Checkbox inside Pen list
+              const penLabel = document.createElement('label');
+              penLabel.style.display = 'flex';
+              penLabel.style.alignItems = 'center';
+              penLabel.style.gap = '8px';
+              penLabel.style.fontSize = '12.5px';
+              penLabel.style.cursor = 'pointer';
+              const isPenChecked = penPlayers[pId] === true;
+              penLabel.innerHTML = `
+                <input type="checkbox" class="fg-pen-cb" data-player-id="${pId}" ${isPenChecked ? 'checked' : ''} style="width:16px; height:16px;"/>
+                <span>${p.nickname}</span>
+              `;
+              if (penContainer) penContainer.appendChild(penLabel);
+            }
+          });
+
+          if (pendCount === 0 && listPend) {
+            listPend.innerHTML = '<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">No hay solicitudes pendientes.</div>';
+          }
+          if (apprCount === 0 && listAppr) {
+            listAppr.innerHTML = '<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">No hay participantes aprobados.</div>';
+          }
+        });
+      }, err => {
+        console.error('[fg] Error loading players list:', err);
       });
-      alert('Ganador declarado oficialmente.');
+  }
+
+  // Exposed globally to handle click handlers
+  window.approveFGPlayer = async function(gameId, playerId) {
+    try {
+      await db.collection('first_goal_games').doc(gameId).collection('players').doc(playerId).update({
+        status: 'approved',
+        approved: true
+      });
+    } catch (err) {
+      alert('Error al aprobar: ' + err.message);
+    }
+  };
+
+  window.rejectFGPlayer = async function(gameId, playerId) {
+    if (!confirm('¿Deseas remover a este jugador?')) return;
+    try {
+      // Delete user selection from cells first
+      const gameSnap = await db.collection('first_goal_games').doc(gameId).get();
+      const game = gameSnap.data() || {};
+      const cells = game.cells || {};
+      const updatedCells = { ...cells };
+      
+      let changed = false;
+      for (const k in updatedCells) {
+        if (updatedCells[k]?.playerId === playerId) {
+          delete updatedCells[k];
+          changed = true;
+        }
+      }
+
+      if (changed) {
+        await db.collection('first_goal_games').doc(gameId).update({ cells: updatedCells });
+      }
+
+      await db.collection('first_goal_games').doc(gameId).collection('players').doc(playerId).delete();
+    } catch (err) {
+      alert('Error al remover: ' + err.message);
+    }
+  };
+
+  async function setFGLock(locked) {
+    if (!fgSelectedGameId) return;
+    try {
+      await db.collection('first_goal_games').doc(fgSelectedGameId).update({ locked });
     } catch (err) {
       alert('Error: ' + err.message);
     }
   }
 
-  async function toggleFGActiveStatus(gameId, active) {
+  async function toggleFGExtraTime() {
+    if (!fgSelectedGameId) return;
     try {
-      await db.collection('first_goal_games').doc(gameId).update({
-        active: active
+      const gameSnap = await db.collection('first_goal_games').doc(fgSelectedGameId).get();
+      const game = gameSnap.data() || {};
+      const nextState = !game.activeExtraTime;
+
+      // Read selected players
+      const etPlayers = {};
+      document.querySelectorAll('.fg-et-cb').forEach(cb => {
+        if (cb.checked) {
+          etPlayers[cb.getAttribute('data-player-id')] = true;
+        }
       });
+
+      await db.collection('first_goal_games').doc(fgSelectedGameId).update({
+        activeExtraTime: nextState,
+        extraTimePlayers: etPlayers
+      });
+
+      alert(nextState ? 'Tiempo Extra activado exitosamente.' : 'Tiempo Extra desactivado.');
     } catch (err) {
       alert('Error: ' + err.message);
+    }
+  }
+
+  async function drawFGPenalties() {
+    if (!fgSelectedGameId) return;
+    try {
+      const gameSnap = await db.collection('first_goal_games').doc(fgSelectedGameId).get();
+      const game = gameSnap.data() || {};
+      const playersSnap = await db.collection('first_goal_games').doc(fgSelectedGameId).collection('players').get();
+
+      // Read selected players
+      const penPlayers = {};
+      const participantIds = [];
+      const idToNick = {};
+
+      playersSnap.forEach(doc => {
+        idToNick[doc.id] = doc.data().nickname || 'Socio';
+      });
+
+      document.querySelectorAll('.fg-pen-cb').forEach(cb => {
+        if (cb.checked) {
+          const pId = cb.getAttribute('data-player-id');
+          penPlayers[pId] = true;
+          participantIds.push(pId);
+        }
+      });
+
+      if (participantIds.length === 0) {
+        alert('Selecciona al menos un jugador participante para la tanda de penales.');
+        return;
+      }
+
+      // Shuffle helper
+      const shuffleArray = arr => {
+        for (let i = arr.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+      };
+
+      const shuffledPlayers = shuffleArray([...participantIds]);
+
+      // Assign to penalties: pen_local_1, pen_away_1, up to 10
+      const penaltyAssignments = {};
+      
+      for (let i = 1; i <= 5; i++) {
+        // Local penalty
+        const idxHome = ((i - 1) * 2) % shuffledPlayers.length;
+        const pHomeId = shuffledPlayers[idxHome];
+        penaltyAssignments[`pen_local_${i}`] = {
+          playerId: pHomeId,
+          nickname: idToNick[pHomeId] || 'Socio'
+        };
+
+        // Away penalty
+        const idxAway = (((i - 1) * 2) + 1) % shuffledPlayers.length;
+        const pAwayId = shuffledPlayers[idxAway];
+        penaltyAssignments[`pen_away_${i}`] = {
+          playerId: pAwayId,
+          nickname: idToNick[pAwayId] || 'Socio'
+        };
+      }
+
+      await db.collection('first_goal_games').doc(fgSelectedGameId).update({
+        activePenalties: true,
+        penaltyPlayers: penPlayers,
+        penaltyAssignments: penaltyAssignments
+      });
+
+      alert('🎲 ¡Sorteo de Penales completado exitosamente y publicado!');
+    } catch (err) {
+      alert('Error al sortear: ' + err.message);
+    }
+  }
+
+  function populateWinningSelect(game) {
+    const select = document.getElementById('fgWinningCellSelect');
+    if (!select) return;
+
+    select.innerHTML = '';
+    
+    // Default option
+    const defOpt = document.createElement('option');
+    defOpt.value = '';
+    defOpt.textContent = '-- Seleccionar Celda Ganadora --';
+    select.appendChild(defOpt);
+
+    const home = game.homeTeam || 'Local';
+    const away = game.awayTeam || 'Visitante';
+
+    // 18 regular ranges
+    const ranges = [
+      { id: '0_5', name: '0 - 5' },
+      { id: '6_10', name: '6 - 10' },
+      { id: '11_15', name: '11 - 15' },
+      { id: '16_20', name: '16 - 20' },
+      { id: '21_25', name: '21 - 25' },
+      { id: '26_30', name: '26 - 30' },
+      { id: '31_35', name: '31 - 35' },
+      { id: '36_40', name: '36 - 40' },
+      { id: '41_45', name: '41 - 45 y +' },
+      { id: '46_50', name: '46 - 50' },
+      { id: '51_55', name: '51 - 55' },
+      { id: '56_60', name: '56 - 60' },
+      { id: '61_65', name: '61 - 65' },
+      { id: '66_70', name: '66 - 70' },
+      { id: '71_75', name: '71 - 75' },
+      { id: '76_80', name: '76 - 80' },
+      { id: '81_85', name: '81 - 85' },
+      { id: '86_90', name: '86 - 90 y +' }
+    ];
+
+    // Local regular time
+    ranges.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = `local_${r.id}`;
+      opt.textContent = `⚽ Gol de ${home} en bloque ${r.name}`;
+      if (game.winningCell === opt.value) opt.selected = true;
+      select.appendChild(opt);
+    });
+
+    // Visitante regular time
+    ranges.forEach(r => {
+      const opt = document.createElement('option');
+      opt.value = `away_${r.id}`;
+      opt.textContent = `⚽ Gol de ${away} en bloque ${r.name}`;
+      if (game.winningCell === opt.value) opt.selected = true;
+      select.appendChild(opt);
+    });
+
+    // Extra Time blocks
+    if (game.activeExtraTime) {
+      const etRanges = [
+        { id: '91_105', name: '91 - 105' },
+        { id: '106_120', name: '106 - 120' }
+      ];
+      etRanges.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = `local_${r.id}`;
+        opt.textContent = `⏱️ Extra: Gol de ${home} en bloque ${r.name}`;
+        if (game.winningCell === opt.value) opt.selected = true;
+        select.appendChild(opt);
+      });
+      etRanges.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = `away_${r.id}`;
+        opt.textContent = `⏱️ Extra: Gol de ${away} en bloque ${r.name}`;
+        if (game.winningCell === opt.value) opt.selected = true;
+        select.appendChild(opt);
+      });
+    }
+
+    // Penalty blocks
+    if (game.activePenalties) {
+      const assignments = game.penaltyAssignments || {};
+      for (let i = 1; i <= 5; i++) {
+        // Local missed
+        const keyLocal = `pen_local_${i}`;
+        const ownerLocal = assignments[keyLocal]?.nickname || 'Nadie';
+        const optL = document.createElement('option');
+        optL.value = `${keyLocal}_missed`;
+        optL.textContent = `🎯 Penal: Local #${i} Fallado (Dueño: ${ownerLocal})`;
+        if (game.winningCell === optL.value) optL.selected = true;
+        select.appendChild(optL);
+
+        // Away missed
+        const keyAway = `pen_away_${i}`;
+        const ownerAway = assignments[keyAway]?.nickname || 'Nadie';
+        const optA = document.createElement('option');
+        optA.value = `${keyAway}_missed`;
+        optA.textContent = `🎯 Penal: Visitante #${i} Fallado (Dueño: ${ownerAway})`;
+        if (game.winningCell === optA.value) optA.selected = true;
+        select.appendChild(optA);
+      }
+    }
+  }
+
+  async function resolveFGWinner() {
+    if (!fgSelectedGameId) return;
+    const select = document.getElementById('fgWinningCellSelect');
+    const winnerCell = select ? select.value : '';
+
+    if (!winnerCell) {
+      alert('Por favor selecciona la celda o penal ganador.');
+      return;
+    }
+
+    if (!confirm('¿Estás seguro de declarar este resultado? Se cerrará el juego.')) return;
+
+    try {
+      await db.collection('first_goal_games').doc(fgSelectedGameId).update({
+        winningCell: winnerCell,
+        active: false,
+        status: 'completed'
+      });
+      alert('🏆 ¡Resultado ganador registrado oficialmente y juego cerrado!');
+    } catch (err) {
+      alert('Error al resolver ganador: ' + err.message);
     }
   }
 
   async function deleteFGGame(gameId) {
-    customConfirm('Eliminar Apuesta', '¿Deseas eliminar permanentemente esta apuesta de primer gol?', async () => {
-      try {
-        await db.collection('first_goal_games').doc(gameId).delete();
-        
-        // Clean corresponding bets in batch
-        const snap = await db.collection('first_goal_bets').where('gameId', '==', gameId).get();
-        const batch = db.batch();
-        snap.forEach(d => batch.delete(d.ref));
-        await batch.commit();
+    if (!confirm('¿Estás seguro de eliminar este juego permanentemente? Se borrarán todos los participantes y registros.')) return;
+    try {
+      // 1. Delete players subcollection
+      const playersSnap = await db.collection('first_goal_games').doc(gameId).collection('players').get();
+      const batch = db.batch();
+      playersSnap.forEach(d => batch.delete(d.ref));
+      await batch.commit();
 
-        alert('Juego de primer gol eliminado.');
-      } catch (err) {
-        alert('Error: ' + err.message);
+      // 2. Delete game doc
+      await db.collection('first_goal_games').doc(gameId).delete();
+      alert('Juego de Minuto del Gol eliminado.');
+      fgSelectedGameId = null;
+      document.getElementById('fgManagePanel').style.display = 'none';
+    } catch (err) {
+      alert('Error al eliminar: ' + err.message);
+    }
+  }
+
+  function setupFirstGoalUI() {
+    const btnCreateFGGame = document.getElementById('btnCreateFGGame');
+    const btnLoadFGGame = document.getElementById('btnLoadFGGame');
+    const btnDeleteFGGame = document.getElementById('btnDeleteFGGame');
+    const btnLockFG = document.getElementById('btnLockFG');
+    const btnUnlockFG = document.getElementById('btnUnlockFG');
+    const btnToggleFGExtraTime = document.getElementById('btnToggleFGExtraTime');
+    const btnDrawFGPenalties = document.getElementById('btnDrawFGPenalties');
+    const btnResolveFGWinner = document.getElementById('btnResolveFGWinner');
+
+    if (btnCreateFGGame) btnCreateFGGame.addEventListener('click', createFirstGoalGame);
+    if (btnLoadFGGame) btnLoadFGGame.addEventListener('click', () => {
+      const drop = document.getElementById('fgActiveGamesDropdown');
+      if (drop && drop.value) {
+        loadFGGameDetails(drop.value);
+      } else {
+        alert('Selecciona un juego de la lista primero.');
       }
     });
+    if (btnDeleteFGGame) btnDeleteFGGame.addEventListener('click', () => {
+      const drop = document.getElementById('fgActiveGamesDropdown');
+      if (drop && drop.value) {
+        deleteFGGame(drop.value);
+      } else {
+        alert('Selecciona un juego de la lista primero.');
+      }
+    });
+
+    if (btnLockFG) btnLockFG.addEventListener('click', () => setFGLock(true));
+    if (btnUnlockFG) btnUnlockFG.addEventListener('click', () => setFGLock(false));
+    if (btnToggleFGExtraTime) btnToggleFGExtraTime.addEventListener('click', toggleFGExtraTime);
+    if (btnDrawFGPenalties) btnDrawFGPenalties.addEventListener('click', drawFGPenalties);
+    if (btnResolveFGWinner) btnResolveFGWinner.addEventListener('click', resolveFGWinner);
   }
 
   // Start initialization
