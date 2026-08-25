@@ -1308,11 +1308,94 @@ input:focus, select:focus, textarea:focus {
 }
 .q-s-cell {
   text-align: center;
-  padding: 8px 6px;
+  padding: 6px 4px;
   font-size: 12px;
   font-weight: 800;
-  border-radius: 6px;
+  border-radius: 8px;
+  vertical-align: middle;
+  transition: all 0.25s ease;
 }
+
+.q-cell-logo-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.q-cell-team-logo {
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.7));
+  transition: transform 0.2s ease;
+}
+
+.q-cell-team-sub {
+  font-size: 8.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  opacity: 0.9;
+}
+
+/* 1. Neutral / Pending (Pre-match) */
+.q-cell-neutral {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  color: #a0aec0;
+}
+
+/* 2. Live Match Winning (Glowing Neon Green) */
+.q-cell-live-winning {
+  background: linear-gradient(135deg, rgba(0, 230, 118, 0.25) 0%, rgba(0, 200, 83, 0.12) 100%) !important;
+  border: 1.5px solid #00e676 !important;
+  color: #00e676 !important;
+  box-shadow: 0 0 12px rgba(0, 230, 118, 0.45), inset 0 0 8px rgba(0, 230, 118, 0.2);
+  animation: liveWinningPulse 1.5s infinite alternate;
+}
+@keyframes liveWinningPulse {
+  0% { box-shadow: 0 0 8px rgba(0, 230, 118, 0.35); }
+  100% { box-shadow: 0 0 16px rgba(0, 230, 118, 0.65), inset 0 0 10px rgba(0, 230, 118, 0.3); }
+}
+
+/* 3. Live Match Losing (Glowing Neon Red) */
+.q-cell-live-losing {
+  background: linear-gradient(135deg, rgba(255, 61, 0, 0.25) 0%, rgba(213, 0, 0, 0.12) 100%) !important;
+  border: 1.5px solid #ff3d00 !important;
+  color: #ff5252 !important;
+  box-shadow: 0 0 12px rgba(255, 61, 0, 0.45), inset 0 0 8px rgba(255, 61, 0, 0.2);
+  animation: liveLosingPulse 1.5s infinite alternate;
+}
+@keyframes liveLosingPulse {
+  0% { box-shadow: 0 0 8px rgba(255, 61, 0, 0.35); }
+  100% { box-shadow: 0 0 16px rgba(255, 61, 0, 0.65), inset 0 0 10px rgba(255, 61, 0, 0.3); }
+}
+
+/* 4. Live Match Tied (Glowing Neon Amber) */
+.q-cell-live-tied {
+  background: linear-gradient(135deg, rgba(255, 209, 0, 0.22) 0%, rgba(255, 171, 0, 0.1) 100%) !important;
+  border: 1.5px solid #ffd100 !important;
+  color: #ffd100 !important;
+  box-shadow: 0 0 10px rgba(255, 209, 0, 0.35);
+}
+
+/* 5. Final Won (Solid Green) */
+.q-cell-final-hit {
+  background: rgba(27, 94, 32, 0.5) !important;
+  border: 1.5px solid #00e676 !important;
+  color: #69f0ae !important;
+}
+
+/* 6. Final Lost (Solid Dark Red) */
+.q-cell-final-miss {
+  background: rgba(183, 28, 28, 0.4) !important;
+  border: 1.5px solid #ff5252 !important;
+  color: #ff8a80 !important;
+  opacity: 0.75;
+}
+
 .q-cell-green {
   background: rgba(0,230,118,0.15);
   color: #00e676;

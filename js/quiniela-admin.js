@@ -851,26 +851,70 @@
       let cells = `<td style="padding:10px 12px; font-weight:700; white-space:nowrap;">${rankEmoji} ${p.playerName || 'Anónimo'}${statusPill}</td>`;
       matches.forEach(m => {
         const pick = p.picks?.[m.id];
-        if (!pick) { cells += `<td class="q-s-cell q-cell-gray">—</td>`; return; }
+        if (!pick) { cells += `<td class="q-s-cell q-cell-neutral">—</td>`; return; }
 
         const sport = detectSport(m);
         const isSoccer = sport === 'soccer';
-        const pickStr = isSoccer ? `${pick.awayScore}-${pick.homeScore}` : (pick.winner === 'home' ? m.homeAbbr || 'LOC' : pick.winner === 'away' ? m.awayAbbr || 'VIS' : `${pick.awayScore}-${pick.homeScore}`);
-
-        if (m.homeScore === null || m.status === 'pre') { cells += `<td class="q-s-cell q-cell-gray">${pickStr}</td>`; return; }
-
-        const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
+        const isLive = m.status === 'in';
+        const isDone = m.completed || m.status === 'post';
+        const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
 
         if (isSoccer) {
+          const pickStr = `${pick.awayScore}-${pick.homeScore}`;
+          if (!hasScore) {
+            cells += `<td class="q-s-cell q-cell-neutral">${pickStr}</td>`;
+            return;
+          }
+
+          const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
           const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
           const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
-          if (exact) cells += `<td class="q-s-cell q-cell-green" title="+3 pts">🎯 ${pickStr}</td>`;
-          else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-yellow" title="+1 pt">✓ ${pickStr}</td>`;
-          else cells += `<td class="q-s-cell q-cell-red" title="0 pts">✗ ${pickStr}</td>`;
+
+          if (isLive) {
+            if (exact) cells += `<td class="q-s-cell q-cell-live-winning" title="En Vivo: +3 pts (Exacto)">🎯 ${pickStr}</td>`;
+            else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-live-winning" title="En Vivo: +1 pt (Ganando)">✓ ${pickStr}</td>`;
+            else cells += `<td class="q-s-cell q-cell-live-losing" title="En Vivo: 0 pts (Perdiendo)">✗ ${pickStr}</td>`;
+          } else {
+            if (exact) cells += `<td class="q-s-cell q-cell-final-hit" title="Final: +3 pts">🎯 ${pickStr}</td>`;
+            else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-final-hit" title="Final: +1 pt">✓ ${pickStr}</td>`;
+            else cells += `<td class="q-s-cell q-cell-final-miss" title="Final: 0 pts">✗ ${pickStr}</td>`;
+          }
         } else {
-          const playerWinPick = pick.winner ? pick.winner : (pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw');
-          if (playerWinPick === realWin) cells += `<td class="q-s-cell q-cell-green" title="+1 pt">✓ ${pickStr}</td>`;
-          else cells += `<td class="q-s-cell q-cell-red" title="0 pts">✗ ${pickStr}</td>`;
+          // US Sports: Team Logo
+          const winnerSide = pick.winner ? pick.winner : (Number(pick.homeScore) > Number(pick.awayScore) ? 'home' : 'away');
+          const pickedLogo = winnerSide === 'home' ? m.homeLogo : m.awayLogo;
+          const pickedAbbr = winnerSide === 'home' ? (m.homeAbbr || m.home) : (m.awayAbbr || m.away);
+          const shortAbbr = pickedAbbr.length > 4 ? pickedAbbr.substring(0, 3).toUpperCase() : pickedAbbr.toUpperCase();
+
+          const logoHtml = `
+            <div class="q-cell-logo-wrap" title="${pickedAbbr}">
+              <img src="${pickedLogo}" onerror="this.src='img/logo.jpg'" class="q-cell-team-logo" alt="${pickedAbbr}" />
+              <span class="q-cell-team-sub">${shortAbbr}</span>
+            </div>
+          `;
+
+          if (!hasScore) {
+            cells += `<td class="q-s-cell q-cell-neutral">${logoHtml}</td>`;
+            return;
+          }
+
+          const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
+
+          if (isLive) {
+            if (winnerSide === realWin) {
+              cells += `<td class="q-s-cell q-cell-live-winning" title="En Vivo: ¡Ganando! (+1 pt)">${logoHtml}</td>`;
+            } else if (realWin === 'draw') {
+              cells += `<td class="q-s-cell q-cell-live-tied" title="En Vivo: Empate">${logoHtml}</td>`;
+            } else {
+              cells += `<td class="q-s-cell q-cell-live-losing" title="En Vivo: Perdiendo (0 pts)">${logoHtml}</td>`;
+            }
+          } else {
+            if (winnerSide === realWin) {
+              cells += `<td class="q-s-cell q-cell-final-hit" title="Final: Acertado (+1 pt)">${logoHtml}</td>`;
+            } else {
+              cells += `<td class="q-s-cell q-cell-final-miss" title="Final: Fallado (0 pts)">${logoHtml}</td>`;
+            }
+          }
         }
       });
 
