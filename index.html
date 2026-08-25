@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=103.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=104.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -140,36 +140,6 @@
         <div id="qCatalogGrid" class="q-catalog-grid">
           <div class="text-center hint-text py-4" style="grid-column: 1/-1;">Cargando quinielas disponibles...</div>
         </div>
-
-        <!-- Inline Registration Form for Quinielas -->
-        <section class="card" id="joinQuinielaForm" style="display: none; border: 2px solid var(--accent-color); background: linear-gradient(145deg, rgba(30,26,16,0.96), rgba(18,16,10,0.98)); box-shadow: 0 8px 24px rgba(255,209,0,0.2); padding: 12px 14px; margin-top: 12px; border-radius: 14px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-            <div style="font-size: 13px; font-weight: 900; color: #ffffff;" id="selectedQuinielaLabel">
-              📝 Registrarse en Quiniela
-            </div>
-            <button type="button" onclick="document.getElementById('joinQuinielaForm').style.display='none'" style="background:transparent; border:none; color:var(--text-muted); font-size:16px; cursor:pointer; padding:2px 6px;">✕</button>
-          </div>
-
-          <!-- Single Row Form: [Apodo] [Mesero] [Solicitar Entrada] -->
-          <div style="display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;">
-            <div style="flex: 1 1 140px; min-width: 120px;">
-              <label style="font-size: 11px; margin-bottom: 4px; font-weight: 800; color: #ffd100;">👤 Apodo (Obligatorio)*:</label>
-              <input type="text" id="inpQNick" placeholder="Ej. BETO" maxlength="20" style="padding: 8px 10px; font-size: 13px; font-weight: 800; color: #ffd100; text-transform: uppercase; border-radius: 10px;" />
-            </div>
-
-            <div style="flex: 1 1 140px; min-width: 120px;">
-              <label style="font-size: 11px; margin-bottom: 4px; font-weight: 700; color: var(--text-muted);">🍽️ Mesero (Opcional):</label>
-              <input type="text" id="inpQWaiter" placeholder="Ej. Carlos" maxlength="30" style="padding: 8px 10px; font-size: 13px; border-radius: 10px;" />
-            </div>
-
-            <div style="flex: 1 1 160px; min-width: 150px;">
-              <button id="btnSubmitJoinQuiniela" class="btn btn-primary" style="padding: 8px 14px; font-size: 13px; font-weight: 900; border-radius: 10px; height: 38px; white-space: nowrap; width:100%;">
-                ✅ Solicitar Entrada
-              </button>
-            </div>
-          </div>
-          <p id="qJoinStatus" class="hint-text text-center" style="font-size:11px; margin: 6px 0 0 0;"></p>
-        </section>
       </section>
 
       <!-- VIEW B: SINGLE QUINIELA DETAIL & PICKS -->
@@ -326,13 +296,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=103.0"></script>
-  <script src="js/auth.js?v=103.0"></script>
-  <script src="js/team-logos.js?v=103.0"></script>
-  <script src="js/grids.js?v=103.0"></script>
-  <script src="js/quiniela-player.js?v=103.0"></script>
-  <script src="js/survivor.js?v=103.0"></script>
-  <script src="js/firstgoal.js?v=103.0"></script>
+  <script src="js/firebase-config.js?v=104.0"></script>
+  <script src="js/auth.js?v=104.0"></script>
+  <script src="js/team-logos.js?v=104.0"></script>
+  <script src="js/grids.js?v=104.0"></script>
+  <script src="js/quiniela-player.js?v=104.0"></script>
+  <script src="js/survivor.js?v=104.0"></script>
+  <script src="js/firstgoal.js?v=104.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>

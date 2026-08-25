@@ -512,6 +512,9 @@
             <span>💬</span>
           </button>
         </div>
+
+        <!-- Inline Join Expansion Box (Directly below this card's buttons) -->
+        <div id="q_inline_join_${q.id}" class="q-inline-join-container" style="display:none; margin-top:12px;"></div>
       `;
       grid.appendChild(card);
     });
@@ -546,7 +549,10 @@
     });
   }
 
-  let SELECTED_Q_ID_FOR_JOIN = null;
+  window.closeInlineJoin = function(qId) {
+    const box = document.getElementById(`q_inline_join_${qId}`);
+    if (box) box.style.display = 'none';
+  };
 
   function selectQuinielaToJoin(qId) {
     const q = allQuinielas.find(x => x.id === qId);
@@ -554,40 +560,73 @@
 
     const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
     if (!activeUser) {
-      window.requireUserAuth(() => selectQuinielaToJoin(qId), '¡Inicia Sesión con Google!', 'Para solicitar tu entrada a la quiniela, inicia sesión.');
+      window.requireUserAuth(() => selectQuinielaToJoin(qId), '¡Inicia Sesión con Google!', 'Para solicitar tu entrada a la quiniela, inicia sesión con Google.');
       return;
     }
 
-    SELECTED_Q_ID_FOR_JOIN = qId;
-    const form = document.getElementById('joinQuinielaForm');
-    const label = document.getElementById('selectedQuinielaLabel');
-    const inpNick = document.getElementById('inpQNick');
-    const inpWaiter = document.getElementById('inpQWaiter');
-    const statusMsg = document.getElementById('qJoinStatus');
+    // Close all other open join boxes
+    document.querySelectorAll('.q-inline-join-container').forEach(el => el.style.display = 'none');
 
-    if (label) label.textContent = `📝 Solicitar Entrada a "${q.name}"`;
-    if (inpNick && !inpNick.value) inpNick.value = activeUser.displayName ? activeUser.displayName.toUpperCase().slice(0, 20) : '';
-    if (statusMsg) statusMsg.textContent = '';
-    if (form) {
-      form.style.display = 'block';
-      form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    const container = document.getElementById(`q_inline_join_${qId}`);
+    if (!container) return;
+
+    const userNick = activeUser.displayName ? activeUser.displayName.toUpperCase().slice(0, 20) : '';
+
+    container.innerHTML = `
+      <div class="card animate-fade" style="border:1.5px solid #ffd100; background:linear-gradient(145deg, rgba(28,24,14,0.98), rgba(16,14,8,0.99)); padding:12px 14px; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.5);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+          <span style="font-size:12px; font-weight:900; color:#ffd100;">📝 Solicitar Entrada a "${q.name}"</span>
+          <button type="button" onclick="window.closeInlineJoin('${q.id}')" style="background:none; border:none; color:#aaa; font-size:16px; cursor:pointer; padding:2px 6px;">✕</button>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <div>
+            <label style="font-size:11px; font-weight:800; color:#ffd100; display:block; margin-bottom:3px;">👤 Tu Apodo (Obligatorio)*:</label>
+            <input type="text" id="inp_inline_nick_${q.id}" value="${userNick}" maxlength="20" placeholder="EJ. BETO" style="width:100%; padding:10px 12px; font-size:13px; font-weight:800; text-transform:uppercase; border-radius:10px; background:rgba(0,0,0,0.5); border:1.5px solid #ffd100; color:#ffd100;" />
+          </div>
+
+          <div>
+            <label style="font-size:11px; font-weight:700; color:#aaa; display:block; margin-bottom:3px;">🍽️ Mesero (Opcional):</label>
+            <input type="text" id="inp_inline_waiter_${q.id}" placeholder="Ej. Carlos" maxlength="30" style="width:100%; padding:10px 12px; font-size:13px; font-weight:700; border-radius:10px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff;" />
+          </div>
+
+          <div id="inline_status_${q.id}" style="font-size:11px; font-weight:800; color:#ff4444; display:none; margin-top:2px;"></div>
+
+          <button type="button" class="btn btn-primary" id="btn_submit_inline_${q.id}" onclick="window.submitInlineJoin('${q.id}')" style="font-size:13px; font-weight:900; padding:11px; border-radius:10px; width:100%; margin-top:4px;">
+            ✅ Solicitar Entrada
+          </button>
+        </div>
+      </div>
+    `;
+
+    container.style.display = 'block';
+
+    const inp = document.getElementById(`inp_inline_nick_${q.id}`);
+    if (inp) {
+      inp.focus();
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          window.submitInlineJoin(q.id);
+        }
+      });
     }
   }
 
   window.selectQuinielaToJoin = selectQuinielaToJoin;
 
-  async function submitJoinQuiniela() {
-    if (!SELECTED_Q_ID_FOR_JOIN || !db) return;
+  window.submitInlineJoin = async function(qId) {
+    if (!db || !qId) return;
     const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
     if (!activeUser) {
-      window.requireUserAuth(submitJoinQuiniela, '¡Inicia Sesión!', 'Para solicitar entrada a la quiniela, inicia sesión con Google.');
+      window.requireUserAuth(() => window.submitInlineJoin(qId), '¡Inicia Sesión con Google!', 'Para solicitar entrada a la quiniela, inicia sesión con Google.');
       return;
     }
 
-    const inpNick = document.getElementById('inpQNick');
-    const inpWaiter = document.getElementById('inpQWaiter');
-    const statusMsg = document.getElementById('qJoinStatus');
-    const btnSubmit = document.getElementById('btnSubmitJoinQuiniela');
+    const inpNick = document.getElementById(`inp_inline_nick_${qId}`);
+    const inpWaiter = document.getElementById(`inp_inline_waiter_${qId}`);
+    const statusMsg = document.getElementById(`inline_status_${qId}`);
+    const btnSubmit = document.getElementById(`btn_submit_inline_${qId}`);
 
     const nick = (inpNick ? inpNick.value : '').trim().toUpperCase();
     const waiter = (inpWaiter ? inpWaiter.value : '').trim();
@@ -595,7 +634,7 @@
     if (!nick) {
       if (statusMsg) {
         statusMsg.textContent = 'Por favor escribe tu apodo (Obligatorio).';
-        statusMsg.style.color = 'var(--danger-color)';
+        statusMsg.style.display = 'block';
       }
       if (inpNick) inpNick.focus();
       return;
@@ -604,8 +643,8 @@
     if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = '⏳ Enviando solicitud...'; }
 
     try {
-      const q = allQuinielas.find(x => x.id === SELECTED_Q_ID_FOR_JOIN);
-      const playerRef = db.collection('quinielas').doc(SELECTED_Q_ID_FOR_JOIN).collection('picks').doc(activeUser.uid);
+      const q = allQuinielas.find(x => x.id === qId);
+      const playerRef = db.collection('quinielas').doc(qId).collection('picks').doc(activeUser.uid);
 
       const playerData = {
         id: activeUser.uid,
@@ -627,24 +666,22 @@
       };
 
       await playerRef.set(playerData, { merge: true });
-      myParticipations[SELECTED_Q_ID_FOR_JOIN] = playerData;
+      myParticipations[qId] = playerData;
 
-      alert(`✅ ¡Solicitud enviada para ${nick}! En cuanto el mesero o administrador te apruebe, el botón cambiará para que puedas ingresar tus pronósticos.`);
+      alert(`✅ ¡Solicitud enviada para "${nick}"! En cuanto el mesero o administrador te apruebe, el botón cambiará para que puedas ingresar tus pronósticos.`);
       
-      const form = document.getElementById('joinQuinielaForm');
-      if (form) form.style.display = 'none';
-
+      window.closeInlineJoin(qId);
       renderQuinielasCatalog();
     } catch (err) {
       console.error('[QPlayer] Error joining quiniela:', err);
       if (statusMsg) {
         statusMsg.textContent = 'Error al enviar solicitud: ' + err.message;
-        statusMsg.style.color = 'var(--danger-color)';
+        statusMsg.style.display = 'block';
       }
     } finally {
       if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = '✅ Solicitar Entrada'; }
     }
-  }
+  };
 
   let isEditingPicks = false;
 
