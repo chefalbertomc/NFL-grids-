@@ -62,7 +62,10 @@
   }
 
   // 1-Click Google Sign In
+  let isGoogleAuthInProgress = false;
   window.loginWithGoogle = async function(isSwitchAccount = false) {
+    if (isGoogleAuthInProgress) return;
+    isGoogleAuthInProgress = true;
     console.log('[auth] loginWithGoogle triggered, isSwitchAccount:', isSwitchAccount);
     try {
       if (!window.firebase || !firebase.auth) {
@@ -89,6 +92,8 @@
           window.currentUser = result.user;
           localStorage.setItem('bww_last_auth_user', JSON.stringify({ uid: result.user.uid, displayName: result.user.displayName, email: result.user.email }));
           window.hideLoginModal();
+          updateHeaderUI(result.user);
+          notifyCallbacks();
           if (pendingAuthAction) {
             const action = pendingAuthAction;
             pendingAuthAction = null;
@@ -113,6 +118,7 @@
     } catch (err) {
       handleAuthError(err);
     } finally {
+      isGoogleAuthInProgress = false;
       setLoginButtonLoading('btnModalGoogle', false);
     }
   };
