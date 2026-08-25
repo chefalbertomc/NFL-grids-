@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=99.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=100.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -202,50 +202,38 @@
           </div>
         </div>
 
-        <!-- Picks Form Section -->
-        <section id="qPicksSection" class="card" style="margin-bottom:16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-            <div>
-              <h3 class="card-title" id="qPicksTitle" style="margin:0;">Pronósticos</h3>
-              <p class="card-subtitle" id="qPicksSubtitle" style="margin:2px 0 0 0;">Ingresa tus marcadores previstos antes de que ruede el balón.</p>
-            </div>
-            <span id="qPicksStatusBadge" class="badge success" style="font-weight:800; font-size:11px;">🟢 ABIERTA</span>
-          </div>
+        <!-- Sleeper Segmented Switcher: Picks vs Standings -->
+        <div class="sleeper-seg-control" id="qSleeperSegNav">
+          <button type="button" class="sleeper-seg-btn active" id="btnQSegPicks" data-q-tab="picks">
+            <span>🏈</span> Pronósticos
+          </button>
+          <button type="button" class="sleeper-seg-btn" id="btnQSegStandings" data-q-tab="standings">
+            <span>📊</span> Posiciones
+          </button>
+        </div>
 
-          <!-- Player Nickname -->
-          <div class="form-group" style="margin-bottom:14px;">
-            <label style="display:flex; justify-content:space-between;">
-              <span>Tu Nombre / Apodo</span>
-              <span class="hint-text" style="font-size:11px;">(Obligatorio para registrarte)</span>
-            </label>
-            <input type="text" id="qPlayerName" placeholder="Ej. BETO EL CAMPEÓN"
-              style="font-size:15px; font-weight:800; letter-spacing:0.02em;"/>
-          </div>
+        <!-- Sleeper Player Banner & Integrated Tiebreaker -->
+        <div id="qSleeperPlayerBanner"></div>
 
-          <!-- Matches Cards List -->
+        <!-- Picks Form Section (Tab: Picks) -->
+        <section id="qPicksSection" style="margin-bottom:16px;">
+          <!-- Matches Cards List (Sleeper style) -->
           <div id="qMatchPicksForm" style="display:flex; flex-direction:column; gap:12px; margin-bottom:18px;">
             <div class="text-center hint-text py-3">Cargando partidos...</div>
           </div>
 
           <!-- Save Button -->
-          <button id="btnSaveQPicks" class="btn btn-primary" style="font-size:15px; font-weight:900; padding:14px 20px; border-radius:12px; box-shadow:0 4px 16px rgba(255,209,0,0.3);">
+          <button id="btnSaveQPicks" class="btn btn-primary" style="font-size:15px; font-weight:900; padding:14px 20px; border-radius:14px; box-shadow:0 4px 16px rgba(255,209,0,0.3); width:100%;">
             💾 Guardar Mis Pronósticos
           </button>
         </section>
 
-        <!-- Live Standings / Leaderboard Section -->
-        <section id="qStandingsSection" class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
-            <h3 class="card-title" style="margin:0;">📊 Posiciones de esta Quiniela</h3>
-            <span class="badge" style="background:rgba(255,209,0,0.15); color:var(--accent-color); font-weight:800; font-size:11px;">
-              ⚡ En Vivo
-            </span>
-          </div>
+        <!-- Live Standings / Leaderboard Section (Tab: Standings) -->
+        <section id="qStandingsSection" style="display:none; margin-bottom:16px;">
+          <!-- Sleeper Top 3 Podium Container -->
+          <div id="qSleeperPodium" class="sleeper-podium-container" style="display:none;"></div>
 
-          <!-- Interactive Live Leader Card -->
-          <div id="qLiveLeaderCard" style="display:none;"></div>
-
-          <!-- Interactive Rankings Accordion List -->
+          <!-- Interactive Rankings / Matrix Table -->
           <div id="qLiveStandings">
             <div class="text-center hint-text py-3">Cargando posiciones...</div>
           </div>
@@ -351,13 +339,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=99.0"></script>
-  <script src="js/auth.js?v=99.0"></script>
-  <script src="js/team-logos.js?v=99.0"></script>
-  <script src="js/grids.js?v=99.0"></script>
-  <script src="js/quiniela-player.js?v=99.0"></script>
-  <script src="js/survivor.js?v=99.0"></script>
-  <script src="js/firstgoal.js?v=99.0"></script>
+  <script src="js/firebase-config.js?v=100.0"></script>
+  <script src="js/auth.js?v=100.0"></script>
+  <script src="js/team-logos.js?v=100.0"></script>
+  <script src="js/grids.js?v=100.0"></script>
+  <script src="js/quiniela-player.js?v=100.0"></script>
+  <script src="js/survivor.js?v=100.0"></script>
+  <script src="js/firstgoal.js?v=100.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>

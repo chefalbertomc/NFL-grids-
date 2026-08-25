@@ -47,6 +47,16 @@
       });
     }
 
+    // Sleeper Segmented Tabs (Pronósticos vs Posiciones)
+    const btnSegPicks = document.getElementById('btnQSegPicks');
+    if (btnSegPicks) {
+      btnSegPicks.addEventListener('click', () => switchDetailTab('picks'));
+    }
+    const btnSegStandings = document.getElementById('btnQSegStandings');
+    if (btnSegStandings) {
+      btnSegStandings.addEventListener('click', () => switchDetailTab('standings'));
+    }
+
     // Save picks button
     const btnSave = document.getElementById('btnSaveQPicks');
     if (btnSave) {
@@ -761,48 +771,21 @@
   function updateQuinielaView(q) {
     const lockInfo = checkQuinielaLockStatus(q);
     renderLockBannerAndTimer(lockInfo);
+    renderSleeperPlayerBanner(q);
 
     const hasSavedPicks = picks && Object.keys(picks).length > 0;
-    const shouldShowEditor = isEditingPicks && !lockInfo.isLocked;
 
-    const editorSec = document.getElementById('qPicksSection');
-    const standingsSec = document.getElementById('qStandingsSection');
-
-    // Button to edit picks in toolbar if open
-    let btnToggleEdit = document.getElementById('btnToolbarEditQPicks');
-    const toolbar = document.querySelector('.q-toolbar');
-    if (toolbar && !lockInfo.isLocked) {
-      if (!btnToggleEdit) {
-        btnToggleEdit = document.createElement('button');
-        btnToggleEdit.id = 'btnToolbarEditQPicks';
-        btnToggleEdit.type = 'button';
-        btnToggleEdit.className = 'btn btn-secondary';
-        btnToggleEdit.style.cssText = 'width:auto; padding:6px 12px; font-size:12px; font-weight:800; border-radius:8px; display:inline-flex; align-items:center; gap:4px;';
-        toolbar.appendChild(btnToggleEdit);
-      }
-      btnToggleEdit.style.display = 'inline-flex';
-      btnToggleEdit.innerHTML = shouldShowEditor ? '📊 Ver Tabla Quiniela PRO' : '✏️ Modificar Pronósticos';
-      btnToggleEdit.onclick = () => toggleEditQuinielaPicks();
-    } else if (btnToggleEdit) {
-      btnToggleEdit.style.display = 'none';
-    }
-
-    // LOCKED: always show standings table, never picks form
+    // LOCKED: default to standings tab
     if (lockInfo.isLocked) {
-      if (editorSec) editorSec.style.display = 'none';
-      if (standingsSec) standingsSec.style.display = 'block';
+      switchDetailTab('standings');
       return;
     }
 
-    // OPEN: if user has saved picks and is not editing, show standings
-    if (hasSavedPicks && !shouldShowEditor) {
-      if (editorSec) editorSec.style.display = 'none';
-      if (standingsSec) standingsSec.style.display = 'block';
+    // OPEN: switch based on user's active tab or defaults
+    if (hasSavedPicks && !isEditingPicks && activeDetailTab === 'standings') {
+      switchDetailTab('standings');
     } else {
-      if (editorSec) {
-        editorSec.style.display = 'block';
-        renderPicksForm(q, lockInfo.isLocked);
-      }
+      switchDetailTab(activeDetailTab || 'picks');
     }
   }
 
@@ -964,21 +947,104 @@
       const statusLabel = document.getElementById(`status_label_${matchId}`);
       const realWin = match.homeScore > match.awayScore ? 'home' : match.awayScore > match.homeScore ? 'away' : 'draw';
       const isCorrect = winnerSide === realWin;
-      if (card) {
-        card.className = 'q-match-card ' + (isCorrect ? 'q-match-green' : 'q-match-red');
-      }
       if (statusLabel) {
         statusLabel.textContent = isCorrect ? '✓ Ganador (+1 pt)' : '✗ 0 pts';
       }
     }
   };
 
+  let activeDetailTab = 'picks'; // 'picks' | 'standings'
+
+  function switchDetailTab(tab) {
+    activeDetailTab = tab;
+    const btnPicks = document.getElementById('btnQSegPicks');
+    const btnStandings = document.getElementById('btnQSegStandings');
+    const editorSec = document.getElementById('qPicksSection');
+    const standingsSec = document.getElementById('qStandingsSection');
+
+    if (btnPicks) btnPicks.classList.toggle('active', tab === 'picks');
+    if (btnStandings) btnStandings.classList.toggle('active', tab === 'standings');
+
+    if (tab === 'picks') {
+      if (editorSec) editorSec.style.display = 'block';
+      if (standingsSec) standingsSec.style.display = 'none';
+      if (activeQuiniela) {
+        const lockInfo = checkQuinielaLockStatus(activeQuiniela);
+        renderPicksForm(activeQuiniela, lockInfo.isLocked);
+      }
+    } else {
+      if (editorSec) editorSec.style.display = 'none';
+      if (standingsSec) standingsSec.style.display = 'block';
+      if (latestPicksSnap && activeQuiniela) {
+        renderLiveStandings(latestPicksSnap, activeQuiniela.matches || []);
+      }
+    }
+  }
+  window.switchDetailTab = switchDetailTab;
+
+  function renderSleeperPlayerBanner(q) {
+    const container = document.getElementById('qSleeperPlayerBanner');
+    if (!container) return;
+
+    const user = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    const myReg = myParticipations[q.id];
+    const isApproved = myReg && (myReg.approved === true || myReg.status === 'approved');
+
+    if (!user || !myReg || !isApproved) {
+      container.innerHTML = '';
+      return;
+    }
+
+    const matches = sortMatchesChronologically(q.matches || []);
+    const isAllSoccer = matches.every(m => detectSport(m) === 'soccer');
+    const lastMatch = matches.length > 0 ? matches[matches.length - 1] : null;
+    const tieVal = myReg.tiebreaker !== undefined && myReg.tiebreaker !== null ? myReg.tiebreaker : '';
+
+    const lockInfo = checkQuinielaLockStatus(q);
+    const userPhoto = user.photoURL || 'img/logo.jpg';
+    const userNick = myReg.playerName || myReg.nickname || user.displayName || 'Jugador';
+
+    const tieLabel = isAllSoccer 
+      ? '🎯 Desempate: ¿Total GOLES en toda la quiniela?'
+      : `🎯 Desempate: ¿Total PUNTOS en el ÚLTIMO JUEGO (${lastMatch ? (lastMatch.away + ' vs ' + lastMatch.home) : 'último partido'})?`;
+
+    container.innerHTML = `
+      <div class="sleeper-player-card animate-fade">
+        <div class="sleeper-player-top">
+          <div class="sleeper-player-info">
+            <img src="${userPhoto}" onerror="this.src='img/logo.jpg'" class="sleeper-player-avatar" alt="Avatar"/>
+            <div>
+              <div class="sleeper-player-name">${userNick} ⭐</div>
+              <div class="sleeper-player-rank">✅ Participante Autorizado</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sleeper-tiebreaker-bar">
+          <div class="sleeper-tiebreaker-left">
+            <span>${tieLabel}</span>
+          </div>
+          <div class="sleeper-tiebreaker-input-wrap">
+            <span class="sleeper-tie-pill">TOTAL:</span>
+            <input type="number" id="qTiebreakerInput" min="0" max="999" class="sleeper-tie-input" placeholder="0" value="${tieVal}" ${lockInfo.isLocked ? 'disabled' : ''} />
+          </div>
+        </div>
+      </div>
+    `;
+
+    const tieInp = document.getElementById('qTiebreakerInput');
+    if (tieInp) {
+      tieInp.addEventListener('input', (e) => {
+        if (myParticipations[q.id]) {
+          myParticipations[q.id].tiebreaker = e.target.value;
+        }
+      });
+    }
+  }
+
   function renderPicksForm(q, isLocked) {
     const formEl = document.getElementById('qMatchPicksForm');
-    const titleEl = document.getElementById('qPicksTitle');
     if (!formEl) return;
-
-    if (titleEl) titleEl.textContent = `Pronósticos — ${q.name}`;
 
     formEl.innerHTML = '';
     const rawMatches = q.matches || [];
@@ -988,7 +1054,7 @@
       return;
     }
 
-    // 1. Sort matches chronologically: earliest first, latest last (handles rawDate, dateISO, and Spanish strings)
+    // 1. Sort matches chronologically
     const matches = sortMatchesChronologically(rawMatches);
 
     // 2. Check Player Registration & Approval State
@@ -1036,18 +1102,7 @@
       btnSave.style.display = 'block';
     }
 
-    const statusBanner = document.createElement('div');
-    statusBanner.className = 'q-player-status-card approved';
-    statusBanner.innerHTML = `
-      <div style="font-size:24px;">✅</div>
-      <div>
-        <strong style="font-size:13px; color:#00e676;">¡Participación Aprobada!</strong>
-        <div style="font-size:11.5px; color:#ffffff; opacity:0.9;">Tu registro está autorizado. Ingresa tus pronósticos y tu criterio de desempate antes del inicio de la jornada:</div>
-      </div>
-    `;
-    formEl.appendChild(statusBanner);
-
-    // 3. Render Match Cards
+    // 3. Render Sleeper Match Cards
     matches.forEach(m => {
       const sport = detectSport(m);
       const isSoccer = sport === 'soccer';
@@ -1062,7 +1117,6 @@
       const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
       const isIndividualMatchLocked = isLocked || isLive || isDone;
 
-      let statusClass = '';
       let statusLabel = '';
 
       if (hasScore) {
@@ -1072,24 +1126,24 @@
           const pickA = Number(currentAwayVal);
           const exact = pickH === m.homeScore && pickA === m.awayScore;
           const pickWin = pickH > pickA ? 'home' : pickA > pickH ? 'away' : 'draw';
-          if (exact) { statusClass = 'q-match-green'; statusLabel = '🎯 Exacto (+3 pts)'; }
-          else if (realWin === pickWin) { statusClass = 'q-match-yellow'; statusLabel = '✓ Ganador (+1 pt)'; }
-          else { statusClass = 'q-match-red'; statusLabel = '✗ 0 pts'; }
+          if (exact) { statusLabel = '🎯 Exacto (+3 pts)'; }
+          else if (realWin === pickWin) { statusLabel = '✓ Ganador (+1 pt)'; }
+          else { statusLabel = '✗ 0 pts'; }
         } else {
           const isCorrect = savedWinner === realWin;
-          if (isCorrect) { statusClass = 'q-match-green'; statusLabel = '✓ Ganador (+1 pt)'; }
-          else { statusClass = 'q-match-red'; statusLabel = '✗ 0 pts'; }
+          if (isCorrect) { statusLabel = '✓ Ganador (+1 pt)'; }
+          else { statusLabel = '✗ 0 pts'; }
         }
       }
 
       const card = document.createElement('div');
       card.id = `card_match_${m.id}`;
-      card.className = `q-match-card ${statusClass}`;
+      card.className = 'sleeper-match-card animate-fade';
 
       let matchContentHtml = '';
 
       if (isSoccer) {
-        // SOCCER: Exact score steppers
+        // SOCCER: Exact score steppers in Sleeper style
         matchContentHtml = `
           <div class="q-match-row-horizontal">
             <!-- Away Team (Left) -->
@@ -1129,44 +1183,53 @@
           </div>
         `;
       } else {
-        // US SPORTS (NFL, MLB, NBA, Basketball, Baseball, etc.): Pick Winner Buttons
+        // US SPORTS (NFL, MLB, NBA, etc.): Sleeper Dual Team Pick Selector
         const awaySelected = savedWinner === 'away';
         const homeSelected = savedWinner === 'home';
 
         matchContentHtml = `
-          <div class="q-winner-selector">
+          <div class="sleeper-teams-row">
             <!-- Away Winner Button -->
-            <button type="button" class="q-winner-team-btn ${awaySelected ? 'selected' : ''}" id="btn_pick_away_${m.id}" onclick="pickWinner('${m.id}', 'away')" ${isIndividualMatchLocked ? 'disabled' : ''}>
-              <div class="q-winner-check" id="chk_pick_away_${m.id}">${awaySelected ? '✓' : ''}</div>
-              <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" class="q-winner-team-logo" alt="${m.away}"/>
-              <span class="q-winner-team-name">${m.away}</span>
-              ${hasScore ? `<span class="q-row-live-badge ${m.awayScore > m.homeScore ? 'winning' : ''}" style="margin-left:auto; font-size:12px;">${m.awayScore}</span>` : ''}
+            <button type="button" class="sleeper-team-pick ${awaySelected ? 'selected' : ''}" id="btn_pick_away_${m.id}" onclick="pickWinner('${m.id}', 'away')" ${isIndividualMatchLocked ? 'disabled' : ''}>
+              <div class="sleeper-logo-frame">
+                <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" class="sleeper-team-logo" alt="${m.away}"/>
+              </div>
+              <div class="sleeper-team-details">
+                <span class="sleeper-team-abbr">${m.away}</span>
+              </div>
+              ${hasScore ? `<span class="sleeper-team-score">${m.awayScore}</span>` : ''}
+              <div class="sleeper-pick-check" id="chk_pick_away_${m.id}">${awaySelected ? '✓' : ''}</div>
             </button>
 
-            <span class="q-winner-vs-tag">vs</span>
+            <span class="sleeper-vs-divider">vs</span>
 
             <!-- Home Winner Button -->
-            <button type="button" class="q-winner-team-btn ${homeSelected ? 'selected' : ''}" id="btn_pick_home_${m.id}" onclick="pickWinner('${m.id}', 'home')" ${isIndividualMatchLocked ? 'disabled' : ''}>
-              <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" class="q-winner-team-logo" alt="${m.home}"/>
-              <span class="q-winner-team-name">${m.home}</span>
-              ${hasScore ? `<span class="q-row-live-badge ${m.homeScore > m.awayScore ? 'winning' : ''}" style="margin-left:auto; font-size:12px;">${m.homeScore}</span>` : ''}
-              <div class="q-winner-check" id="chk_pick_home_${m.id}">${homeSelected ? '✓' : ''}</div>
+            <button type="button" class="sleeper-team-pick ${homeSelected ? 'selected' : ''}" id="btn_pick_home_${m.id}" onclick="pickWinner('${m.id}', 'home')" ${isIndividualMatchLocked ? 'disabled' : ''}>
+              <div class="sleeper-pick-check" id="chk_pick_home_${m.id}">${homeSelected ? '✓' : ''}</div>
+              ${hasScore ? `<span class="sleeper-team-score">${m.homeScore}</span>` : ''}
+              <div class="sleeper-team-details text-right">
+                <span class="sleeper-team-abbr">${m.home}</span>
+              </div>
+              <div class="sleeper-logo-frame">
+                <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" class="sleeper-team-logo" alt="${m.home}"/>
+              </div>
             </button>
           </div>
         `;
       }
 
       card.innerHTML = `
-        <div class="q-match-header">
-          <div>
-            <span style="font-size:10px; color:var(--accent-color); font-weight:800; margin-right:6px;">${m.leagueLabel || ''}</span>
-            <span style="font-size:11px; color:var(--text-muted);">${m.date || ''}</span>
+        <div class="sleeper-match-header">
+          <div class="sleeper-match-meta">
+            <span>${m.leagueLabel || '🏈 NFL'}</span>
+            <span>•</span>
+            <span>${m.date || ''}</span>
           </div>
           <div style="display:flex; align-items:center; gap:6px;">
-            ${isLive ? `<span class="badge danger" style="font-size:11px; font-weight:900; background:#ff4444; color:#fff; padding:3px 8px; border-radius:12px; animation: tvPulse 1s infinite;">🔴 EN VIVO ${m.statusStr ? '('+m.statusStr+')' : ''}</span>` : ''}
+            ${isLive ? `<span class="sleeper-live-badge">🔴 EN VIVO ${m.statusStr ? '('+m.statusStr+')' : ''}</span>` : ''}
             ${isDone ? '<span class="badge" style="font-size:10px; background:rgba(255,255,255,0.1);">FINAL</span>' : ''}
             ${isIndividualMatchLocked && !isDone && !isLive ? '<span class="badge danger" style="font-size:10px;">🔒 Bloqueado</span>' : ''}
-            <span id="status_label_${m.id}" style="font-weight:800; font-size:11px;">${statusLabel}</span>
+            <span id="status_label_${m.id}" style="font-weight:800; font-size:11px; margin-left:4px; color:#ffd100;">${statusLabel}</span>
           </div>
         </div>
         ${matchContentHtml}
@@ -1174,35 +1237,6 @@
 
       formEl.appendChild(card);
     });
-
-    // 4. Dynamic Tiebreaker Input Section
-    const isAllSoccer = matches.every(m => detectSport(m) === 'soccer');
-    const lastMatch = matches[matches.length - 1];
-    const savedTiebreaker = myReg?.tiebreaker !== undefined && myReg?.tiebreaker !== null ? myReg.tiebreaker : '';
-
-    const tiebreakerCard = document.createElement('div');
-    tiebreakerCard.className = 'q-tiebreaker-card';
-    tiebreakerCard.innerHTML = `
-      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-        <div style="flex:1; min-width:200px;">
-          <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
-            <span style="font-size:18px;">🎯</span>
-            <strong style="color:#ffd100; font-size:13px;">Criterio de Desempate Oficial</strong>
-            <span class="badge" style="background:rgba(255,209,0,0.2); color:#ffd100; font-size:10px; font-weight:800;">Obligatorio</span>
-          </div>
-          <p style="font-size:12px; color:var(--text-color); margin:0; line-height:1.4;">
-            ${isAllSoccer 
-              ? '¿Cuántos <strong>GOLES EN TOTAL</strong> se anotarán en toda esta quiniela?'
-              : `¿Cuántos <strong>PUNTOS EN TOTAL</strong> se anotarán entre ambos equipos en el <strong>ÚLTIMO JUEGO</strong> (${lastMatch.away} vs ${lastMatch.home})?`}
-          </p>
-          <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">(Se usará únicamente en caso de empate en puntos para definir al ganador)</div>
-        </div>
-        <div>
-          <input type="number" id="qTiebreakerInput" min="0" max="999" class="q-tiebreaker-input" placeholder="0" value="${savedTiebreaker}" ${isLocked ? 'disabled' : ''} />
-        </div>
-      </div>
-    `;
-    formEl.appendChild(tiebreakerCard);
   }
 
   async function savePlayerPicks() {
@@ -1295,6 +1329,7 @@
 
       isEditingPicks = false;
       showToast(`¡Pronósticos guardados para "${name}"! 🏆`);
+      switchDetailTab('standings');
       updateQuinielaView(activeQuiniela);
     } catch (err) {
       alert('Error al guardar: ' + err.message);
@@ -1428,65 +1463,46 @@
       return a.tiebreakerDiff - b.tiebreakerDiff;
     });
 
-    if (players.length === 0) {
-      if (leaderCardEl) leaderCardEl.style.display = 'none';
-      standingsListEl.innerHTML = '<div class="text-center hint-text py-3">Aún no hay participantes registrados en esta quiniela. ¡Sé el primero en guardar tus pronósticos!</div>';
-      return;
-    }
+    // 1. Render Sleeper Top 3 Podium
+    const podiumEl = document.getElementById('qSleeperPodium');
+    if (podiumEl) {
+      const appr = players.filter(p => p.isApproved && p.totalPoints > 0);
+      if (appr.length > 0) {
+        podiumEl.style.display = 'flex';
+        const first = appr[0];
+        const second = appr[1];
+        const third = appr[2];
 
-    // 1. Render Live Leader Card (Top Player or Tie)
-    if (leaderCardEl) {
-      const topPts = players[0].totalPoints;
-      const leaders = players.filter(p => p.isApproved && p.totalPoints === topPts && topPts > 0);
-
-      leaderCardEl.style.display = 'flex';
-      leaderCardEl.className = 'q-leader-card';
-
-      if (leaders.length === 0 || topPts === 0) {
-        leaderCardEl.innerHTML = `
-          <div class="q-leader-left">
-            <div class="q-leader-crown">⏳</div>
-            <div>
-              <div class="q-leader-title">ESTADO DE LA QUINIELA</div>
-              <div class="q-leader-name" style="font-size:14px; color:#aaa;">Jornada por iniciar — ${players.length} participantes listos</div>
+        podiumEl.innerHTML = `
+          ${second ? `
+            <div class="sleeper-podium-card sleeper-podium-2nd animate-fade">
+              <span class="sleeper-podium-medal">🥈</span>
+              <img src="${second.photoURL || 'img/logo.jpg'}" onerror="this.src='img/logo.jpg'" class="sleeper-podium-avatar" alt="${second.playerName}"/>
+              <div class="sleeper-podium-name">${second.playerName || 'Jugador'}</div>
+              <div class="sleeper-podium-pts">${second.totalPoints} pts</div>
             </div>
-          </div>
-          <div class="q-leader-pts-badge">
-            <div class="q-leader-pts-val" style="color:var(--text-muted);">0 pts</div>
-            <div class="q-leader-pts-sub">Líder pendiente</div>
-          </div>
-        `;
-      } else if (leaders.length === 1) {
-        const leader = leaders[0];
-        const isMe = (activeUser && (leader.id === activeUser.uid || leader.userUid === activeUser.uid)) || leader.id === deviceId;
-        leaderCardEl.innerHTML = `
-          <div class="q-leader-left">
-            <div class="q-leader-crown">👑</div>
-            <div>
-              <div class="q-leader-title">🥇 LÍDER ACTUAL EN VIVO</div>
-              <div class="q-leader-name" style="font-size:16px;">${leader.playerName || 'Anónimo'} ${isMe ? '⭐ (¡Vas ganando!)' : ''}</div>
+          ` : ''}
+
+          ${first ? `
+            <div class="sleeper-podium-card sleeper-podium-1st animate-fade">
+              <span class="sleeper-podium-medal">👑</span>
+              <img src="${first.photoURL || 'img/logo.jpg'}" onerror="this.src='img/logo.jpg'" class="sleeper-podium-avatar" alt="${first.playerName}"/>
+              <div class="sleeper-podium-name" style="color:#ffd100;">${first.playerName || 'Jugador'}</div>
+              <div class="sleeper-podium-pts" style="font-size:15px;">${first.totalPoints} pts</div>
             </div>
-          </div>
-          <div class="q-leader-pts-badge">
-            <div class="q-leader-pts-val">${leader.totalPoints} PTS</div>
-            <div class="q-leader-pts-sub">🎯 ${leader.exactHits} Aciertos exactos</div>
-          </div>
+          ` : ''}
+
+          ${third ? `
+            <div class="sleeper-podium-card sleeper-podium-3rd animate-fade">
+              <span class="sleeper-podium-medal">🥉</span>
+              <img src="${third.photoURL || 'img/logo.jpg'}" onerror="this.src='img/logo.jpg'" class="sleeper-podium-avatar" alt="${third.playerName}"/>
+              <div class="sleeper-podium-name">${third.playerName || 'Jugador'}</div>
+              <div class="sleeper-podium-pts">${third.totalPoints} pts</div>
+            </div>
+          ` : ''}
         `;
       } else {
-        const names = leaders.slice(0, 3).map(l => l.playerName).join(' y ');
-        leaderCardEl.innerHTML = `
-          <div class="q-leader-left">
-            <div class="q-leader-crown">🔥</div>
-            <div>
-              <div class="q-leader-title">🤝 EMPATE EN 1ER LUGAR</div>
-              <div class="q-leader-name" style="font-size:15px;">${names}</div>
-            </div>
-          </div>
-          <div class="q-leader-pts-badge">
-            <div class="q-leader-pts-val">${topPts} PTS</div>
-            <div class="q-leader-pts-sub">Empate en la cima</div>
-          </div>
-        `;
+        podiumEl.style.display = 'none';
       }
     }
 
