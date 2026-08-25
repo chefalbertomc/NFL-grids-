@@ -47,16 +47,6 @@
       });
     }
 
-    // Sleeper Segmented Tabs (Pronósticos vs Posiciones)
-    const btnSegPicks = document.getElementById('btnQSegPicks');
-    if (btnSegPicks) {
-      btnSegPicks.addEventListener('click', () => switchDetailTab('picks'));
-    }
-    const btnSegStandings = document.getElementById('btnQSegStandings');
-    if (btnSegStandings) {
-      btnSegStandings.addEventListener('click', () => switchDetailTab('standings'));
-    }
-
     // Save picks button
     const btnSave = document.getElementById('btnSaveQPicks');
     if (btnSave) {
@@ -573,29 +563,27 @@
     const userNick = activeUser.displayName ? activeUser.displayName.toUpperCase().slice(0, 20) : '';
 
     container.innerHTML = `
-      <div class="card animate-fade" style="border:1.5px solid #ffd100; background:linear-gradient(145deg, rgba(28,24,14,0.98), rgba(16,14,8,0.99)); padding:12px 14px; border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,0.5);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-          <span style="font-size:12px; font-weight:900; color:#ffd100;">📝 Solicitar Entrada a "${q.name}"</span>
-          <button type="button" onclick="window.closeInlineJoin('${q.id}')" style="background:none; border:none; color:#aaa; font-size:16px; cursor:pointer; padding:2px 6px;">✕</button>
+      <div class="q-inline-join-box animate-fade">
+        <div class="q-inline-join-header">
+          <span class="q-inline-join-title">📝 Solicitar Entrada a "${q.name}"</span>
+          <button type="button" class="q-inline-close-btn" onclick="window.closeInlineJoin('${q.id}')" title="Cerrar">✕</button>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:8px;">
-          <div>
-            <label style="font-size:11px; font-weight:800; color:#ffd100; display:block; margin-bottom:3px;">👤 Tu Apodo (Obligatorio)*:</label>
-            <input type="text" id="inp_inline_nick_${q.id}" value="${userNick}" maxlength="20" placeholder="EJ. BETO" style="width:100%; padding:10px 12px; font-size:13px; font-weight:800; text-transform:uppercase; border-radius:10px; background:rgba(0,0,0,0.5); border:1.5px solid #ffd100; color:#ffd100;" />
-          </div>
-
-          <div>
-            <label style="font-size:11px; font-weight:700; color:#aaa; display:block; margin-bottom:3px;">🍽️ Mesero (Opcional):</label>
-            <input type="text" id="inp_inline_waiter_${q.id}" placeholder="Ej. Carlos" maxlength="30" style="width:100%; padding:10px 12px; font-size:13px; font-weight:700; border-radius:10px; background:rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2); color:#fff;" />
-          </div>
-
-          <div id="inline_status_${q.id}" style="font-size:11px; font-weight:800; color:#ff4444; display:none; margin-top:2px;"></div>
-
-          <button type="button" class="btn btn-primary" id="btn_submit_inline_${q.id}" onclick="window.submitInlineJoin('${q.id}')" style="font-size:13px; font-weight:900; padding:11px; border-radius:10px; width:100%; margin-top:4px;">
-            ✅ Solicitar Entrada
-          </button>
+        <div class="q-inline-field">
+          <label class="q-inline-label">👤 Tu Apodo (Obligatorio)*:</label>
+          <input type="text" id="inp_inline_nick_${q.id}" class="q-inline-input" value="${userNick}" maxlength="20" placeholder="EJ. BETO" />
         </div>
+
+        <div class="q-inline-field">
+          <label class="q-inline-label" style="color:#aaa;">🍽️ Mesero (Opcional):</label>
+          <input type="text" id="inp_inline_waiter_${q.id}" class="q-inline-input" placeholder="Ej. Carlos" maxlength="30" />
+        </div>
+
+        <div id="inline_status_${q.id}" style="font-size:11.5px; font-weight:800; color:#ff4444; display:none; margin-bottom:6px;"></div>
+
+        <button type="button" class="q-inline-submit-btn" id="btn_submit_inline_${q.id}" onclick="window.submitInlineJoin('${q.id}')">
+          ✅ Solicitar Entrada
+        </button>
       </div>
     `;
 
@@ -1114,6 +1102,9 @@
 
       let matchContentHtml = '';
 
+      const awayShort = (m.awayAbbr && m.awayAbbr.length <= 4) ? m.awayAbbr : (m.away.split(/\s+/).pop() || m.away);
+      const homeShort = (m.homeAbbr && m.homeAbbr.length <= 4) ? m.homeAbbr : (m.home.split(/\s+/).pop() || m.home);
+
       if (isSoccer) {
         // SOCCER: Exact score steppers with team colors
         matchContentHtml = `
@@ -1123,19 +1114,19 @@
               <div class="q-scorebug-logo-frame">
                 <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" alt="${m.away}"/>
               </div>
-              <span class="q-scorebug-abbr" title="${m.away}">${m.away}</span>
+              <span class="q-scorebug-abbr" title="${m.away}">${awayShort}</span>
               ${hasScore ? `<span class="q-scorebug-score-box">${m.awayScore}</span>` : ''}
             </div>
 
             <!-- Center Steppers -->
-            <div class="q-scorebug-center" style="min-width:140px; padding:6px 10px;">
-              <div style="display:flex; align-items:center; gap:6px;">
+            <div class="q-scorebug-center" style="min-width:110px; padding:4px 6px;">
+              <div style="display:flex; align-items:center; gap:4px;">
                 <div class="q-counter-box">
                   <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">−</button>
                   <input type="number" min="0" max="99" class="q-score-box" id="pick_away_${m.id}" value="${currentAwayVal}" readonly />
                   <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', 1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Sumar">+</button>
                 </div>
-                <span style="font-weight:900; color:#ffd100; font-size:16px;">:</span>
+                <span style="font-weight:900; color:#ffd100; font-size:14px;">:</span>
                 <div class="q-counter-box">
                   <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'home', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">−</button>
                   <input type="number" min="0" max="99" class="q-score-box" id="pick_home_${m.id}" value="${currentHomeVal}" readonly />
@@ -1147,7 +1138,7 @@
             <!-- Home Team Wing (Right) -->
             <div class="q-scorebug-wing q-home" style="--team-bg: ${homeColor}; cursor:default;">
               ${hasScore ? `<span class="q-scorebug-score-box">${m.homeScore}</span>` : ''}
-              <span class="q-scorebug-abbr text-right" title="${m.home}">${m.home}</span>
+              <span class="q-scorebug-abbr text-right" title="${m.home}">${homeShort}</span>
               <div class="q-scorebug-logo-frame">
                 <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" alt="${m.home}"/>
               </div>
@@ -1166,7 +1157,7 @@
               <div class="q-scorebug-logo-frame">
                 <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" alt="${m.away}"/>
               </div>
-              <span class="q-scorebug-abbr" title="${m.away}">${m.away}</span>
+              <span class="q-scorebug-abbr" title="${m.away}">${awayShort}</span>
               ${hasScore ? `<span class="q-scorebug-score-box">${m.awayScore}</span>` : ''}
               <div class="q-scorebug-check" id="chk_pick_away_${m.id}">${awaySelected ? '✓' : ''}</div>
             </div>
@@ -1174,14 +1165,14 @@
             <!-- Center VS / Situation -->
             <div class="q-scorebug-center">
               <span style="font-size:10px; font-weight:900; color:var(--text-muted);">VS</span>
-              ${isLive ? `<span style="font-size:9px; color:#ff4444; font-weight:900; animation:tvPulse 1s infinite;">🔴 LIVE</span>` : ''}
+              ${isLive ? `<span style="font-size:8.5px; color:#ff4444; font-weight:900; animation:tvPulse 1s infinite;">🔴 LIVE</span>` : ''}
             </div>
 
             <!-- Home Team Wing (Right half with Home Color) -->
             <div class="q-scorebug-wing q-home ${homeSelected ? 'selected' : ''}" id="btn_pick_home_${m.id}" onclick="pickWinner('${m.id}', 'home')" style="--team-bg: ${homeColor};" ${isIndividualMatchLocked ? 'style="pointer-events:none;"' : ''}>
               <div class="q-scorebug-check" id="chk_pick_home_${m.id}">${homeSelected ? '✓' : ''}</div>
               ${hasScore ? `<span class="q-scorebug-score-box">${m.homeScore}</span>` : ''}
-              <span class="q-scorebug-abbr text-right" title="${m.home}">${m.home}</span>
+              <span class="q-scorebug-abbr text-right" title="${m.home}">${homeShort}</span>
               <div class="q-scorebug-logo-frame">
                 <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" alt="${m.home}"/>
               </div>
@@ -1203,7 +1194,7 @@
               <div class="q-last-game-tiebreaker-sub">
                 ${isAllSoccer 
                   ? '¿Total de GOLES que se anotarán en toda la quiniela?' 
-                  : `¿Total de PUNTOS entre ambos equipos en este último juego (${m.away} vs ${m.home})?`}
+                  : `¿Total de PUNTOS entre ambos equipos en este último juego (${awayShort} vs ${homeShort})?`}
               </div>
             </div>
             <div class="q-tiebreaker-stepper-wrap">
@@ -1327,7 +1318,6 @@
 
       isEditingPicks = false;
       showToast(`¡Pronósticos guardados para "${name}"! 🏆`);
-      switchDetailTab('standings');
       updateQuinielaView(activeQuiniela);
     } catch (err) {
       alert('Error al guardar: ' + err.message);
