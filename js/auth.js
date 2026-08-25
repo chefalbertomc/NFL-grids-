@@ -6,6 +6,14 @@
   window.isAdmin = false;
   let authInitialized = false;
 
+  // Immediate hydration from localStorage for instant PWA launch without waiting for network
+  try {
+    const cachedUserStr = localStorage.getItem('bww_last_auth_user');
+    if (cachedUserStr) {
+      window.currentUser = JSON.parse(cachedUserStr);
+    }
+  } catch (e) {}
+
   const authCallbacks = [];
   let pendingAuthAction = null;
   let tempCroppedPhotoData = null;
@@ -652,10 +660,22 @@
 
   // Global Auth Guard
   window.requireUserAuth = function(actionCallback, customTitle, customSubtitle) {
-    if (window.currentUser) {
-      if (typeof actionCallback === 'function') actionCallback(window.currentUser);
+    const active = window.currentUser || (window.firebase && firebase.auth && firebase.auth() ? firebase.auth().currentUser : null);
+    if (active) {
+      if (!window.currentUser) window.currentUser = active;
+      if (typeof actionCallback === 'function') actionCallback(active);
       return true;
     }
+    // Check if we can hydrate from local storage
+    try {
+      const cached = localStorage.getItem('bww_last_auth_user');
+      if (cached) {
+        window.currentUser = JSON.parse(cached);
+        if (typeof actionCallback === 'function') actionCallback(window.currentUser);
+        return true;
+      }
+    } catch (e) {}
+
     pendingAuthAction = actionCallback;
     window.showLoginModal(customTitle, customSubtitle);
     return false;

@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Tablero NFL Grid — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=124.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=125.0"/>
   <style>
     /* Custom zoom styles for mobile */
     .grid-view-header {
@@ -122,6 +122,20 @@
       <button type="button" class="btn-rotate-close" onclick="window.dismissRotateTip()" title="Cerrar">✕</button>
     </div>
     
+    <!-- Service Worker: Auto Silent Update -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(reg => {
+          reg.update().catch(() => {});
+        }).catch(() => {});
+        navigator.serviceWorker.addEventListener('message', event => {
+          if (event.data && event.data.type === 'SW_UPDATED') {
+            window.location.reload();
+          }
+        });
+      }
+    </script>
+    
     <!-- Grid Container -->
     <div class="card" style="padding: 12px;">
       <!-- Interactive Grid Component -->
@@ -222,10 +236,10 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Initializer & View Logic -->
-  <script src="js/firebase-config.js?v=124.0"></script>
-  <script src="js/auth.js?v=124.0"></script>
-  <script src="js/team-logos.js?v=124.0"></script>
-  <script src="js/player-view.js?v=124.0"></script>
+  <script src="js/firebase-config.js?v=125.0"></script>
+  <script src="js/auth.js?v=125.0"></script>
+  <script src="js/team-logos.js?v=125.0"></script>
+  <script src="js/player-view.js?v=125.0"></script>
 
   <!-- User Profile & Photo Uploader Modal -->
   <div id="userProfileModal" class="login-modal-overlay" style="display:none; z-index:9999;">
