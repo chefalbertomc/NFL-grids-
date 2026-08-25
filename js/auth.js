@@ -81,7 +81,6 @@
   }
 
   // 1-Click Google Sign In
-  let isGoogleAuthInProgress = false;
   window.loginWithGoogle = async function(isSwitchAccount = false) {
     if (isGoogleAuthInProgress) return;
     isGoogleAuthInProgress = true;
