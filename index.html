@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=111.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=112.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -280,26 +280,26 @@
     </main>
   </div>
 
-  <!-- Mobile Bottom Navigation Bar -->
+  <!-- Mobile Bottom Navigation Bar with Custom Illustrated Badges -->
   <nav class="mobile-nav">
     <a href="#" class="nav-item active" data-target="tab-grids">
-      <span class="nav-icon">🏈</span>
+      <img src="img/games/nav_grids.png" alt="Grids" class="nav-game-badge" />
       <span>Grids</span>
     </a>
     <a href="#" class="nav-item" data-target="tab-pools">
-      <span class="nav-icon">📋</span>
+      <img src="img/games/nav_quiniela.png" alt="Quiniela" class="nav-game-badge" />
       <span>Quiniela</span>
     </a>
     <a href="#" class="nav-item" data-target="tab-survivor">
-      <span class="nav-icon">🏆</span>
+      <img src="img/games/nav_survivor.png" alt="Survivor" class="nav-game-badge" />
       <span>Survivor</span>
     </a>
     <a href="#" class="nav-item" data-target="tab-firstgoal">
-      <span class="nav-icon">⚽</span>
+      <img src="img/games/nav_firstgoal.png" alt="Primer Gol" class="nav-game-badge" />
       <span>Primer Gol</span>
     </a>
     <a href="admin.html" class="nav-item admin-only hidden">
-      <span class="nav-icon">⚙️</span>
+      <div class="nav-admin-icon">⚙️</div>
       <span>Admin</span>
     </a>
   </nav>
@@ -310,13 +310,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=111.0"></script>
-  <script src="js/auth.js?v=111.0"></script>
-  <script src="js/team-logos.js?v=111.0"></script>
-  <script src="js/grids.js?v=111.0"></script>
-  <script src="js/quiniela-player.js?v=111.0"></script>
-  <script src="js/survivor.js?v=111.0"></script>
-  <script src="js/firstgoal.js?v=111.0"></script>
+  <script src="js/firebase-config.js?v=112.0"></script>
+  <script src="js/auth.js?v=112.0"></script>
+  <script src="js/team-logos.js?v=112.0"></script>
+  <script src="js/grids.js?v=112.0"></script>
+  <script src="js/quiniela-player.js?v=112.0"></script>
+  <script src="js/survivor.js?v=112.0"></script>
+  <script src="js/firstgoal.js?v=112.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
