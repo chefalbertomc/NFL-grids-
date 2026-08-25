@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=100.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=101.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -202,22 +202,9 @@
           </div>
         </div>
 
-        <!-- Sleeper Segmented Switcher: Picks vs Standings -->
-        <div class="sleeper-seg-control" id="qSleeperSegNav">
-          <button type="button" class="sleeper-seg-btn active" id="btnQSegPicks" data-q-tab="picks">
-            <span>🏈</span> Pronósticos
-          </button>
-          <button type="button" class="sleeper-seg-btn" id="btnQSegStandings" data-q-tab="standings">
-            <span>📊</span> Posiciones
-          </button>
-        </div>
-
-        <!-- Sleeper Player Banner & Integrated Tiebreaker -->
-        <div id="qSleeperPlayerBanner"></div>
-
-        <!-- Picks Form Section (Tab: Picks) -->
+        <!-- Picks Form Section -->
         <section id="qPicksSection" style="margin-bottom:16px;">
-          <!-- Matches Cards List (Sleeper style) -->
+          <!-- Matches Cards List with Split Team Colors -->
           <div id="qMatchPicksForm" style="display:flex; flex-direction:column; gap:12px; margin-bottom:18px;">
             <div class="text-center hint-text py-3">Cargando partidos...</div>
           </div>
@@ -228,9 +215,9 @@
           </button>
         </section>
 
-        <!-- Live Standings / Leaderboard Section (Tab: Standings) -->
-        <section id="qStandingsSection" style="display:none; margin-bottom:16px;">
-          <!-- Sleeper Top 3 Podium Container -->
+        <!-- Live Standings / Leaderboard Section (Table & Podium) -->
+        <section id="qStandingsSection" style="margin-bottom:16px;">
+          <!-- Top 3 Podium Container -->
           <div id="qSleeperPodium" class="sleeper-podium-container" style="display:none;"></div>
 
           <!-- Interactive Rankings / Matrix Table -->
@@ -339,13 +326,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=100.0"></script>
-  <script src="js/auth.js?v=100.0"></script>
-  <script src="js/team-logos.js?v=100.0"></script>
-  <script src="js/grids.js?v=100.0"></script>
-  <script src="js/quiniela-player.js?v=100.0"></script>
-  <script src="js/survivor.js?v=100.0"></script>
-  <script src="js/firstgoal.js?v=100.0"></script>
+  <script src="js/firebase-config.js?v=101.0"></script>
+  <script src="js/auth.js?v=101.0"></script>
+  <script src="js/team-logos.js?v=101.0"></script>
+  <script src="js/grids.js?v=101.0"></script>
+  <script src="js/quiniela-player.js?v=101.0"></script>
+  <script src="js/survivor.js?v=101.0"></script>
+  <script src="js/firstgoal.js?v=101.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>

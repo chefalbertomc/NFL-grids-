@@ -771,21 +771,21 @@
   function updateQuinielaView(q) {
     const lockInfo = checkQuinielaLockStatus(q);
     renderLockBannerAndTimer(lockInfo);
-    renderSleeperPlayerBanner(q);
 
-    const hasSavedPicks = picks && Object.keys(picks).length > 0;
+    const editorSec = document.getElementById('qPicksSection');
+    const standingsSec = document.getElementById('qStandingsSection');
 
-    // LOCKED: default to standings tab
     if (lockInfo.isLocked) {
-      switchDetailTab('standings');
-      return;
-    }
-
-    // OPEN: switch based on user's active tab or defaults
-    if (hasSavedPicks && !isEditingPicks && activeDetailTab === 'standings') {
-      switchDetailTab('standings');
+      if (editorSec) editorSec.style.display = 'none';
+      if (standingsSec) standingsSec.style.display = 'block';
     } else {
-      switchDetailTab(activeDetailTab || 'picks');
+      if (editorSec) {
+        editorSec.style.display = 'block';
+        renderPicksForm(q, false);
+      }
+      if (standingsSec) {
+        standingsSec.style.display = 'block';
+      }
     }
   }
 
@@ -907,6 +907,21 @@
     }
   };
 
+  // Helper for Stepper in Tiebreaker
+  window.stepTiebreaker = function(delta) {
+    const inp = document.getElementById('qTiebreakerInput');
+    if (!inp || inp.disabled) return;
+    let val = parseInt(inp.value, 10);
+    if (isNaN(val)) val = 0;
+    val += delta;
+    if (val < 0) val = 0;
+    if (val > 999) val = 999;
+    inp.value = val;
+    if (activeQuiniela && myParticipations[activeQuiniela.id]) {
+      myParticipations[activeQuiniela.id].tiebreaker = val;
+    }
+  };
+
   // Helper for Winner Selection in Non-Soccer matches (NFL, MLB, NBA, etc.)
   window.pickWinner = function(matchId, winnerSide) {
     if (!activeQuiniela) return;
@@ -943,7 +958,6 @@
     // Dynamic result preview
     const match = (activeQuiniela.matches || []).find(m => m.id === matchId);
     if (match && match.homeScore !== null && match.awayScore !== null && match.status !== 'pre') {
-      const card = document.getElementById(`card_match_${matchId}`);
       const statusLabel = document.getElementById(`status_label_${matchId}`);
       const realWin = match.homeScore > match.awayScore ? 'home' : match.awayScore > match.homeScore ? 'away' : 'draw';
       const isCorrect = winnerSide === realWin;
@@ -952,95 +966,6 @@
       }
     }
   };
-
-  let activeDetailTab = 'picks'; // 'picks' | 'standings'
-
-  function switchDetailTab(tab) {
-    activeDetailTab = tab;
-    const btnPicks = document.getElementById('btnQSegPicks');
-    const btnStandings = document.getElementById('btnQSegStandings');
-    const editorSec = document.getElementById('qPicksSection');
-    const standingsSec = document.getElementById('qStandingsSection');
-
-    if (btnPicks) btnPicks.classList.toggle('active', tab === 'picks');
-    if (btnStandings) btnStandings.classList.toggle('active', tab === 'standings');
-
-    if (tab === 'picks') {
-      if (editorSec) editorSec.style.display = 'block';
-      if (standingsSec) standingsSec.style.display = 'none';
-      if (activeQuiniela) {
-        const lockInfo = checkQuinielaLockStatus(activeQuiniela);
-        renderPicksForm(activeQuiniela, lockInfo.isLocked);
-      }
-    } else {
-      if (editorSec) editorSec.style.display = 'none';
-      if (standingsSec) standingsSec.style.display = 'block';
-      if (latestPicksSnap && activeQuiniela) {
-        renderLiveStandings(latestPicksSnap, activeQuiniela.matches || []);
-      }
-    }
-  }
-  window.switchDetailTab = switchDetailTab;
-
-  function renderSleeperPlayerBanner(q) {
-    const container = document.getElementById('qSleeperPlayerBanner');
-    if (!container) return;
-
-    const user = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
-    const myReg = myParticipations[q.id];
-    const isApproved = myReg && (myReg.approved === true || myReg.status === 'approved');
-
-    if (!user || !myReg || !isApproved) {
-      container.innerHTML = '';
-      return;
-    }
-
-    const matches = sortMatchesChronologically(q.matches || []);
-    const isAllSoccer = matches.every(m => detectSport(m) === 'soccer');
-    const lastMatch = matches.length > 0 ? matches[matches.length - 1] : null;
-    const tieVal = myReg.tiebreaker !== undefined && myReg.tiebreaker !== null ? myReg.tiebreaker : '';
-
-    const lockInfo = checkQuinielaLockStatus(q);
-    const userPhoto = user.photoURL || 'img/logo.jpg';
-    const userNick = myReg.playerName || myReg.nickname || user.displayName || 'Jugador';
-
-    const tieLabel = isAllSoccer 
-      ? '🎯 Desempate: ¿Total GOLES en toda la quiniela?'
-      : `🎯 Desempate: ¿Total PUNTOS en el ÚLTIMO JUEGO (${lastMatch ? (lastMatch.away + ' vs ' + lastMatch.home) : 'último partido'})?`;
-
-    container.innerHTML = `
-      <div class="sleeper-player-card animate-fade">
-        <div class="sleeper-player-top">
-          <div class="sleeper-player-info">
-            <img src="${userPhoto}" onerror="this.src='img/logo.jpg'" class="sleeper-player-avatar" alt="Avatar"/>
-            <div>
-              <div class="sleeper-player-name">${userNick} ⭐</div>
-              <div class="sleeper-player-rank">✅ Participante Autorizado</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="sleeper-tiebreaker-bar">
-          <div class="sleeper-tiebreaker-left">
-            <span>${tieLabel}</span>
-          </div>
-          <div class="sleeper-tiebreaker-input-wrap">
-            <span class="sleeper-tie-pill">TOTAL:</span>
-            <input type="number" id="qTiebreakerInput" min="0" max="999" class="sleeper-tie-input" placeholder="0" value="${tieVal}" ${lockInfo.isLocked ? 'disabled' : ''} />
-          </div>
-        </div>
-      </div>
-    `;
-
-    const tieInp = document.getElementById('qTiebreakerInput');
-    if (tieInp) {
-      tieInp.addEventListener('input', (e) => {
-        if (myParticipations[q.id]) {
-          myParticipations[q.id].tiebreaker = e.target.value;
-        }
-      });
-    }
-  }
 
   function renderPicksForm(q, isLocked) {
     const formEl = document.getElementById('qMatchPicksForm');
@@ -1056,6 +981,7 @@
 
     // 1. Sort matches chronologically
     const matches = sortMatchesChronologically(rawMatches);
+    const isAllSoccer = matches.every(m => detectSport(m) === 'soccer');
 
     // 2. Check Player Registration & Approval State
     const myReg = myParticipations[q.id];
@@ -1063,6 +989,7 @@
     const isPending = myReg && !isApproved;
     const isNotJoined = !myReg;
     const btnSave = document.getElementById('btnSaveQPicks');
+    const savedTiebreaker = myReg?.tiebreaker !== undefined && myReg?.tiebreaker !== null ? myReg.tiebreaker : '';
 
     if (isNotJoined) {
       if (btnSave) btnSave.style.display = 'none';
@@ -1102,8 +1029,8 @@
       btnSave.style.display = 'block';
     }
 
-    // 3. Render Sleeper Match Cards
-    matches.forEach(m => {
+    // 3. Render Match Cards with Split Team Colors (like Grids TV Scorebug)
+    matches.forEach((m, idx) => {
       const sport = detectSport(m);
       const isSoccer = sport === 'soccer';
       const existPick = picks[m.id] || {};
@@ -1116,6 +1043,14 @@
       const isDone = m.completed || m.status === 'post';
       const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
       const isIndividualMatchLocked = isLocked || isLive || isDone;
+
+      const awayInfo = typeof window.getTeamInfo === 'function' ? window.getTeamInfo(m.away) : null;
+      const awayColor = awayInfo?.color || '#1a2230';
+
+      const homeInfo = typeof window.getTeamInfo === 'function' ? window.getTeamInfo(m.home) : null;
+      const homeColor = homeInfo?.color || '#1a2230';
+
+      const isLastMatch = idx === matches.length - 1;
 
       let statusLabel = '';
 
@@ -1138,101 +1073,127 @@
 
       const card = document.createElement('div');
       card.id = `card_match_${m.id}`;
-      card.className = 'sleeper-match-card animate-fade';
+      card.className = 'q-scorebug-card animate-fade';
 
       let matchContentHtml = '';
 
       if (isSoccer) {
-        // SOCCER: Exact score steppers in Sleeper style
+        // SOCCER: Exact score steppers with team colors
         matchContentHtml = `
-          <div class="q-match-row-horizontal">
-            <!-- Away Team (Left) -->
-            <div class="q-team-side q-team-away">
-              <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" class="q-team-row-logo" alt="${m.away}"/>
-              <div class="q-team-text-block">
-                <span class="q-team-row-name" title="${m.away}">${m.away}</span>
-                ${hasScore ? `<span class="q-row-live-badge ${m.awayScore > m.homeScore ? 'winning' : ''}">${isLive ? '🔴 ' : ''}Marcador: ${m.awayScore}</span>` : ''}
+          <div class="q-scorebug-split">
+            <!-- Away Team Wing (Left) -->
+            <div class="q-scorebug-wing q-away" style="--team-bg: ${awayColor}; cursor:default;">
+              <div class="q-scorebug-logo-frame">
+                <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" alt="${m.away}"/>
+              </div>
+              <span class="q-scorebug-abbr" title="${m.away}">${m.away}</span>
+              ${hasScore ? `<span class="q-scorebug-score-box">${m.awayScore}</span>` : ''}
+            </div>
+
+            <!-- Center Steppers -->
+            <div class="q-scorebug-center" style="min-width:140px; padding:6px 10px;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <div class="q-counter-box">
+                  <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">−</button>
+                  <input type="number" min="0" max="99" class="q-score-box" id="pick_away_${m.id}" value="${currentAwayVal}" readonly />
+                  <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', 1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Sumar">+</button>
+                </div>
+                <span style="font-weight:900; color:#ffd100; font-size:16px;">:</span>
+                <div class="q-counter-box">
+                  <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'home', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">−</button>
+                  <input type="number" min="0" max="99" class="q-score-box" id="pick_home_${m.id}" value="${currentHomeVal}" readonly />
+                  <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'home', 1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Sumar">+</button>
+                </div>
               </div>
             </div>
 
-            <!-- Steppers Widget (Center) -->
-            <div class="q-steppers-center">
-              <div class="q-counter-box">
-                <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">−</button>
-                <input type="number" min="0" max="99" class="q-score-box" id="pick_away_${m.id}" value="${currentAwayVal}" readonly />
-                <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', 1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Sumar">+</button>
+            <!-- Home Team Wing (Right) -->
+            <div class="q-scorebug-wing q-home" style="--team-bg: ${homeColor}; cursor:default;">
+              ${hasScore ? `<span class="q-scorebug-score-box">${m.homeScore}</span>` : ''}
+              <span class="q-scorebug-abbr text-right" title="${m.home}">${m.home}</span>
+              <div class="q-scorebug-logo-frame">
+                <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" alt="${m.home}"/>
               </div>
-
-              <span class="q-vs-separator">:</span>
-
-              <div class="q-counter-box">
-                <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'home', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">−</button>
-                <input type="number" min="0" max="99" class="q-score-box" id="pick_home_${m.id}" value="${currentHomeVal}" readonly />
-                <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'home', 1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Sumar">+</button>
-              </div>
-            </div>
-
-            <!-- Home Team (Right) -->
-            <div class="q-team-side q-team-home">
-              <div class="q-team-text-block text-right">
-                <span class="q-team-row-name" title="${m.home}">${m.home}</span>
-                ${hasScore ? `<span class="q-row-live-badge ${m.homeScore > m.awayScore ? 'winning' : ''}">${isLive ? '🔴 ' : ''}Marcador: ${m.homeScore}</span>` : ''}
-              </div>
-              <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" class="q-team-row-logo" alt="${m.home}"/>
             </div>
           </div>
         `;
       } else {
-        // US SPORTS (NFL, MLB, NBA, etc.): Sleeper Dual Team Pick Selector
+        // US SPORTS (NFL, MLB, NBA, etc.): Split TV Scorebug with team colors
         const awaySelected = savedWinner === 'away';
         const homeSelected = savedWinner === 'home';
 
         matchContentHtml = `
-          <div class="sleeper-teams-row">
-            <!-- Away Winner Button -->
-            <button type="button" class="sleeper-team-pick ${awaySelected ? 'selected' : ''}" id="btn_pick_away_${m.id}" onclick="pickWinner('${m.id}', 'away')" ${isIndividualMatchLocked ? 'disabled' : ''}>
-              <div class="sleeper-logo-frame">
-                <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" class="sleeper-team-logo" alt="${m.away}"/>
+          <div class="q-scorebug-split">
+            <!-- Away Team Wing (Left half with Away Color) -->
+            <div class="q-scorebug-wing q-away ${awaySelected ? 'selected' : ''}" id="btn_pick_away_${m.id}" onclick="pickWinner('${m.id}', 'away')" style="--team-bg: ${awayColor};" ${isIndividualMatchLocked ? 'style="pointer-events:none;"' : ''}>
+              <div class="q-scorebug-logo-frame">
+                <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" alt="${m.away}"/>
               </div>
-              <div class="sleeper-team-details">
-                <span class="sleeper-team-abbr">${m.away}</span>
-              </div>
-              ${hasScore ? `<span class="sleeper-team-score">${m.awayScore}</span>` : ''}
-              <div class="sleeper-pick-check" id="chk_pick_away_${m.id}">${awaySelected ? '✓' : ''}</div>
-            </button>
+              <span class="q-scorebug-abbr" title="${m.away}">${m.away}</span>
+              ${hasScore ? `<span class="q-scorebug-score-box">${m.awayScore}</span>` : ''}
+              <div class="q-scorebug-check" id="chk_pick_away_${m.id}">${awaySelected ? '✓' : ''}</div>
+            </div>
 
-            <span class="sleeper-vs-divider">vs</span>
+            <!-- Center VS / Situation -->
+            <div class="q-scorebug-center">
+              <span style="font-size:10px; font-weight:900; color:var(--text-muted);">VS</span>
+              ${isLive ? `<span style="font-size:9px; color:#ff4444; font-weight:900; animation:tvPulse 1s infinite;">🔴 LIVE</span>` : ''}
+            </div>
 
-            <!-- Home Winner Button -->
-            <button type="button" class="sleeper-team-pick ${homeSelected ? 'selected' : ''}" id="btn_pick_home_${m.id}" onclick="pickWinner('${m.id}', 'home')" ${isIndividualMatchLocked ? 'disabled' : ''}>
-              <div class="sleeper-pick-check" id="chk_pick_home_${m.id}">${homeSelected ? '✓' : ''}</div>
-              ${hasScore ? `<span class="sleeper-team-score">${m.homeScore}</span>` : ''}
-              <div class="sleeper-team-details text-right">
-                <span class="sleeper-team-abbr">${m.home}</span>
+            <!-- Home Team Wing (Right half with Home Color) -->
+            <div class="q-scorebug-wing q-home ${homeSelected ? 'selected' : ''}" id="btn_pick_home_${m.id}" onclick="pickWinner('${m.id}', 'home')" style="--team-bg: ${homeColor};" ${isIndividualMatchLocked ? 'style="pointer-events:none;"' : ''}>
+              <div class="q-scorebug-check" id="chk_pick_home_${m.id}">${homeSelected ? '✓' : ''}</div>
+              ${hasScore ? `<span class="q-scorebug-score-box">${m.homeScore}</span>` : ''}
+              <span class="q-scorebug-abbr text-right" title="${m.home}">${m.home}</span>
+              <div class="q-scorebug-logo-frame">
+                <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" alt="${m.home}"/>
               </div>
-              <div class="sleeper-logo-frame">
-                <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" class="sleeper-team-logo" alt="${m.home}"/>
+            </div>
+          </div>
+        `;
+      }
+
+      // If this is the LAST MATCH, embed the tiebreaker widget directly on this card
+      let tiebreakerBoxHtml = '';
+      if (isLastMatch) {
+        tiebreakerBoxHtml = `
+          <div class="q-last-game-tiebreaker">
+            <div>
+              <div class="q-last-game-tiebreaker-title">
+                <span>🎯</span>
+                <span>Criterio de Desempate Oficial</span>
               </div>
-            </button>
+              <div class="q-last-game-tiebreaker-sub">
+                ${isAllSoccer 
+                  ? '¿Total de GOLES que se anotarán en toda la quiniela?' 
+                  : `¿Total de PUNTOS entre ambos equipos en este último juego (${m.away} vs ${m.home})?`}
+              </div>
+            </div>
+            <div class="q-tiebreaker-stepper-wrap">
+              <button type="button" class="q-tie-step-btn" onclick="stepTiebreaker(-1)" ${isLocked ? 'disabled' : ''}>−</button>
+              <input type="number" id="qTiebreakerInput" min="0" max="999" class="q-tie-input-box" value="${savedTiebreaker !== '' ? savedTiebreaker : (isAllSoccer ? 18 : 45)}" ${isLocked ? 'disabled' : ''} />
+              <button type="button" class="q-tie-step-btn" onclick="stepTiebreaker(1)" ${isLocked ? 'disabled' : ''}>+</button>
+            </div>
           </div>
         `;
       }
 
       card.innerHTML = `
-        <div class="sleeper-match-header">
-          <div class="sleeper-match-meta">
-            <span>${m.leagueLabel || '🏈 NFL'}</span>
+        <div class="q-scorebug-meta-bar">
+          <div>
+            <span style="color:#ffd100; font-weight:900; margin-right:4px;">${m.leagueLabel || '🏈 NFL'}</span>
             <span>•</span>
-            <span>${m.date || ''}</span>
+            <span style="margin-left:4px;">${m.date || ''}</span>
           </div>
           <div style="display:flex; align-items:center; gap:6px;">
-            ${isLive ? `<span class="sleeper-live-badge">🔴 EN VIVO ${m.statusStr ? '('+m.statusStr+')' : ''}</span>` : ''}
+            ${isLive ? `<span style="font-size:10px; font-weight:900; background:#ff4444; color:#fff; padding:2px 6px; border-radius:10px; animation: tvPulse 1s infinite;">🔴 ${m.statusStr || 'EN VIVO'}</span>` : ''}
             ${isDone ? '<span class="badge" style="font-size:10px; background:rgba(255,255,255,0.1);">FINAL</span>' : ''}
             ${isIndividualMatchLocked && !isDone && !isLive ? '<span class="badge danger" style="font-size:10px;">🔒 Bloqueado</span>' : ''}
             <span id="status_label_${m.id}" style="font-weight:800; font-size:11px; margin-left:4px; color:#ffd100;">${statusLabel}</span>
           </div>
         </div>
         ${matchContentHtml}
+        ${tiebreakerBoxHtml}
       `;
 
       formEl.appendChild(card);
@@ -1566,10 +1527,19 @@
         </div>
       </td>`;
 
+      const lockInfo = checkQuinielaLockStatus(activeQuiniela);
+      const isJornadaStarted = lockInfo.isLocked;
+
       matches.forEach(m => {
         const pick = p.picks?.[m.id];
         if (!pick) {
           cells += `<td class="q-s-cell q-cell-gray" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);">—</td>`;
+          return;
+        }
+
+        // Privacy rule: if jornada hasn't started and it's not the active player's row, hide picks with 🔒
+        if (!isJornadaStarted && !isMe) {
+          cells += `<td class="q-s-cell q-cell-gray" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05); color:#666;" title="Oculto hasta que inicie la jornada">🔒</td>`;
           return;
         }
 
@@ -1597,7 +1567,8 @@
         }
       });
 
-      const tieVal = (p.tiebreaker !== undefined && p.tiebreaker !== null && p.tiebreaker !== '') ? p.tiebreaker : '—';
+      const rawTie = (p.tiebreaker !== undefined && p.tiebreaker !== null && p.tiebreaker !== '') ? p.tiebreaker : '—';
+      const tieVal = (!isJornadaStarted && !isMe) ? '🔒' : rawTie;
       cells += `<td style="text-align:center; font-size:12px; font-weight:800; color:#ffd100; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.05);">${tieVal}</td>`;
       cells += `<td style="text-align:center; font-weight:900; color:${p.totalPoints > 0 ? '#ffd100' : 'var(--text-muted)'}; font-size:14px; padding:8px; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.05);">${p.totalPoints}</td>`;
       tr.innerHTML = cells;
