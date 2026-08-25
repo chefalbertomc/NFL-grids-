@@ -53,12 +53,6 @@
       btnSave.addEventListener('click', savePlayerPicks);
     }
 
-    // Join Quiniela button
-    const btnSubmitJoin = document.getElementById('btnSubmitJoinQuiniela');
-    if (btnSubmitJoin) {
-      btnSubmitJoin.addEventListener('click', submitJoinQuiniela);
-    }
-
     // Filter pills
     const filterNav = document.getElementById('qFilterNav');
     if (filterNav) {
