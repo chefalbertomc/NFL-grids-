@@ -479,7 +479,8 @@
         quarter: 'Q1',
         numsTop: [],
         numsLeft: [],
-        cells: {}
+        cells: {},
+        autoApprove: document.getElementById('chkGridAutoApprove')?.checked === true
       });
 
       alert(`✅ Grid creado: ${awayName} vs ${homeName}\nCódigo: ${code}`);

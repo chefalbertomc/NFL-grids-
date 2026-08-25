@@ -47,7 +47,8 @@
 
     <!-- Navigation Tabs -->
     <div class="tabs-container">
-      <button class="tab-btn active" data-target="tab-grids">🏈 NFL Grids</button>
+      <button class="tab-btn active" data-target="tab-home">🏠 Inicio</button>
+      <button class="tab-btn" data-target="tab-grids">🏈 NFL Grids</button>
       <button class="tab-btn" data-target="tab-pools">📋 Quiniela / Pick'em</button>
       <button class="tab-btn" data-target="tab-survivor">🏆 Survivor</button>
       <button class="tab-btn" data-target="tab-firstgoal">⚽ Primer Gol</button>
@@ -56,8 +57,174 @@
 
     <!-- TABS CONTENTS -->
 
+    <!-- 0. TAB HOME (PÁGINA PRINCIPAL POR DEFAULT) -->
+    <main id="tab-home" class="tab-content">
+      <!-- Welcome Header -->
+      <section class="card highlight text-center" style="padding: 24px 16px; background: linear-gradient(135deg, rgba(255, 209, 0, 0.12) 0%, rgba(10, 15, 24, 0.95) 100%);">
+        <h2 style="color: #ffd100; font-size: 24px; font-weight: 900; margin-bottom: 6px; text-shadow: 0 2px 10px rgba(255, 209, 0, 0.3);">🍻 ¡Bienvenidos a Drinks & Wins! 🏆</h2>
+        <p style="color: var(--text-muted); font-size: 13.5px; max-width: 460px; margin: 0 auto; line-height: 1.4;">
+          El portal de juegos interactivos para tus días de partido. Elige una modalidad abajo para pronosticar, comprar casillas y ganar premios directo en tu mesa.
+        </p>
+      </section>
+
+      <!-- Active Games Hub Grid -->
+      <section class="card">
+        <h3 class="card-title">🎮 Nuestros Juegos Activos</h3>
+        <p class="card-subtitle">Entra a cualquiera de las modalidades para participar y ver resultados en tiempo real.</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 14px;">
+          <!-- Card NFL Grids -->
+          <div style="background: rgba(255,255,255,0.02); border: 1.5px solid var(--border-color); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; text-align: center; transition: all 0.2s ease;" class="hover-scale">
+            <div>
+              <div style="font-size: 32px; margin-bottom: 6px;">🏈</div>
+              <h4 style="margin: 0 0 4px; font-size: 14px; font-weight: 900; color: #ffffff;">NFL Grids</h4>
+              <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.3;">El clásico tablero de 100 casillas con números al azar.</p>
+            </div>
+            <button class="btn btn-primary" onclick="activateTab('tab-grids')" style="padding: 8px; font-size: 11px; font-weight: 800; border-radius: 8px; width: 100%; cursor:pointer;">Jugar Grids ▶</button>
+          </div>
+
+          <!-- Card Quiniela -->
+          <div style="background: rgba(255,255,255,0.02); border: 1.5px solid var(--border-color); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; text-align: center; transition: all 0.2s ease;" class="hover-scale">
+            <div>
+              <div style="font-size: 32px; margin-bottom: 6px;">📋</div>
+              <h4 style="margin: 0 0 4px; font-size: 14px; font-weight: 900; color: #ffffff;">Quinielas</h4>
+              <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.3;">Predice marcadores de Soccer o ganadores en Pick'em.</p>
+            </div>
+            <button class="btn btn-primary" onclick="activateTab('tab-pools')" style="padding: 8px; font-size: 11px; font-weight: 800; border-radius: 8px; width: 100%; cursor:pointer;">Jugar Quinielas ▶</button>
+          </div>
+
+          <!-- Card Survivor -->
+          <div style="background: rgba(255,255,255,0.02); border: 1.5px solid var(--border-color); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; text-align: center; transition: all 0.2s ease;" class="hover-scale">
+            <div>
+              <div style="font-size: 32px; margin-bottom: 6px;">🏆</div>
+              <h4 style="margin: 0 0 4px; font-size: 14px; font-weight: 900; color: #ffffff;">Survivor</h4>
+              <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.3;">Elige un equipo ganador por semana. ¡Si pierde, fuera!</p>
+            </div>
+            <button class="btn btn-primary" onclick="activateTab('tab-survivor')" style="padding: 8px; font-size: 11px; font-weight: 800; border-radius: 8px; width: 100%; cursor:pointer;">Jugar Survivor ▶</button>
+          </div>
+
+          <!-- Card Primer Gol -->
+          <div style="background: rgba(255,255,255,0.02); border: 1.5px solid var(--border-color); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; text-align: center; transition: all 0.2s ease;" class="hover-scale">
+            <div>
+              <div style="font-size: 32px; margin-bottom: 6px;">🎯</div>
+              <h4 style="margin: 0 0 4px; font-size: 14px; font-weight: 900; color: #ffffff;">Primer Gol</h4>
+              <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.3;">Acierta quién anota los primeros puntos del juego en vivo.</p>
+            </div>
+            <button class="btn btn-primary" onclick="activateTab('tab-firstgoal')" style="padding: 8px; font-size: 11px; font-weight: 800; border-radius: 8px; width: 100%; cursor:pointer;">Jugar Primer Gol ▶</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Instructivos de Juego Accordion -->
+      <section class="card">
+        <h3 class="card-title">📖 ¿Cómo Jugar? (Instructivos)</h3>
+        <p class="card-subtitle">Haz clic en cada juego para conocer las reglas de participación.</p>
+        
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:12px;">
+          <!-- Accordion 1: Grids -->
+          <details style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:12px; padding:12px;" class="q-help-details">
+            <summary style="font-weight:800; font-size:13.5px; color:#ffd100; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; user-select:none;">
+              <span>🏈 NFL Grids</span>
+              <span>▼</span>
+            </summary>
+            <div style="margin-top:10px; font-size:12.5px; line-height:1.4; color:var(--text-muted);">
+              <ol style="padding-left:16px; margin:0 0 8px 0; display:flex; flex-direction:column; gap:6px;">
+                <li><strong>Compra tus Casillas:</strong> Elige tu apodo y regístrate en el tablero de 100 cuadros.</li>
+                <li><strong>Sorteo de Números:</strong> Antes del partido, el sistema asignará al azar números del 0 al 9 en las filas (equipo de arriba) y columnas (equipo de la izquierda).</li>
+                <li><strong>Regla del Último Dígito:</strong> Ganador determinado por el último dígito del marcador al terminar cada cuarto. Ej: Dallas 1<strong style="color:#00e676;">7</strong> - Arizona 2<strong style="color:#ffd100;">3</strong>, el ganador es la celda en la intersección de fila 7 y columna 3.</li>
+                <li><strong>Premios:</strong> Hay premios al finalizar el 1Q, 2Q (Medio tiempo), 3Q y el Final del partido. ¡Múltiples ganadores por juego!</li>
+              </ol>
+            </div>
+          </details>
+
+          <!-- Accordion 2: Quinielas -->
+          <details style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:12px; padding:12px;" class="q-help-details">
+            <summary style="font-weight:800; font-size:13.5px; color:#ffd100; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; user-select:none;">
+              <span>📋 Quinielas & Pick'em</span>
+              <span>▼</span>
+            </summary>
+            <div style="margin-top:10px; font-size:12.5px; line-height:1.4; color:var(--text-muted);">
+              <ol style="padding-left:16px; margin:0 0 8px 0; display:flex; flex-direction:column; gap:6px;">
+                <li><strong>Ingreso:</strong> Regístrate con tu apodo o entra con tu cuenta para asegurar tus puntos.</li>
+                <li><strong>Completa tus Pronósticos:</strong> Para partidos de soccer, define el marcador exacto usando los botones <button style="background:rgba(255,255,255,0.1); border:none; padding:1px 5px; border-radius:3px; font-size:10px; color:#fff;">−</button> y <button style="background:rgba(255,255,255,0.1); border:none; padding:1px 5px; border-radius:3px; font-size:10px; color:#fff;">+</button>. Para NFL u otros deportes de EE.UU., selecciona directamente la cápsula del equipo que creas que ganará.</li>
+                <li><strong>Sistema de Puntos:</strong> Recibes <strong>+1 punto</strong> si aciertas al equipo ganador. En soccer, recibes <strong>+3 puntos</strong> si aciertas el marcador exacto.</li>
+                <li><strong>Desempate:</strong> Si hay empate en la tabla, el desempate oficial se decide por la diferencia más cercana al total de puntos o goles del último partido de la cartela.</li>
+              </ol>
+            </div>
+          </details>
+
+          <!-- Accordion 3: Survivor -->
+          <details style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:12px; padding:12px;" class="q-help-details">
+            <summary style="font-weight:800; font-size:13.5px; color:#ffd100; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; user-select:none;">
+              <span>🏆 Survivor NFL</span>
+              <span>▼</span>
+            </summary>
+            <div style="margin-top:10px; font-size:12.5px; line-height:1.4; color:var(--text-muted);">
+              <ol style="padding-left:16px; margin:0 0 8px 0; display:flex; flex-direction:column; gap:6px;">
+                <li><strong>Elige un Ganador:</strong> Cada semana de la temporada regular de la NFL, debes elegir a un equipo que creas que ganará su partido.</li>
+                <li><strong>Regla de No Repetir:</strong> Una vez que eliges un equipo, no puedes volver a seleccionarlo en todo lo que resta de la temporada. ¡Planea tu estrategia!</li>
+                <li><strong>Eliminación Directa:</strong> Si tu equipo seleccionado pierde o empata, quedas eliminado del torneo.</li>
+                <li><strong>El Ganador:</strong> El último jugador que sobreviva en pie es coronado campeón absoluto del Survivor.</li>
+              </ol>
+            </div>
+          </details>
+
+          <!-- Accordion 4: Primer Gol -->
+          <details style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:12px; padding:12px;" class="q-help-details">
+            <summary style="font-weight:800; font-size:13.5px; color:#ffd100; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; user-select:none;">
+              <span>🎯 Primer Gol / Touchdown</span>
+              <span>▼</span>
+            </summary>
+            <div style="margin-top:10px; font-size:12.5px; line-height:1.4; color:var(--text-muted);">
+              <ol style="padding-left:16px; margin:0 0 8px 0; display:flex; flex-direction:column; gap:6px;">
+                <li><strong>Apuestas en Vivo:</strong> Durante la previa y los primeros minutos del partido en vivo en el bar, el administrador abrirá la apuesta de Primer Gol.</li>
+                <li><strong>Elige tu Anotador:</strong> Selecciona en el listado qué jugador o situación anotará los primeros puntos del partido (primer gol en soccer, o primer touchdown en NFL).</li>
+                <li><strong>Cierre de Registro:</strong> Los pronósticos se bloquean automáticamente en cuanto cae la primera anotación del partido. ¡El primero en registrarse y acertar gana!</li>
+              </ol>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- PWA Installation Guide (iOS & Android) -->
+      <section class="card">
+        <h3 class="card-title">📱 Instalar App en tu Celular (PWA)</h3>
+        <p class="card-subtitle">Accede con un solo toque desde tu pantalla de inicio como una app nativa, sin ocupar espacio de almacenamiento.</p>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-top: 14px;">
+          <!-- iOS Installation -->
+          <div style="background: rgba(255, 255, 255, 0.01); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+              <span style="font-size:20px;">🍎</span>
+              <strong style="font-size:13.5px; color:#ffffff;">Apple iPhone / iOS (Safari)</strong>
+            </div>
+            <ol style="padding-left:16px; margin:0; font-size:11.5px; color:var(--text-muted); display:flex; flex-direction:column; gap:5px; line-height:1.4;">
+              <li>Abre el enlace de la app en el navegador <strong>Safari</strong>.</li>
+              <li>Toca el botón <strong>Compartir</strong> <span style="background:rgba(255,255,255,0.1); padding:2px 5px; border-radius:4px; font-size:11px;">📤</span> en la barra de herramientas inferior.</li>
+              <li>Desplázate hacia abajo y presiona la opción **"Agregar a inicio"** (o *"Add to Home Screen"*).</li>
+              <li>Toca **"Agregar"** en la esquina superior derecha. ¡Y listo!</li>
+            </ol>
+          </div>
+
+          <!-- Android Installation -->
+          <div style="background: rgba(255, 255, 255, 0.01); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 12px; padding: 14px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+              <span style="font-size:20px;">🤖</span>
+              <strong style="font-size:13.5px; color:#ffffff;">Android (Chrome)</strong>
+            </div>
+            <ol style="padding-left:16px; margin:0; font-size:11.5px; color:var(--text-muted); display:flex; flex-direction:column; gap:5px; line-height:1.4;">
+              <li>Abre el enlace de la app en el navegador <strong>Chrome</strong>.</li>
+              <li>Toca el icono de **Menú** <span style="background:rgba(255,255,255,0.1); padding:2px 5px; border-radius:4px; font-size:11px;">⋮</span> en la esquina superior derecha de la pantalla.</li>
+              <li>Presiona la opción **"Instalar aplicación"** o **"Agregar a la pantalla principal"**.</li>
+              <li>Confirma presionando **"Instalar"**. ¡Y listo!</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+    </main>
+
     <!-- 1. TAB GRIDS -->
-    <main id="tab-grids" class="tab-content">
+    <main id="tab-grids" class="tab-content hidden">
       <section class="card highlight">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
           <div>
@@ -307,7 +474,11 @@
 
   <!-- Mobile Bottom Navigation Bar with Full-Height Game Badges (Swipeable) -->
   <nav class="mobile-nav">
-    <a href="#" class="nav-item active" data-target="tab-grids" title="NFL Grids">
+    <a href="#" class="nav-item active" data-target="tab-home" title="Inicio" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 58px; gap: 2px;">
+      <div style="font-size: 20px; line-height: 1;">🏠</div>
+      <span style="font-size: 9px; font-weight: 900; color: #ffd100; text-transform: uppercase; letter-spacing: 0.02em;">Inicio</span>
+    </a>
+    <a href="#" class="nav-item" data-target="tab-grids" title="NFL Grids">
       <img src="img/games/badge_grids.png" alt="NFL Grids" class="nav-game-badge" />
     </a>
     <a href="#" class="nav-item" data-target="tab-pools" title="Quiniela / Pick'em">
@@ -339,13 +510,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=140.0"></script>
-  <script src="js/auth.js?v=140.0"></script>
-  <script src="js/team-logos.js?v=140.0"></script>
-  <script src="js/grids.js?v=140.0"></script>
-  <script src="js/quiniela-player.js?v=140.0"></script>
-  <script src="js/survivor.js?v=140.0"></script>
-  <script src="js/firstgoal.js?v=140.0"></script>
+  <script src="js/firebase-config.js?v=141.0"></script>
+  <script src="js/auth.js?v=141.0"></script>
+  <script src="js/team-logos.js?v=141.0"></script>
+  <script src="js/grids.js?v=141.0"></script>
+  <script src="js/quiniela-player.js?v=141.0"></script>
+  <script src="js/survivor.js?v=141.0"></script>
+  <script src="js/firstgoal.js?v=141.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -513,7 +684,7 @@
   <!-- Service Worker: Auto Silent Update -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=140.0', { updateViaCache: 'none' }).then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=141.0', { updateViaCache: 'none' }).then(reg => {
         reg.update().catch(() => {});
       }).catch(() => {});
 

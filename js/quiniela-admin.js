@@ -478,6 +478,7 @@
         sport: 'mixed',
         matches,
         active: true,
+        autoApprove: document.getElementById('chkAutoApprove')?.checked === true,
         createdAt: firebase.firestore.FieldValue.serverTimestamp
           ? firebase.firestore.FieldValue.serverTimestamp()
           : Date.now()

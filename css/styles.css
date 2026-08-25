@@ -2856,6 +2856,17 @@ input:focus, select:focus, textarea:focus {
   color: #00e676;
 }
 
+/* Help Accordion Details/Summary styling */
+.q-help-details summary::-webkit-details-marker {
+  display: none;
+}
+.q-help-details[open] summary span:last-child {
+  transform: rotate(180deg);
+}
+.q-help-details summary span:last-child {
+  transition: transform 0.2s ease;
+}
+
 
 
 

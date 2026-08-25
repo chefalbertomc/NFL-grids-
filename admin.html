@@ -94,6 +94,13 @@
           <div id="selectedGameInfo" style="font-weight: 800; font-size: 15px;"></div>
         </div>
 
+        <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="chkGridAutoApprove" style="width: 18px; height: 18px; cursor: pointer;" checked />
+          <label for="chkGridAutoApprove" style="font-size: 12.5px; font-weight: 800; cursor: pointer; color: #ffd100; user-select: none; margin: 0;">
+            ⚡ Auto-aprobar participantes (entrar directo sin esperar mesero)
+          </label>
+        </div>
+
         <button id="btnCreateGame" class="btn btn-primary" style="margin-top: 14px;">Crear Grid de Juego</button>
       </section>
 
@@ -205,8 +212,15 @@
         <p class="card-subtitle">Busca partidos de cualquier fecha o liga (NFL / Colegial) y agrégalos a una misma Quiniela.</p>
 
         <div class="form-group">
-          <label>Nombre de la Quiniela</label>
+          <label>Nombre de la Quiniela / Pick'em</label>
           <input type="text" id="qName" placeholder="Ej. Semana 1 NFL 2026, Cartelera Especial, etc." style="font-size:14px; font-weight:700;" />
+        </div>
+
+        <div class="form-group" style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="chkAutoApprove" style="width: 18px; height: 18px; cursor: pointer;" checked />
+          <label for="chkAutoApprove" style="font-size: 12.5px; font-weight: 800; cursor: pointer; color: #ffd100; user-select: none; margin: 0;">
+            ⚡ Auto-aprobar participantes (entrar directo sin esperar mesero)
+          </label>
         </div>
 
         <div class="flex-row" style="flex-wrap:wrap; gap:10px; margin-bottom:12px;">
@@ -381,11 +395,11 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=140.0"></script>
-  <script src="js/auth.js?v=140.0"></script>
-  <script src="js/team-logos.js?v=140.0"></script>
-  <script src="js/admin.js?v=140.0"></script>
-  <script src="js/quiniela-admin.js?v=140.0"></script>
+  <script src="js/firebase-config.js?v=141.0"></script>
+  <script src="js/auth.js?v=141.0"></script>
+  <script src="js/team-logos.js?v=141.0"></script>
+  <script src="js/admin.js?v=141.0"></script>
+  <script src="js/quiniela-admin.js?v=141.0"></script>
 
   <!-- Admin Tab Switching with Bottom Nav integration -->
   <script>
@@ -438,7 +452,7 @@
   <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=140.0', { updateViaCache: 'none' }).then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=141.0', { updateViaCache: 'none' }).then(reg => {
         reg.update().catch(() => {});
       }).catch(() => {});
       navigator.serviceWorker.addEventListener('message', event => {

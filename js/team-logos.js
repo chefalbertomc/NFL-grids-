@@ -100,6 +100,28 @@
     return 'img/logo.jpg';
   };
 
+  const TEAM_NICKNAMES = {
+    'ari': 'Cardinals', 'atl': 'Falcons', 'bal': 'Ravens', 'buf': 'Bills',
+    'car': 'Panthers', 'chi': 'Bears', 'cin': 'Bengals', 'cle': 'Browns',
+    'dal': 'Cowboys', 'den': 'Broncos', 'det': 'Lions', 'gb': 'Packers',
+    'hou': 'Texans', 'ind': 'Colts', 'jax': 'Jaguars', 'kc': 'Chiefs',
+    'lv': 'Raiders', 'lac': 'Chargers', 'lar': 'Rams', 'mia': 'Dolphins',
+    'min': 'Vikings', 'ne': 'Patriots', 'no': 'Saints', 'nyg': 'Giants',
+    'nyj': 'Jets', 'phi': 'Eagles', 'pit': 'Steelers', 'sf': '49ers',
+    'sea': 'Seahawks', 'tb': 'Buccaneers', 'ten': 'Titans', 'wsh': 'Commanders'
+  };
+
+  window.getTeamNickname = function(teamName, defaultAbbr) {
+    if (!teamName) return defaultAbbr || '';
+    const abbr = resolve(teamName) || resolve(defaultAbbr);
+    if (abbr && TEAM_NICKNAMES[abbr]) return TEAM_NICKNAMES[abbr];
+    
+    // Fallback: Use the last word of the team name, capitalized
+    const words = teamName.trim().split(/\s+/);
+    const lastWord = words[words.length - 1];
+    return lastWord.charAt(0).toUpperCase() + lastWord.slice(1);
+  };
+
   window.getTeamColor = function(teamName) {
     const abbr = resolve(teamName);
     return abbr ? (TEAM_COLORS[abbr] || '#ffd100') : '#ffd100';

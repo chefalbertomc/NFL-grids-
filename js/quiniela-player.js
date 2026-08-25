@@ -688,6 +688,7 @@
 
     try {
       const q = allQuinielas.find(x => x.id === qId);
+      const isAutoApprove = q && q.autoApprove === true;
       const playerRef = db.collection('quinielas').doc(qId).collection('picks').doc(activeUser.uid);
 
       const playerData = {
@@ -701,8 +702,8 @@
         photoURL: activeUser.photoURL || '',
         userPhoto: activeUser.photoURL || '',
         waiter: waiter || 'Sin mesero',
-        approved: false,
-        status: 'pending',
+        approved: isAutoApprove,
+        status: isAutoApprove ? 'approved' : 'pending',
         picks: {},
         tiebreaker: null,
         createdAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now(),
@@ -712,7 +713,11 @@
       await playerRef.set(playerData, { merge: true });
       myParticipations[qId] = playerData;
 
-      alert(`✅ ¡Solicitud enviada para "${nick}"! En cuanto el mesero o administrador te apruebe, el botón cambiará para que puedas ingresar tus pronósticos.`);
+      if (isAutoApprove) {
+        alert(`🎉 ¡Bienvenido a "${q.name}"! Tu entrada fue aprobada automáticamente. Ya puedes ingresar tus pronósticos.`);
+      } else {
+        alert(`✅ ¡Solicitud enviada para "${nick}"! En cuanto el mesero o administrador te apruebe, el botón cambiará para que puedas ingresar tus pronósticos.`);
+      }
       
       window.closeInlineJoin(qId);
       renderQuinielasCatalog();
@@ -1213,8 +1218,8 @@
 
       let matchContentHtml = '';
 
-      const awayShort = (m.awayAbbr && m.awayAbbr.length <= 4) ? m.awayAbbr : (m.away.split(/\s+/).pop() || m.away);
-      const homeShort = (m.homeAbbr && m.homeAbbr.length <= 4) ? m.homeAbbr : (m.home.split(/\s+/).pop() || m.home);
+      const awayShort = typeof window.getTeamNickname === 'function' ? window.getTeamNickname(m.away, m.awayAbbr) : m.away;
+      const homeShort = typeof window.getTeamNickname === 'function' ? window.getTeamNickname(m.home, m.homeAbbr) : m.home;
 
       if (isSoccer) {
         // SOCCER: Exact score steppers with team colors

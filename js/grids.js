@@ -620,6 +620,8 @@
       localStorage.setItem('bww_player_id', activeUser.uid);
       localStorage.setItem('player_nick', nick);
 
+      const isAutoApprove = grid && grid.autoApprove === true;
+
       const playerData = {
         id: activeUser.uid,
         playerId: activeUser.uid,
@@ -634,8 +636,8 @@
         quota: pack,
         taken: 0,
         picks: [],
-        approved: false,
-        status: 'pending',
+        approved: isAutoApprove,
+        status: isAutoApprove ? 'approved' : 'pending',
         store: grid ? grid.store : '',
         createdAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
@@ -646,11 +648,20 @@
       MY_REGISTRATIONS[SELECTED_GRID_CODE] = { docId: activeUser.uid, ...playerData };
 
       if (gridJoinStatus) {
-        gridJoinStatus.textContent = '✅ ¡Solicitud enviada! Espera a que el mesero o administrador te apruebe.';
-        gridJoinStatus.style.color = 'var(--success-color)';
+        if (isAutoApprove) {
+          gridJoinStatus.textContent = '🎉 ¡Registro completado! Selecciona tus celdas en el tablero.';
+          gridJoinStatus.style.color = 'var(--success-color)';
+        } else {
+          gridJoinStatus.textContent = '✅ ¡Solicitud enviada! Espera a que el mesero o administrador te apruebe.';
+          gridJoinStatus.style.color = 'var(--success-color)';
+        }
       }
       
-      alert(`¡Solicitud enviada exitosamente para ${nick}! En cuanto te apruebe el mesero o administrador el botón cambiará a "Ver Mi Grid" para que escojas tus cuadros.`);
+      if (isAutoApprove) {
+        alert(`🎉 ¡Registro completado exitosamente para ${nick}! Ya puedes seleccionar tus casillas en el tablero.`);
+      } else {
+        alert(`¡Solicitud enviada exitosamente para ${nick}! En cuanto te apruebe el mesero o administrador el botón cambiará a "Ver Mi Grid" para que escojas tus cuadros.`);
+      }
       
       if (joinGridForm) joinGridForm.style.display = 'none';
       if (inpWaiter) inpWaiter.value = '';
