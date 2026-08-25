@@ -16,7 +16,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=127.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=128.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -339,13 +339,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=127.0"></script>
-  <script src="js/auth.js?v=127.0"></script>
-  <script src="js/team-logos.js?v=127.0"></script>
-  <script src="js/grids.js?v=127.0"></script>
-  <script src="js/quiniela-player.js?v=127.0"></script>
-  <script src="js/survivor.js?v=127.0"></script>
-  <script src="js/firstgoal.js?v=127.0"></script>
+  <script src="js/firebase-config.js?v=128.0"></script>
+  <script src="js/auth.js?v=128.0"></script>
+  <script src="js/team-logos.js?v=128.0"></script>
+  <script src="js/grids.js?v=128.0"></script>
+  <script src="js/quiniela-player.js?v=128.0"></script>
+  <script src="js/survivor.js?v=128.0"></script>
+  <script src="js/firstgoal.js?v=128.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -477,7 +477,7 @@
       
       <div class="login-buttons-stack" style="margin-top:16px;">
         <!-- Google 1-Click Login -->
-        <button type="button" class="btn-social-login btn-login-google" id="btnModalGoogle" style="padding:14px 20px; font-size:15px; border-radius:14px; box-shadow: 0 6px 20px rgba(0,0,0,0.4); cursor:pointer; width:100%;">
+        <button type="button" class="btn-social-login btn-login-google" id="btnModalGoogle" onclick="window.loginWithGoogle()" style="padding:14px 20px; font-size:15px; border-radius:14px; box-shadow: 0 6px 20px rgba(0,0,0,0.4); cursor:pointer; width:100%;">
           <svg class="btn-social-icon" viewBox="0 0 24 24" style="width:24px; height:24px;">
             <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
             <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
@@ -490,19 +490,6 @@
         <button type="button" class="btn btn-secondary" onclick="window.switchGoogleAccount()" style="margin-top:10px; width:100%; font-size:12px; font-weight:800; border-radius:12px; padding:10px 14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);">
           🔄 Cambiar de Cuenta de Google
         </button>
-
-        <!-- Quick Nickname / Guest Login Option -->
-        <div style="margin: 14px 0 8px; display: flex; align-items: center; gap: 8px;">
-          <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.15);"></div>
-          <span style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">O entra con tu Apodo</span>
-          <div style="flex: 1; height: 1px; background: rgba(255,255,255,0.15);"></div>
-        </div>
-        <div style="display: flex; gap: 8px;">
-          <input type="text" id="inpGuestNick" placeholder="Tu Apodo (Ej. BETO)" maxlength="20" style="flex: 1; padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-color); color: #fff; text-transform: uppercase;" />
-          <button type="button" id="btnGuestLogin" class="btn btn-primary" onclick="window.loginAsGuest()" style="width: auto; padding: 10px 16px; font-weight: 800; border-radius: 10px;">
-            Entrar ▶
-          </button>
-        </div>
       </div>
     </div>
   </div>

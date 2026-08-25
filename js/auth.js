@@ -73,12 +73,6 @@
         return;
       }
       const auth = firebase.auth();
-      try {
-        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-      } catch (pErr) {
-        console.warn('[auth] setPersistence note:', pErr);
-      }
-
       const provider = new firebase.auth.GoogleAuthProvider();
       if (isSwitchAccount) {
         provider.setCustomParameters({ prompt: 'select_account' });
@@ -736,22 +730,6 @@
     if (modalOverlay) {
       modalOverlay.addEventListener('click', (e) => {
         if (e.target === modalOverlay) window.hideLoginModal();
-      });
-    }
-
-    if (btnModalGoogle) btnModalGoogle.addEventListener('click', window.loginWithGoogle);
-
-    const btnGuestLogin = document.getElementById('btnGuestLogin');
-    const inpGuestNick = document.getElementById('inpGuestNick');
-    if (btnGuestLogin) {
-      btnGuestLogin.addEventListener('click', () => window.loginAsGuest());
-    }
-    if (inpGuestNick) {
-      inpGuestNick.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          window.loginAsGuest();
-        }
       });
     }
 
