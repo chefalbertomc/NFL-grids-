@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=110.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=111.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -174,6 +174,13 @@
 
         <!-- Picks Form Section -->
         <section id="qPicksSection" style="margin-bottom:16px;">
+          <div id="qPicksHeaderActions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span style="font-size:13px; font-weight:900; color:#ffd100;">📝 Elige tus Marcadores / Ganadores</span>
+            <button type="button" class="btn btn-secondary" onclick="window.toggleEditQuinielaPicks(false)" id="btnBackToStandings" style="display:none; width:auto; padding:6px 12px; font-size:12px; font-weight:800; border-radius:10px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2);">
+              📊 Ver Tabla
+            </button>
+          </div>
+
           <!-- Matches Cards List with Split Team Colors -->
           <div id="qMatchPicksForm" style="display:flex; flex-direction:column; gap:12px; margin-bottom:18px;">
             <div class="text-center hint-text py-3">Cargando partidos...</div>
@@ -187,6 +194,13 @@
 
         <!-- Live Standings / Leaderboard Section (Table & Podium) -->
         <section id="qStandingsSection" style="margin-bottom:16px;">
+          <div id="qStandingsHeaderActions" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <span style="font-size:13px; font-weight:900; color:#ffd100;">📊 Tabla de Posiciones & Resultados</span>
+            <button type="button" class="btn btn-secondary" id="btnEditMyPicks" onclick="window.toggleEditQuinielaPicks(true)" style="display:none; width:auto; padding:6px 14px; font-size:12px; font-weight:900; border-radius:10px; background:rgba(255,209,0,0.15); border:1px solid #ffd100; color:#ffd100; align-items:center; gap:4px;">
+              ✏️ Modificar Mis Pronósticos
+            </button>
+          </div>
+
           <!-- Top 3 Podium Container -->
           <div id="qSleeperPodium" class="sleeper-podium-container" style="display:none;"></div>
 
@@ -296,13 +310,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=110.0"></script>
-  <script src="js/auth.js?v=110.0"></script>
-  <script src="js/team-logos.js?v=110.0"></script>
-  <script src="js/grids.js?v=110.0"></script>
-  <script src="js/quiniela-player.js?v=110.0"></script>
-  <script src="js/survivor.js?v=110.0"></script>
-  <script src="js/firstgoal.js?v=110.0"></script>
+  <script src="js/firebase-config.js?v=111.0"></script>
+  <script src="js/auth.js?v=111.0"></script>
+  <script src="js/team-logos.js?v=111.0"></script>
+  <script src="js/grids.js?v=111.0"></script>
+  <script src="js/quiniela-player.js?v=111.0"></script>
+  <script src="js/survivor.js?v=111.0"></script>
+  <script src="js/firstgoal.js?v=111.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>

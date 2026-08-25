@@ -801,17 +801,34 @@
 
     const editorSec = document.getElementById('qPicksSection');
     const standingsSec = document.getElementById('qStandingsSection');
+    const btnEditMyPicks = document.getElementById('btnEditMyPicks');
+    const btnBackToStandings = document.getElementById('btnBackToStandings');
 
+    // If locked, editing is strictly disabled - always show standings only
     if (lockInfo.isLocked) {
       if (editorSec) editorSec.style.display = 'none';
       if (standingsSec) standingsSec.style.display = 'block';
+      if (btnEditMyPicks) btnEditMyPicks.style.display = 'none';
+      if (btnBackToStandings) btnBackToStandings.style.display = 'none';
     } else {
-      if (editorSec) {
-        editorSec.style.display = 'block';
-        renderPicksForm(q, false);
-      }
-      if (standingsSec) {
-        standingsSec.style.display = 'block';
+      const myReg = myParticipations[q.id];
+      const hasSavedPicks = myReg && myReg.picks && Object.keys(myReg.picks).length > 0;
+
+      if (hasSavedPicks && !isEditingPicks) {
+        if (editorSec) editorSec.style.display = 'none';
+        if (standingsSec) standingsSec.style.display = 'block';
+        if (btnEditMyPicks) btnEditMyPicks.style.display = 'inline-flex';
+        if (btnBackToStandings) btnBackToStandings.style.display = 'none';
+      } else {
+        if (editorSec) {
+          editorSec.style.display = 'block';
+          renderPicksForm(q, false);
+        }
+        if (standingsSec) {
+          standingsSec.style.display = 'block';
+        }
+        if (btnEditMyPicks) btnEditMyPicks.style.display = 'none';
+        if (btnBackToStandings) btnBackToStandings.style.display = hasSavedPicks ? 'inline-flex' : 'none';
       }
     }
   }
@@ -1374,6 +1391,45 @@
     copyQuinielaLinkDirect(activeQuiniela.id);
   }
 
+  function getMatchHeaderSchedule(m) {
+    if (m.status === 'in') {
+      return `<div style="background:rgba(255,68,68,0.25); border:1px solid #ff4444; border-radius:6px; padding:2px 5px; margin-top:2px;">
+        <span style="font-size:10px; font-weight:900; color:#ff4444; animation:tvPulse 1s infinite;">🔴 ${m.awayScore ?? 0}-${m.homeScore ?? 0}</span>
+      </div>`;
+    }
+    if (m.completed || m.status === 'post') {
+      return `<div style="margin-top:2px;">
+        <span style="font-size:10px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore}</span>
+        <div style="font-size:8px; color:#00e676; font-weight:800;">FINAL</div>
+      </div>`;
+    }
+
+    // Pre-game: Extract date and time
+    const str = (m.date || '').trim();
+    const timeMatch = str.match(/(\d{1,2}:\d{2}\s*(?:[ap]\.?\s*m\.?)?)/i);
+    const timeStr = timeMatch ? timeMatch[1].replace(/\s+/g, ' ') : '';
+    
+    // Check if match is today
+    const t = parseMatchTimestamp(m);
+    let isToday = false;
+    if (t > 0) {
+      const d = new Date(t);
+      const now = new Date();
+      isToday = (d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear());
+    }
+
+    if (isToday && timeStr) {
+      return `<span style="font-size:8.5px; color:#ffd100; font-weight:800; display:inline-block; margin-top:2px;">⏰ ${timeStr}</span>`;
+    }
+
+    // Future date: short date (e.g. "28 Ago")
+    let dateOnly = str;
+    if (timeStr) {
+      dateOnly = dateOnly.replace(timeMatch[0], '').replace(/,\s*$/, '').replace(/\s*de\s*$/, '').trim();
+    }
+    return `<span style="font-size:8.5px; color:var(--text-muted); font-weight:800; display:inline-block; margin-top:2px;">${dateOnly || 'PENDIENTE'}</span>`;
+  }
+
   // Interactive Live Leaderboard & Quiniela PRO Matrix Table
   function renderLiveStandings(picksSnap, rawMatches) {
     const leaderCardEl = document.getElementById('qLiveLeaderCard');
@@ -1504,7 +1560,7 @@
       }
     }
 
-    // 2. Render Authentic Quiniela Table (Exact Bar Format)
+    // 2. Render Authentic Quiniela Table (Exact Bar Format with PTS right beside player)
     standingsListEl.innerHTML = '';
     const wrap = document.createElement('div');
     wrap.style.cssText = 'overflow-x:auto; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:#0e131d; box-shadow:0 8px 30px rgba(0,0,0,0.6); position:relative;';
@@ -1514,35 +1570,28 @@
 
     const thead = table.createTHead();
     const hr = thead.insertRow();
-    hr.innerHTML = `<th style="text-align:left; padding:12px 14px; min-width:150px; position:sticky; left:0; background:#161d2a; z-index:5; border-bottom:1px solid rgba(255,255,255,0.12); color:#ffd100; font-weight:900;">JUGADOR</th>` +
+    hr.innerHTML = `
+      <th style="text-align:left; padding:12px 14px; min-width:140px; position:sticky; left:0; background:#161d2a; z-index:5; border-bottom:1px solid rgba(255,255,255,0.12); color:#ffd100; font-weight:900;">
+        JUGADOR
+      </th>
+      <th style="text-align:center; padding:10px 8px; min-width:55px; border-left:1px solid rgba(255,255,255,0.12); border-bottom:1px solid rgba(255,255,255,0.12); background:#1a2332; color:#ffd100; font-weight:900; font-size:13px;" title="Puntos Totales">
+        PTS
+      </th>
+    ` +
       matches.map(m => {
-        const isLive = m.status === 'in';
-        const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
-
-        let scoreHtml = '<span style="font-size:9px; color:var(--text-muted); font-weight:800; display:inline-block; margin-top:2px;">PENDIENTE</span>';
-        if (isLive && hasScore) {
-          scoreHtml = `<div style="background:rgba(255,68,68,0.25); border:1px solid #ff4444; border-radius:6px; padding:2px 5px; margin-top:2px;">
-            <span style="font-size:11px; font-weight:900; color:#ff4444; animation:tvPulse 1s infinite;">🔴 ${m.awayScore}-${m.homeScore}</span>
-            <div style="font-size:8.5px; color:#fff; font-weight:800;">${m.statusStr || 'EN VIVO'}</div>
-          </div>`;
-        } else if (hasScore) {
-          scoreHtml = `<div style="margin-top:2px;"><span style="font-size:12px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore}</span><div style="font-size:8.5px; color:var(--text-muted); font-weight:800;">FINAL</div></div>`;
-        }
-
+        const scoreHtml = getMatchHeaderSchedule(m);
         return `<th style="text-align:center; padding:8px 6px; min-width:85px; border-left:1px solid rgba(255,255,255,0.06); border-bottom:1px solid rgba(255,255,255,0.12); background:#121824;">
           <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
-            <div style="display:flex; align-items:center; gap:3px;">
-              <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:18px; height:18px; object-fit:contain;"/>
-              <span style="font-size:8.5px; font-weight:800; color:#aaa;">vs</span>
-              <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:18px; height:18px; object-fit:contain;"/>
+            <div style="display:flex; align-items:center; gap:4px;">
+              <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:19px; height:19px; object-fit:contain;" title="${m.away}"/>
+              <span style="font-size:8px; font-weight:900; color:#ffd100;">VS</span>
+              <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:19px; height:19px; object-fit:contain;" title="${m.home}"/>
             </div>
-            <span style="font-size:9px; color:var(--text-muted); font-weight:800; text-transform:uppercase;">${m.awayAbbr || m.away.substring(0,3)} v ${m.homeAbbr || m.home.substring(0,3)}</span>
             ${scoreHtml}
           </div>
         </th>`;
       }).join('') +
-      `<th style="text-align:center; padding:10px; min-width:65px; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.12); background:#161d2a; color:#ffd100; font-weight:900;" title="Pronóstico de Desempate">DESEMPATE</th>` +
-      `<th style="text-align:center; padding:10px; min-width:55px; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.12); background:#161d2a; color:#ffd100; font-weight:900;">PTS</th>`;
+      `<th style="text-align:center; padding:10px; min-width:70px; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.12); background:#161d2a; color:#ffd100; font-weight:900;" title="Pronóstico de Desempate">🎯 DESEMPATE</th>`;
 
     const tbody = table.createTBody();
     players.forEach((p, idx) => {
@@ -1555,14 +1604,19 @@
       const tr = tbody.insertRow();
       tr.className = `q-matrix-row ${isMe ? 'is-me' : ''}`;
 
-      let cells = `<td style="padding:10px 12px; font-weight:800; white-space:nowrap; position:sticky; left:0; background:${isMe ? '#1c1d18' : '#0e131d'}; z-index:4; border-bottom:1px solid rgba(255,255,255,0.05); box-shadow:2px 0 8px rgba(0,0,0,0.3);">
-        <div style="display:flex; align-items:center; gap:6px;">
-          <span style="font-size:12px;">${rankEmoji}</span>
-          <img src="${photo}" alt="${name}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1.5px solid ${isMe ? '#ffd100' : '#444'};" />
-          <span style="color:${isMe ? '#ffd100' : '#ffffff'}; font-size:13px; max-width:95px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name} ${isMe ? '(Tú)' : ''}</span>
-          ${statusPill}
-        </div>
-      </td>`;
+      let cells = `
+        <td style="padding:10px 12px; font-weight:800; white-space:nowrap; position:sticky; left:0; background:${isMe ? '#1e2118' : '#0e131d'}; z-index:4; border-bottom:1px solid rgba(255,255,255,0.05); box-shadow:2px 0 8px rgba(0,0,0,0.3);">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="font-size:12px;">${rankEmoji}</span>
+            <img src="${photo}" alt="${name}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1.5px solid ${isMe ? '#ffd100' : '#444'};" />
+            <span style="color:${isMe ? '#ffd100' : '#ffffff'}; font-size:13px; max-width:95px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name} ${isMe ? '(Tú)' : ''}</span>
+            ${statusPill}
+          </div>
+        </td>
+        <td style="text-align:center; font-weight:900; color:#ffd100; font-size:15px; padding:8px; border-left:1px solid rgba(255,255,255,0.1); border-bottom:1px solid rgba(255,255,255,0.05); background:${isMe ? 'rgba(255,209,0,0.15)' : 'rgba(255,255,255,0.02)'};">
+          ${p.totalPoints}
+        </td>
+      `;
 
       const lockInfo = checkQuinielaLockStatus(activeQuiniela);
       const isJornadaStarted = lockInfo.isLocked;
@@ -1654,7 +1708,6 @@
       const rawTie = (p.tiebreaker !== undefined && p.tiebreaker !== null && p.tiebreaker !== '') ? p.tiebreaker : '—';
       const tieVal = (!isJornadaStarted && !isMe) ? '🔒' : rawTie;
       cells += `<td style="text-align:center; font-size:12px; font-weight:800; color:#ffd100; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.05);">${tieVal}</td>`;
-      cells += `<td style="text-align:center; font-weight:900; color:${p.totalPoints > 0 ? '#ffd100' : 'var(--text-muted)'}; font-size:14px; padding:8px; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.05);">${p.totalPoints}</td>`;
       tr.innerHTML = cells;
     });
 

@@ -810,37 +810,42 @@
     const table = document.createElement('table');
     table.className = 'q-standings-table';
 
+    function getAdminHeaderSchedule(m) {
+      if (m.status === 'in') {
+        return `<div style="background:rgba(255,68,68,0.25); border:1px solid #ff4444; border-radius:6px; padding:2px 4px; margin-top:2px;">
+          <span style="font-size:10px; font-weight:900; color:#ff4444; animation:tvPulse 1s infinite;">🔴 ${m.awayScore ?? 0}-${m.homeScore ?? 0}</span>
+        </div>`;
+      }
+      if (m.completed || m.status === 'post') {
+        return `<div style="margin-top:2px;">
+          <span style="font-size:10px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore}</span>
+          <div style="font-size:8px; color:#00e676; font-weight:800;">FINAL</div>
+        </div>`;
+      }
+      const str = (m.date || '').trim();
+      return `<span style="font-size:8.5px; color:var(--text-muted); font-weight:800; display:inline-block; margin-top:2px;">${str || 'PENDIENTE'}</span>`;
+    }
+
     const thead = table.createTHead();
     const hr = thead.insertRow();
-    hr.innerHTML = `<th style="text-align:left; padding:10px 12px; min-width:140px;">Jugador</th>` +
+    hr.innerHTML = `
+      <th style="text-align:left; padding:10px 12px; min-width:140px; color:#ffd100; font-weight:900;">JUGADOR</th>
+      <th style="text-align:center; padding:10px 8px; min-width:55px; color:#ffd100; font-weight:900; font-size:13px;" title="Puntos Totales">PTS</th>
+    ` +
       matches.map(m => {
-        const isLive = m.status === 'in';
-        const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
-
-        let scoreHtml = '<span style="font-size:9px; color:var(--text-muted); font-weight:700;">PENDIENTE</span>';
-        if (isLive && hasScore) {
-          scoreHtml = `<div style="background:rgba(255,68,68,0.25); border:1px solid #ff4444; border-radius:6px; padding:2px 4px; margin-top:2px;">
-            <span style="font-size:11px; font-weight:900; color:#ff4444;">🔴 ${m.awayScore}-${m.homeScore}</span>
-            <div style="font-size:8px; color:#fff; font-weight:800;">${m.statusStr || 'EN VIVO'}</div>
-          </div>`;
-        } else if (hasScore) {
-          scoreHtml = `<span style="font-size:11px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore}</span><div style="font-size:8px; color:var(--text-muted);">FINAL</div>`;
-        }
-
-        return `<th style="text-align:center; padding:6px; min-width:90px;">
-          <div style="display:flex; flex-direction:column; align-items:center; gap:3px;">
+        const scoreHtml = getAdminHeaderSchedule(m);
+        return `<th style="text-align:center; padding:6px; min-width:85px;">
+          <div style="display:flex; flex-direction:column; align-items:center; gap:2px;">
             <div style="display:flex; align-items:center; gap:4px;">
-              <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:20px; height:20px; object-fit:contain;"/>
-              <span style="font-size:9px; font-weight:700;">vs</span>
-              <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:20px; height:20px; object-fit:contain;"/>
+              <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" style="width:19px; height:19px; object-fit:contain;" title="${m.away}"/>
+              <span style="font-size:8px; font-weight:900; color:#ffd100;">VS</span>
+              <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" style="width:19px; height:19px; object-fit:contain;" title="${m.home}"/>
             </div>
-            <span style="font-size:9px; color:var(--text-muted); font-weight:800;">${m.awayAbbr || m.away.substring(0,3)} v ${m.homeAbbr || m.home.substring(0,3)}</span>
             ${scoreHtml}
           </div>
         </th>`;
       }).join('') +
-      `<th style="text-align:center; padding:10px; min-width:70px;" title="Criterio de Desempate">Desempate</th>` +
-      `<th style="text-align:center; padding:10px;">Pts</th>`;
+      `<th style="text-align:center; padding:10px; min-width:70px; color:#ffd100; font-weight:900;" title="Criterio de Desempate">🎯 DESEMPATE</th>`;
 
     const tbody = table.createTBody();
     players.forEach((p, idx) => {
@@ -848,7 +853,10 @@
       const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
       const statusPill = p.isApproved ? '' : ` <span class="badge" style="background:rgba(255,193,7,0.2); color:#ffc107; font-size:9px;">PENDIENTE</span>`;
 
-      let cells = `<td style="padding:10px 12px; font-weight:700; white-space:nowrap;">${rankEmoji} ${p.playerName || 'Anónimo'}${statusPill}</td>`;
+      let cells = `
+        <td style="padding:10px 12px; font-weight:700; white-space:nowrap;">${rankEmoji} ${p.playerName || 'Anónimo'}${statusPill}</td>
+        <td style="text-align:center; font-weight:900; color:#ffd100; font-size:15px; padding:8px;">${p.totalPoints}</td>
+      `;
       matches.forEach(m => {
         const pick = p.picks?.[m.id];
         if (!pick) { cells += `<td class="q-s-cell q-cell-neutral">—</td>`; return; }
@@ -920,7 +928,6 @@
 
       const tieVal = (p.tiebreaker !== undefined && p.tiebreaker !== null && p.tiebreaker !== '') ? p.tiebreaker : '—';
       cells += `<td style="text-align:center; font-size:12px; font-weight:800; color:#ffd100;">${tieVal}</td>`;
-      cells += `<td style="text-align:center; font-weight:900; color:${p.totalPoints>0?'var(--accent-color)':'var(--text-muted)'}; font-size:15px;">${p.totalPoints}</td>`;
       tr.innerHTML = cells;
     });
 
