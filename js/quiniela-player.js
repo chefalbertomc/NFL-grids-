@@ -1056,14 +1056,30 @@
     if (btnAway && btnHome) {
       if (winnerSide === 'away') {
         btnAway.classList.add('selected');
+        btnAway.classList.remove('unselected-dim');
         btnHome.classList.remove('selected');
-        if (chkAway) chkAway.textContent = '✓';
-        if (chkHome) chkHome.textContent = '';
+        btnHome.classList.add('unselected-dim');
+        if (chkAway) {
+          chkAway.classList.add('selected');
+          chkAway.textContent = '✓';
+        }
+        if (chkHome) {
+          chkHome.classList.remove('selected');
+          chkHome.textContent = '';
+        }
       } else if (winnerSide === 'home') {
         btnHome.classList.add('selected');
+        btnHome.classList.remove('unselected-dim');
         btnAway.classList.remove('selected');
-        if (chkHome) chkHome.textContent = '✓';
-        if (chkAway) chkAway.textContent = '';
+        btnAway.classList.add('unselected-dim');
+        if (chkHome) {
+          chkHome.classList.add('selected');
+          chkHome.textContent = '✓';
+        }
+        if (chkAway) {
+          chkAway.classList.remove('selected');
+          chkAway.textContent = '';
+        }
       }
     }
 
@@ -1248,25 +1264,32 @@
         matchContentHtml = `
           <div class="q-scorebug-split">
             <!-- Away Team Wing (Left half with Away Color) -->
-            <div class="q-scorebug-wing q-away ${awaySelected ? 'selected' : ''}" id="btn_pick_away_${m.id}" onclick="pickWinner('${m.id}', 'away')" style="--team-bg: ${awayColor}; ${isIndividualMatchLocked ? 'pointer-events:none;' : ''}">
+            <div class="q-scorebug-wing q-away ${awaySelected ? 'selected' : ''} ${homeSelected ? 'unselected-dim' : ''}" id="btn_pick_away_${m.id}" onclick="pickWinner('${m.id}', 'away')" style="--team-bg: ${awayColor}; ${isIndividualMatchLocked ? 'pointer-events:none;' : ''}">
               <div class="q-scorebug-logo-frame">
                 <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" alt="${m.away}"/>
               </div>
               <span class="q-scorebug-abbr" title="${m.away}">${awayShort}</span>
-              ${hasScore ? `<span class="q-scorebug-score-box">${m.awayScore}</span>` : ''}
-              <div class="q-scorebug-check" id="chk_pick_away_${m.id}">${awaySelected ? '✓' : ''}</div>
+              <div class="q-scorebug-select-box ${awaySelected ? 'selected' : ''}" id="chk_pick_away_${m.id}">
+                ${hasScore ? m.awayScore : (awaySelected ? '✓' : '')}
+              </div>
             </div>
 
-            <!-- Center VS / Situation -->
+            <!-- Center VS / Situation Segment -->
             <div class="q-scorebug-center">
-              <span style="font-size:10px; font-weight:900; color:var(--text-muted);">VS</span>
-              ${isLive ? `<span style="font-size:8.5px; color:#ff4444; font-weight:900; animation:tvPulse 1s infinite;">🔴 LIVE</span>` : ''}
+              ${isLive 
+                ? `<span style="font-size:10px; font-weight:900; color:#ffd100; animation: tvPulse 1s infinite;">${m.statusStr || 'LIVE'}</span>
+                   <span style="font-size:7px; color:#00e676; font-weight:900; margin-top:2px; letter-spacing:0.02em; background:rgba(0,230,118,0.1); padding:2px 4px; border-radius:4px;">EN VIVO</span>`
+                : (isDone 
+                    ? `<span style="font-size:10px; font-weight:900; color:var(--text-muted);">FINAL</span>` 
+                    : `<span style="font-size:11px; font-weight:900; color:var(--text-muted); letter-spacing:0.05em;">VS</span>`)
+              }
             </div>
 
             <!-- Home Team Wing (Right half with Home Color) -->
-            <div class="q-scorebug-wing q-home ${homeSelected ? 'selected' : ''}" id="btn_pick_home_${m.id}" onclick="pickWinner('${m.id}', 'home')" style="--team-bg: ${homeColor}; ${isIndividualMatchLocked ? 'pointer-events:none;' : ''}">
-              <div class="q-scorebug-check" id="chk_pick_home_${m.id}">${homeSelected ? '✓' : ''}</div>
-              ${hasScore ? `<span class="q-scorebug-score-box">${m.homeScore}</span>` : ''}
+            <div class="q-scorebug-wing q-home ${homeSelected ? 'selected' : ''} ${awaySelected ? 'unselected-dim' : ''}" id="btn_pick_home_${m.id}" onclick="pickWinner('${m.id}', 'home')" style="--team-bg: ${homeColor}; ${isIndividualMatchLocked ? 'pointer-events:none;' : ''}">
+              <div class="q-scorebug-select-box ${homeSelected ? 'selected' : ''}" id="chk_pick_home_${m.id}">
+                ${hasScore ? m.homeScore : (homeSelected ? '✓' : '')}
+              </div>
               <span class="q-scorebug-abbr text-right" title="${m.home}">${homeShort}</span>
               <div class="q-scorebug-logo-frame">
                 <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" alt="${m.home}"/>
