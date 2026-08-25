@@ -1055,6 +1055,7 @@
 
     const btnAway = document.getElementById(`btn_pick_away_${matchId}`);
     const btnHome = document.getElementById(`btn_pick_home_${matchId}`);
+    const btnDraw = document.getElementById(`btn_pick_draw_${matchId}`);
     const chkAway = document.getElementById(`chk_pick_away_${matchId}`);
     const chkHome = document.getElementById(`chk_pick_home_${matchId}`);
 
@@ -1064,6 +1065,10 @@
         btnAway.classList.remove('unselected-dim');
         btnHome.classList.remove('selected');
         btnHome.classList.add('unselected-dim');
+        if (btnDraw) {
+          btnDraw.classList.remove('selected');
+          btnDraw.classList.add('unselected-dim');
+        }
         if (chkAway) {
           chkAway.classList.add('selected');
           chkAway.textContent = '✓';
@@ -1077,6 +1082,10 @@
         btnHome.classList.remove('unselected-dim');
         btnAway.classList.remove('selected');
         btnAway.classList.add('unselected-dim');
+        if (btnDraw) {
+          btnDraw.classList.remove('selected');
+          btnDraw.classList.add('unselected-dim');
+        }
         if (chkHome) {
           chkHome.classList.add('selected');
           chkHome.textContent = '✓';
@@ -1084,6 +1093,23 @@
         if (chkAway) {
           chkAway.classList.remove('selected');
           chkAway.textContent = '';
+        }
+      } else if (winnerSide === 'draw') {
+        if (btnDraw) {
+          btnDraw.classList.add('selected');
+          btnDraw.classList.remove('unselected-dim');
+        }
+        btnAway.classList.remove('selected');
+        btnAway.classList.add('unselected-dim');
+        btnHome.classList.remove('selected');
+        btnHome.classList.add('unselected-dim');
+        if (chkAway) {
+          chkAway.classList.remove('selected');
+          chkAway.textContent = '';
+        }
+        if (chkHome) {
+          chkHome.classList.remove('selected');
+          chkHome.textContent = '';
         }
       }
     }
@@ -1195,9 +1221,10 @@
 
       let statusLabel = '';
 
+      const isHybrid = q && q.isHybrid === true;
       if (hasScore) {
         const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-        if (isSoccer) {
+        if (isSoccer && !isHybrid) {
           const pickH = Number(currentHomeVal);
           const pickA = Number(currentAwayVal);
           const exact = pickH === m.homeScore && pickA === m.awayScore;
@@ -1221,7 +1248,7 @@
       const awayShort = typeof window.getTeamNickname === 'function' ? window.getTeamNickname(m.away, m.awayAbbr) : m.away;
       const homeShort = typeof window.getTeamNickname === 'function' ? window.getTeamNickname(m.home, m.homeAbbr) : m.home;
 
-      if (isSoccer) {
+      if (isSoccer && !isHybrid) {
         // SOCCER: Exact score steppers with team colors
         matchContentHtml = `
           <div class="q-scorebug-split">
@@ -1262,14 +1289,49 @@
           </div>
         `;
       } else {
-        // US SPORTS (NFL, MLB, NBA, etc.): Split TV Scorebug with team colors
+        // US SPORTS or SOCCER in Hybrid/Pick'em mode
         const awaySelected = savedWinner === 'away';
         const homeSelected = savedWinner === 'home';
+        const drawSelected = savedWinner === 'draw';
+
+        const awayWingDimClass = (homeSelected || drawSelected) ? 'unselected-dim' : '';
+        const homeWingDimClass = (awaySelected || drawSelected) ? 'unselected-dim' : '';
+        const drawCenterDimClass = (awaySelected || homeSelected) ? 'unselected-dim' : '';
+
+        let centerHtml = '';
+        if (isSoccer) {
+          centerHtml = `
+            <div class="q-scorebug-center q-draw-btn ${drawSelected ? 'selected' : ''} ${drawCenterDimClass}"
+                 id="btn_pick_draw_${m.id}"
+                 ${!isIndividualMatchLocked ? `onclick="pickWinner('${m.id}', 'draw')"` : ''}
+                 style="${!isIndividualMatchLocked ? 'cursor: pointer;' : 'cursor: default;'} min-width: 68px;">
+              ${isLive 
+                ? `<span style="font-size:10px; font-weight:900; color:#ffd100; animation: tvPulse 1s infinite;">${m.statusStr || 'LIVE'}</span>`
+                : (isDone 
+                    ? `<span style="font-size:10px; font-weight:900; color:var(--text-muted);">FINAL</span>` 
+                    : `<span style="font-size:10.5px; font-weight:900; color:${drawSelected ? '#ffd100' : '#aaa'};">${drawSelected ? 'EMPATE ✓' : 'EMPATE (X)'}</span>`
+                  )
+              }
+            </div>
+          `;
+        } else {
+          centerHtml = `
+            <div class="q-scorebug-center">
+              ${isLive 
+                ? `<span style="font-size:10px; font-weight:900; color:#ffd100; animation: tvPulse 1s infinite;">${m.statusStr || 'LIVE'}</span>
+                   <span style="font-size:7px; color:#00e676; font-weight:900; margin-top:2px; letter-spacing:0.02em; background:rgba(0,230,118,0.1); padding:2px 4px; border-radius:4px;">EN VIVO</span>`
+                : (isDone 
+                    ? `<span style="font-size:10px; font-weight:900; color:var(--text-muted);">FINAL</span>` 
+                    : `<span style="font-size:11px; font-weight:900; color:var(--text-muted); letter-spacing:0.05em;">VS</span>`)
+              }
+            </div>
+          `;
+        }
 
         matchContentHtml = `
           <div class="q-scorebug-split">
             <!-- Away Team Wing (Left half with Away Color) -->
-            <div class="q-scorebug-wing q-away ${awaySelected ? 'selected' : ''} ${homeSelected ? 'unselected-dim' : ''}" id="btn_pick_away_${m.id}" onclick="pickWinner('${m.id}', 'away')" style="--team-bg: ${awayColor}; ${isIndividualMatchLocked ? 'pointer-events:none;' : ''}">
+            <div class="q-scorebug-wing q-away ${awaySelected ? 'selected' : ''} ${awayWingDimClass}" id="btn_pick_away_${m.id}" onclick="pickWinner('${m.id}', 'away')" style="--team-bg: ${awayColor}; ${isIndividualMatchLocked ? 'pointer-events:none;' : ''}">
               <div class="q-scorebug-logo-frame">
                 <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" alt="${m.away}"/>
               </div>
@@ -1280,18 +1342,10 @@
             </div>
 
             <!-- Center VS / Situation Segment -->
-            <div class="q-scorebug-center">
-              ${isLive 
-                ? `<span style="font-size:10px; font-weight:900; color:#ffd100; animation: tvPulse 1s infinite;">${m.statusStr || 'LIVE'}</span>
-                   <span style="font-size:7px; color:#00e676; font-weight:900; margin-top:2px; letter-spacing:0.02em; background:rgba(0,230,118,0.1); padding:2px 4px; border-radius:4px;">EN VIVO</span>`
-                : (isDone 
-                    ? `<span style="font-size:10px; font-weight:900; color:var(--text-muted);">FINAL</span>` 
-                    : `<span style="font-size:11px; font-weight:900; color:var(--text-muted); letter-spacing:0.05em;">VS</span>`)
-              }
-            </div>
+            ${centerHtml}
 
             <!-- Home Team Wing (Right half with Home Color) -->
-            <div class="q-scorebug-wing q-home ${homeSelected ? 'selected' : ''} ${awaySelected ? 'unselected-dim' : ''}" id="btn_pick_home_${m.id}" onclick="pickWinner('${m.id}', 'home')" style="--team-bg: ${homeColor}; ${isIndividualMatchLocked ? 'pointer-events:none;' : ''}">
+            <div class="q-scorebug-wing q-home ${homeSelected ? 'selected' : ''} ${homeWingDimClass}" id="btn_pick_home_${m.id}" onclick="pickWinner('${m.id}', 'home')" style="--team-bg: ${homeColor}; ${isIndividualMatchLocked ? 'pointer-events:none;' : ''}">
               <div class="q-scorebug-select-box ${homeSelected ? 'selected' : ''}" id="chk_pick_home_${m.id}">
                 ${hasScore ? m.homeScore : (homeSelected ? '✓' : '')}
               </div>
@@ -1584,8 +1638,9 @@
 
         const sport = detectSport(m);
         const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
+        const isHybrid = activeQuiniela && activeQuiniela.isHybrid === true;
 
-        if (sport === 'soccer') {
+        if (sport === 'soccer' && !isHybrid) {
           if (pick.homeScore === m.homeScore && pick.awayScore === m.awayScore) {
             pts += 3;
             exactHits += 1;

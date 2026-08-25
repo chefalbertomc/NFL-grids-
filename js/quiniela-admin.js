@@ -17,6 +17,7 @@
     'ligue-1':          { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'fra.1',                 label: '🇫🇷 Ligue 1 Francia' },
     'mls':              { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'usa.1',                 label: '🇺🇸 MLS' },
     'libertadores':     { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'conmebol.libertadores', label: '🌎 Copa Libertadores' },
+    'leagues-cup':      { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'leagues.cup',           label: '🏆 Leagues Cup' },
 
     // 🏈 ⚾ 🏀 PICK'EM (US Sports)
     'nfl':              { group: "🏈 ⚾ 🏀 PICK'EM (US Sports)", sport: 'football',   slug: 'nfl',                     label: '🏈 NFL' },
@@ -472,6 +473,7 @@
 
     try {
       const ref = db.collection('quinielas').doc();
+      const isHybrid = document.getElementById('chkIsHybrid')?.checked === true;
       await ref.set({
         id: ref.id,
         name,
@@ -479,6 +481,7 @@
         matches,
         active: true,
         autoApprove: document.getElementById('chkAutoApprove')?.checked === true,
+        isHybrid: isHybrid,
         createdAt: firebase.firestore.FieldValue.serverTimestamp
           ? firebase.firestore.FieldValue.serverTimestamp()
           : Date.now()
@@ -486,6 +489,8 @@
 
       alert(`✅ Quiniela / Pick'em "${name}" creada con ${matchCount} partidos.`);
       if (document.getElementById('qName')) document.getElementById('qName').value = '';
+      const hybridChk = document.getElementById('chkIsHybrid');
+      if (hybridChk) hybridChk.checked = false;
       qSelectedMatches = {};
       updateSelectedCount();
       const picker = document.getElementById('qGamePickerContainer');
@@ -667,10 +672,11 @@
             const pick = p.picks?.[m.id];
             if (!pick) return;
 
-            const sport = detectSport(m);
-            const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
+             const sport = detectSport(m);
+             const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
+             const isHybrid = q.isHybrid === true;
 
-            if (sport === 'soccer') {
+             if (sport === 'soccer' && !isHybrid) {
               // Exact score: +3 pts, Outcome: +1 pt
               if (pick.homeScore === m.homeScore && pick.awayScore === m.awayScore) {
                 pts += 3;
@@ -868,7 +874,8 @@
         const isDone = m.completed || m.status === 'post';
         const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
 
-        if (isSoccer) {
+        const isHybrid = q.isHybrid === true;
+        if (isSoccer && !isHybrid) {
           const pickStr = `${pick.awayScore}-${pick.homeScore}`;
           if (!hasScore) {
             cells += `<td class="q-s-cell q-cell-neutral">${pickStr}</td>`;
@@ -889,18 +896,27 @@
             else cells += `<td class="q-s-cell q-cell-final-miss" title="Final: 0 pts">✗ ${pickStr}</td>`;
           }
         } else {
-          // US Sports: Team Logo
+          // US Sports / Pick'em Mode / Hybrid Mode
           const winnerSide = pick.winner ? pick.winner : (Number(pick.homeScore) > Number(pick.awayScore) ? 'home' : 'away');
-          const pickedLogo = winnerSide === 'home' ? m.homeLogo : m.awayLogo;
-          const pickedAbbr = winnerSide === 'home' ? (m.homeAbbr || m.home) : (m.awayAbbr || m.away);
-          const shortAbbr = pickedAbbr.length > 4 ? pickedAbbr.substring(0, 3).toUpperCase() : pickedAbbr.toUpperCase();
+          let logoHtml = '';
+          if (winnerSide === 'draw') {
+            logoHtml = `
+              <div class="q-cell-logo-wrap" title="Empate">
+                <span class="q-cell-team-sub" style="font-weight:900; color:#ffd100; font-size:9px;">EMPATE</span>
+              </div>
+            `;
+          } else {
+            const pickedLogo = winnerSide === 'home' ? m.homeLogo : m.awayLogo;
+            const pickedAbbr = winnerSide === 'home' ? (m.homeAbbr || m.home) : (m.awayAbbr || m.away);
+            const shortAbbr = pickedAbbr.length > 4 ? pickedAbbr.substring(0, 3).toUpperCase() : pickedAbbr.toUpperCase();
 
-          const logoHtml = `
-            <div class="q-cell-logo-wrap" title="${pickedAbbr}">
-              <img src="${pickedLogo}" onerror="this.src='img/logo.jpg'" class="q-cell-team-logo" alt="${pickedAbbr}" />
-              <span class="q-cell-team-sub">${shortAbbr}</span>
-            </div>
-          `;
+            logoHtml = `
+              <div class="q-cell-logo-wrap" title="${pickedAbbr}">
+                <img src="${pickedLogo}" onerror="this.src='img/logo.jpg'" class="q-cell-team-logo" alt="${pickedAbbr}" />
+                <span class="q-cell-team-sub">${shortAbbr}</span>
+              </div>
+            `;
+          }
 
           if (!hasScore) {
             cells += `<td class="q-s-cell q-cell-neutral">${logoHtml}</td>`;

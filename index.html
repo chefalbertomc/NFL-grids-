@@ -19,25 +19,61 @@
   <link rel="stylesheet" href="css/styles.css?v=137.0"/>
 </head>
 <body>
-  <div class="container animate-fade">
-    <!-- Header Bar -->
-    <header class="header-bar">
-      <div class="app-brand-header">
-        <img src="img/logo.jpg" alt="Drinks & Wins by Beto" class="app-brand-logo" />
-        <div>
-          <h1 class="header-title gradient-text">Drinks & Wins</h1>
-          <p class="hint-text">Juegos de Bar en tu Celular</p>
+  <!-- Slide-out Sidebar Drawer Menu -->
+  <div id="sideDrawer" class="side-drawer">
+    <div class="side-drawer-header">
+      <div class="side-drawer-profile" id="drawerProfileSection">
+        <img id="drawerAvatar" src="img/logo.jpg" alt="Profile Avatar" onerror="this.src='img/logo.jpg'" />
+        <div class="side-drawer-profile-info">
+          <span id="drawerNick">SOCIO</span>
+          <span id="drawerStatus" style="font-size:10px; color:#ffd100; font-weight:800; text-transform:uppercase; margin-top:2px;">Invitado</span>
         </div>
       </div>
-      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-        <a href="admin.html" class="btn btn-secondary" style="width: auto; padding: 6px 12px; text-decoration: none; font-size: 13px; font-weight: 700; border-radius: 10px; display: inline-flex; align-items: center; gap: 4px;">
-          ⚙️ Panel Admin
-        </a>
+      <button type="button" class="close-drawer-btn" onclick="window.toggleSideDrawer(false)">✕</button>
+    </div>
+    <div class="side-drawer-content">
+      <ul class="side-drawer-menu">
+        <li onclick="handleDrawerNav('tab-home')">🏠 <span>Inicio</span></li>
+        <li onclick="handleDrawerNav('tab-grids')">🏈 <span>NFL Grids</span></li>
+        <li onclick="handleDrawerNav('tab-pools')">📋 <span>Quinielas & Pick'em</span></li>
+        <li onclick="handleDrawerNav('tab-survivor')">🏆 <span>Survivor NFL</span></li>
+        <li onclick="handleDrawerNav('tab-firstgoal')">🎯 <span>Primer Gol</span></li>
+        <li id="drawerAdminItem" class="admin-only hidden" onclick="window.location.href='admin.html'">⚙️ <span style="color:#ffd100; font-weight:800;">Panel Admin</span></li>
+        <li onclick="window.toggleSideDrawer(false); if(window.openUserProfileModal) window.openUserProfileModal(event)">👤 <span>Mi Perfil</span></li>
+        <li onclick="window.toggleSideDrawer(false); if(window.openHowToPlayModal) window.openHowToPlayModal()">❓ <span>¿Cómo Jugar?</span></li>
+        <li onclick="window.toggleSideDrawer(false); document.querySelector('#tab-home').scrollIntoView({behavior:'smooth'});">📲 <span>Instalar App</span></li>
+        <li id="drawerLoginItem" onclick="window.toggleSideDrawer(false); const btnL = document.getElementById('btnHeaderLogin'); if(btnL) btnL.click();">🔑 <span>Iniciar Sesión</span></li>
+        <li id="drawerLogoutItem" class="hidden" onclick="handleDrawerLogout()">🚪 <span>Cerrar Sesión</span></li>
+      </ul>
+    </div>
+  </div>
+  <div id="sideDrawerOverlay" class="side-drawer-overlay" onclick="window.toggleSideDrawer(false)"></div>
+
+  <div class="container animate-fade">
+    <!-- Header Bar -->
+    <header class="header-bar" style="padding: 12px 0;">
+      <div style="display: flex; align-items: center;">
+        <button class="btn-burger" onclick="window.toggleSideDrawer(true)" style="background:none; border:none; color:#ffd100; font-size:26px; cursor:pointer; padding:6px; margin-right:12px; display:flex; align-items:center; justify-content:center; line-height:1; user-select:none;" title="Menú">☰</button>
+        <div class="app-brand-header">
+          <img src="img/logo.jpg" alt="Drinks & Wins by Beto" class="app-brand-logo" />
+          <div>
+            <h1 class="header-title gradient-text" style="font-size: 20px;">Drinks & Wins</h1>
+            <p class="hint-text">Juegos de Bar en tu Celular</p>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <!-- Notification Bell -->
+        <button id="btnNotificationBell" onclick="if(window.openHowToPlayModal) window.openHowToPlayModal()" style="background:none; border:none; color:#ffd100; font-size:20px; cursor:pointer; padding:6px; display:flex; align-items:center; justify-content:center; position:relative;" title="Reglas e Instructivos">
+          🔔
+          <span style="position:absolute; top:4px; right:4px; width:8px; height:8px; background:#ff4444; border-radius:50%; box-shadow:0 0 4px #ff4444;"></span>
+        </button>
+        
         <div id="authContainer">
-          <button id="btnHeaderLogin" class="btn btn-primary" style="width: auto; padding: 8px 14px; font-weight: 800; font-size: 13px; border-radius: 10px;">
-            🔑 Iniciar Sesión
+          <button id="btnHeaderLogin" class="btn btn-primary" style="width: auto; padding: 6px 12px; font-weight: 800; font-size: 12px; border-radius: 8px;">
+            🔑 Login
           </button>
-          <div id="userBadge" class="user-badge hidden" onclick="window.openUserProfileModal(event)" style="cursor:pointer;" title="Toca para ver tu perfil o cambiar foto">
+          <div id="userBadge" class="user-badge hidden" onclick="window.toggleSideDrawer(true)" style="cursor:pointer;" title="Toca para ver menú de perfil">
             <img id="userAvatar" src="" alt="Avatar"/>
             <span id="userName">Socio</span>
           </div>
@@ -510,13 +546,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=141.0"></script>
-  <script src="js/auth.js?v=141.0"></script>
-  <script src="js/team-logos.js?v=141.0"></script>
-  <script src="js/grids.js?v=141.0"></script>
-  <script src="js/quiniela-player.js?v=141.0"></script>
-  <script src="js/survivor.js?v=141.0"></script>
-  <script src="js/firstgoal.js?v=141.0"></script>
+  <script src="js/firebase-config.js?v=142.0"></script>
+  <script src="js/auth.js?v=142.0"></script>
+  <script src="js/team-logos.js?v=142.0"></script>
+  <script src="js/grids.js?v=142.0"></script>
+  <script src="js/quiniela-player.js?v=142.0"></script>
+  <script src="js/survivor.js?v=142.0"></script>
+  <script src="js/firstgoal.js?v=142.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -542,6 +578,75 @@
       }
 
       window.activateTab = activateTab;
+
+      window.toggleSideDrawer = function(open) {
+        const drawer = document.getElementById('sideDrawer');
+        const overlay = document.getElementById('sideDrawerOverlay');
+        if (drawer && overlay) {
+          if (open) {
+            drawer.classList.add('open');
+            overlay.classList.add('open');
+            
+            // Sync user data dynamically
+            const activeUser = window.currentUser || (typeof getActiveUser === 'function' ? getActiveUser() : null);
+            const avatarEl = document.getElementById('drawerAvatar');
+            const nickEl = document.getElementById('drawerNick');
+            const statusEl = document.getElementById('drawerStatus');
+            const loginItem = document.getElementById('drawerLoginItem');
+            const logoutItem = document.getElementById('drawerLogoutItem');
+            
+            if (activeUser) {
+              if (avatarEl) avatarEl.src = activeUser.photoURL || 'img/logo.jpg';
+              if (nickEl) nickEl.textContent = activeUser.displayName ? activeUser.displayName.toUpperCase() : 'SOCIO';
+              if (statusEl) statusEl.textContent = 'Jugador Activo';
+              if (loginItem) loginItem.classList.add('hidden');
+              if (logoutItem) logoutItem.classList.remove('hidden');
+            } else {
+              if (avatarEl) avatarEl.src = 'img/logo.jpg';
+              if (nickEl) nickEl.textContent = 'SOCIO INVITADO';
+              if (statusEl) statusEl.textContent = 'Invitado';
+              if (loginItem) loginItem.classList.remove('hidden');
+              if (logoutItem) logoutItem.classList.add('hidden');
+            }
+            
+            // Sync admin visibility
+            const adminOnlyElements = document.querySelectorAll('.admin-only');
+            const drawerAdminItem = document.getElementById('drawerAdminItem');
+            if (drawerAdminItem) {
+              let isAdmin = false;
+              adminOnlyElements.forEach(el => {
+                if (!el.classList.contains('hidden')) {
+                  isAdmin = true;
+                }
+              });
+              if (isAdmin) {
+                drawerAdminItem.classList.remove('hidden');
+              } else {
+                drawerAdminItem.classList.add('hidden');
+              }
+            }
+          } else {
+            drawer.classList.remove('open');
+            overlay.classList.remove('open');
+          }
+        }
+      };
+
+      window.handleDrawerNav = function(tabId) {
+        window.toggleSideDrawer(false);
+        activateTab(tabId);
+      };
+
+      window.handleDrawerLogout = async function() {
+        window.toggleSideDrawer(false);
+        if (typeof window.logoutUser === 'function') {
+          await window.logoutUser();
+        } else {
+          localStorage.removeItem('bww_last_auth_user');
+          localStorage.removeItem('player_nick');
+          window.location.reload();
+        }
+      };
 
       tabs.forEach(tab => {
         tab.addEventListener('click', (e) => {
@@ -684,7 +789,7 @@
   <!-- Service Worker: Auto Silent Update -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=141.0', { updateViaCache: 'none' }).then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=142.0', { updateViaCache: 'none' }).then(reg => {
         reg.update().catch(() => {});
       }).catch(() => {});
 

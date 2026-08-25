@@ -223,6 +223,13 @@
           </label>
         </div>
 
+        <div class="form-group" style="margin-top: 6px; display: flex; align-items: center; gap: 8px;">
+          <input type="checkbox" id="chkIsHybrid" style="width: 18px; height: 18px; cursor: pointer;" />
+          <label for="chkIsHybrid" style="font-size: 12.5px; font-weight: 800; cursor: pointer; color: #ffd100; user-select: none; margin: 0;">
+            🔀 Quiniela Híbrida (Modo Pick'em para todos los juegos, sin marcadores numéricos)
+          </label>
+        </div>
+
         <div class="flex-row" style="flex-wrap:wrap; gap:10px; margin-bottom:12px;">
           <div class="form-group" style="flex:1; min-width:140px; margin:0;">
             <label>Liga / Deporte a Buscar</label>
@@ -395,11 +402,11 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=141.0"></script>
-  <script src="js/auth.js?v=141.0"></script>
-  <script src="js/team-logos.js?v=141.0"></script>
-  <script src="js/admin.js?v=141.0"></script>
-  <script src="js/quiniela-admin.js?v=141.0"></script>
+  <script src="js/firebase-config.js?v=142.0"></script>
+  <script src="js/auth.js?v=142.0"></script>
+  <script src="js/team-logos.js?v=142.0"></script>
+  <script src="js/admin.js?v=142.0"></script>
+  <script src="js/quiniela-admin.js?v=142.0"></script>
 
   <!-- Admin Tab Switching with Bottom Nav integration -->
   <script>
@@ -452,7 +459,7 @@
   <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=141.0', { updateViaCache: 'none' }).then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=142.0', { updateViaCache: 'none' }).then(reg => {
         reg.update().catch(() => {});
       }).catch(() => {});
       navigator.serviceWorker.addEventListener('message', event => {
