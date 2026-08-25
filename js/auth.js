@@ -37,10 +37,12 @@
     if (isLoading) {
       btn.dataset.origHtml = btn.innerHTML;
       btn.innerHTML = `<span style="font-size:18px;">⏳</span> <span style="font-weight:900;">${text || 'Conectando con Google...'}</span>`;
-      btn.disabled = true;
+      btn.style.pointerEvents = 'none';
+      btn.style.opacity = '0.7';
     } else {
       if (btn.dataset.origHtml) btn.innerHTML = btn.dataset.origHtml;
-      btn.disabled = false;
+      btn.style.pointerEvents = 'auto';
+      btn.style.opacity = '1';
     }
   }
 
@@ -731,6 +733,13 @@
       modalOverlay.addEventListener('click', (e) => {
         if (e.target === modalOverlay) window.hideLoginModal();
       });
+    }
+
+    // Ensure local persistence
+    if (firebase.auth && firebase.auth()) {
+      try {
+        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+      } catch (e) {}
     }
 
     if (btnSignOut) {
