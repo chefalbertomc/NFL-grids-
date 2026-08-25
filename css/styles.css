@@ -333,16 +333,16 @@ input:focus, select:focus, textarea:focus {
   bottom: 0;
   left: 0;
   width: 100%;
-  background: rgba(14, 18, 26, 0.96);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid rgba(255, 209, 0, 0.25);
+  background: rgba(10, 14, 22, 0.97);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 209, 0, 0.22);
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px)) 4px;
+  padding: 6px 4px calc(8px + env(safe-area-inset-bottom, 0px)) 4px;
   z-index: 1000;
-  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.8);
 }
 
 .nav-item {
@@ -352,34 +352,35 @@ input:focus, select:focus, textarea:focus {
   justify-content: center;
   font-size: 9.5px;
   font-weight: 800;
-  color: var(--text-muted);
+  color: #8892b0;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
-  padding: 3px 6px;
-  border-radius: 10px;
+  padding: 3px 8px;
+  border-radius: 12px;
   position: relative;
 }
 
 .nav-game-badge {
-  width: 36px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
-  border-radius: 6px;
-  filter: grayscale(30%) opacity(0.75);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  filter: grayscale(40%) brightness(0.85);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
   margin-bottom: 2px;
 }
 
 .nav-admin-icon {
   font-size: 20px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 2px;
-  filter: grayscale(30%) opacity(0.75);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: grayscale(40%) brightness(0.85);
+  transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-item.active, .nav-item:hover {
@@ -389,8 +390,8 @@ input:focus, select:focus, textarea:focus {
 .nav-item.active .nav-game-badge,
 .nav-item.active .nav-admin-icon {
   filter: none;
-  transform: scale(1.1);
-  filter: drop-shadow(0 0 8px rgba(255, 209, 0, 0.7));
+  transform: translateY(-2px) scale(1.15);
+  filter: drop-shadow(0 0 10px rgba(255, 209, 0, 0.85));
 }
 
 .nav-item.active::before {
@@ -399,11 +400,11 @@ input:focus, select:focus, textarea:focus {
   top: -6px;
   left: 50%;
   transform: translateX(-50%);
-  width: 20px;
+  width: 24px;
   height: 3px;
   background: #ffd100;
-  border-radius: 3px;
-  box-shadow: 0 0 8px #ffd100;
+  border-radius: 4px;
+  box-shadow: 0 0 10px #ffd100, 0 0 20px rgba(255, 209, 0, 0.5);
 }
 
 /* Hide top tabs on mobile to remove duplication and maximize screen area */
