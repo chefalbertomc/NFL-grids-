@@ -737,10 +737,22 @@
   // Open single Quiniela view
   async function openQuiniela(quinielaId) {
     if (!db) return;
-    const activeUser = getActiveUser();
+    let activeUser = getActiveUser();
     if (!activeUser) {
-      window.requireUserAuth(() => openQuiniela(quinielaId), '¡Inicia Sesión con Google!', 'Para entrar a la quiniela, guardar tus marcadores y seguir las posiciones en vivo, inicia sesión.');
-      return;
+      const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || 'JUGADOR';
+      let savedId = localStorage.getItem('bww_player_id');
+      if (!savedId) {
+        savedId = 'user_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('bww_player_id', savedId);
+      }
+      activeUser = {
+        uid: savedId,
+        displayName: savedNick,
+        email: '',
+        photoURL: localStorage.getItem('user_custom_avatar') || 'img/logo.jpg'
+      };
+      window.currentUser = activeUser;
+      localStorage.setItem('bww_last_auth_user', JSON.stringify(activeUser));
     }
 
     const qObj = allQuinielas.find(x => x.id === quinielaId);
@@ -1314,11 +1326,22 @@
   async function savePlayerPicks() {
     if (!db || !activeQuiniela) return;
 
-    // MANDATORY AUTH CHECK
-    const activeUser = getActiveUser();
+    let activeUser = getActiveUser();
     if (!activeUser) {
-      window.requireUserAuth(savePlayerPicks, '¡Inicia Sesión para Pronosticar!', 'Para registrar tus pronósticos y competir en la quiniela, inicia sesión con Google, Apple o Facebook.');
-      return;
+      const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || 'JUGADOR';
+      let savedId = localStorage.getItem('bww_player_id');
+      if (!savedId) {
+        savedId = 'user_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('bww_player_id', savedId);
+      }
+      activeUser = {
+        uid: savedId,
+        displayName: savedNick,
+        email: '',
+        photoURL: localStorage.getItem('user_custom_avatar') || 'img/logo.jpg'
+      };
+      window.currentUser = activeUser;
+      localStorage.setItem('bww_last_auth_user', JSON.stringify(activeUser));
     }
 
     // Re-verify strict lock before saving

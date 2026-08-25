@@ -704,6 +704,23 @@
       }
     } catch (e) {}
 
+    const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name');
+    let savedId = localStorage.getItem('bww_player_id');
+    if (savedNick) {
+      if (!savedId) {
+        savedId = 'user_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('bww_player_id', savedId);
+      }
+      window.currentUser = {
+        uid: savedId,
+        displayName: savedNick,
+        email: '',
+        photoURL: localStorage.getItem('user_custom_avatar') || 'img/logo.jpg'
+      };
+      if (typeof actionCallback === 'function') actionCallback(window.currentUser);
+      return true;
+    }
+
     pendingAuthAction = actionCallback;
     window.showLoginModal(customTitle, customSubtitle);
     return false;
