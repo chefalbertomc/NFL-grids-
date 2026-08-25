@@ -174,9 +174,7 @@
         try {
           await firebase.auth().signInWithPopup(provider);
         } catch (popupErr) {
-          if (popupErr.code === 'auth/popup-blocked') {
-            await firebase.auth().signInWithRedirect(provider);
-          } else if (popupErr.code !== 'auth/popup-closed-by-user' && popupErr.code !== 'auth/cancelled-popup-request') {
+          if (popupErr.code !== 'auth/popup-closed-by-user' && popupErr.code !== 'auth/cancelled-popup-request') {
             alert('Error al acceder con Google: ' + (popupErr.message || popupErr.code));
           }
         }
