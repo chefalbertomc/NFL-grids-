@@ -310,7 +310,7 @@
         const card = document.createElement('div');
         card.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px; cursor:pointer; transition:border-color 0.2s;';
         card.innerHTML = `
-          <img src="${awayLogo}" style="width:32px;height:32px;object-fit:contain;filter:drop-shadow(0 0 4px ${awayColor})" onerror="this.src='https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png'" />
+          <img src="${awayLogo}" style="width:32px;height:32px;object-fit:contain;filter:drop-shadow(0 0 4px ${awayColor})" onerror="this.src='https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png'" />
           <div style="flex:1;">
             <div style="font-weight:800;font-size:13px;">
               <span style="color:${awayColor}">${awayName}</span>
@@ -319,7 +319,7 @@
             </div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${dateStr} &nbsp;•&nbsp; ${status}</div>
           </div>
-          <img src="${homeLogo}" style="width:32px;height:32px;object-fit:contain;filter:drop-shadow(0 0 4px ${homeColor})" onerror="this.src='https://a.espncdn.com/i/teamlogos/nfl/500/scoreboard/nfl.png'" />
+          <img src="${homeLogo}" style="width:32px;height:32px;object-fit:contain;filter:drop-shadow(0 0 4px ${homeColor})" onerror="this.src='https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png'" />
         `;
 
         card.addEventListener('click', () => {
@@ -735,6 +735,7 @@
           tag: tag || 'drinks-wins-alert'
         });
       } catch (e) {}
+    }
   }
 
   window.playNotificationChime = playNotificationChime;
