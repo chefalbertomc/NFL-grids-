@@ -362,18 +362,24 @@ input:focus, select:focus, textarea:focus {
 }
 
 .nav-game-badge {
-  width: 34px;
-  height: 24px;
+  width: 36px;
+  height: 28px;
   object-fit: contain;
-  filter: grayscale(85%) opacity(0.7);
-  transition: all 0.2s ease;
+  border-radius: 6px;
+  filter: grayscale(30%) opacity(0.75);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   margin-bottom: 2px;
 }
 
 .nav-admin-icon {
-  font-size: 18px;
+  font-size: 20px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 2px;
-  filter: grayscale(85%) opacity(0.7);
+  filter: grayscale(30%) opacity(0.75);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-item.active, .nav-item:hover {
@@ -383,8 +389,8 @@ input:focus, select:focus, textarea:focus {
 .nav-item.active .nav-game-badge,
 .nav-item.active .nav-admin-icon {
   filter: none;
-  transform: scale(1.12);
-  filter: drop-shadow(0 0 6px rgba(255, 209, 0, 0.6));
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 8px rgba(255, 209, 0, 0.7));
 }
 
 .nav-item.active::before {
