@@ -80,9 +80,30 @@
     alert('Error al iniciar sesión: ' + (err.message || err.code));
   }
 
+  function isInAppBrowser() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera;
+    const isInstagram = ua.indexOf('Instagram') > -1;
+    const isFBAV = ua.indexOf('FBAN') > -1 || ua.indexOf('FBAV') > -1;
+    const isWhatsApp = ua.indexOf('WhatsApp') > -1;
+    const isLine = ua.indexOf('Line') > -1;
+    const isPWA = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+    return isInstagram || isFBAV || isWhatsApp || isLine || isPWA;
+  }
+
   // 1-Click Google Sign In
   window.loginWithGoogle = async function(isSwitchAccount = false) {
     if (isGoogleAuthInProgress) return;
+
+    if (isInAppBrowser()) {
+      alert('📱 Estás usando el navegador interno (WhatsApp/Instagram) o modo PWA.\n\nPara evitar errores de pantalla blanca, por favor ingresa usando la opción "O CON TU APODO" escribiendo tu nombre abajo.');
+      const inp = document.getElementById('inpGuestNick');
+      if (inp) {
+        inp.focus();
+        inp.scrollIntoView({ behavior: 'smooth' });
+      }
+      return;
+    }
+
     isGoogleAuthInProgress = true;
     console.log('[auth] loginWithGoogle triggered, isSwitchAccount:', isSwitchAccount);
     try {

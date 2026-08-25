@@ -339,13 +339,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=137.0"></script>
-  <script src="js/auth.js?v=137.0"></script>
-  <script src="js/team-logos.js?v=137.0"></script>
-  <script src="js/grids.js?v=137.0"></script>
-  <script src="js/quiniela-player.js?v=137.0"></script>
-  <script src="js/survivor.js?v=137.0"></script>
-  <script src="js/firstgoal.js?v=137.0"></script>
+  <script src="js/firebase-config.js?v=138.0"></script>
+  <script src="js/auth.js?v=138.0"></script>
+  <script src="js/team-logos.js?v=138.0"></script>
+  <script src="js/grids.js?v=138.0"></script>
+  <script src="js/quiniela-player.js?v=138.0"></script>
+  <script src="js/survivor.js?v=138.0"></script>
+  <script src="js/firstgoal.js?v=138.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -469,11 +469,11 @@
 
   <!-- Global Google Login Modal Gate -->
   <div id="globalLoginModal" class="login-modal-overlay">
-    <div class="login-modal-card">
+    <div class="login-modal-card" style="max-width:390px;">
       <button id="loginModalClose" class="login-modal-close" title="Cerrar" onclick="window.hideLoginModal()">✕</button>
       <div class="login-modal-icon">🏆</div>
       <h3 class="login-modal-title" id="loginModalTitle">¡Inicia Sesión para Jugar!</h3>
-      <p class="login-modal-subtitle" id="loginModalSubtitle">Accede con tu cuenta de Google para asegurar tus casillas, guardar pronósticos con tu foto de perfil y ver tus posiciones.</p>
+      <p class="login-modal-subtitle" id="loginModalSubtitle">Accede para asegurar tus casillas, guardar pronósticos con tu foto de perfil y ver tus posiciones.</p>
       
       <div class="login-buttons-stack" style="margin-top:16px;">
         <!-- Google 1-Click Login -->
@@ -487,7 +487,21 @@
           <span style="font-weight:900; letter-spacing:0.02em;">Continuar con Google</span>
         </button>
 
-        <button type="button" class="btn btn-secondary" onclick="window.switchGoogleAccount()" style="margin-top:10px; width:100%; font-size:12px; font-weight:800; border-radius:12px; padding:10px 14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);">
+        <div style="margin: 16px 0; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-muted); font-size: 11px; font-weight: 800;">
+          <hr style="flex:1; border:0; border-top:1px solid rgba(255,255,255,0.1);"/>
+          <span>O CON TU NOMBRE / APODO</span>
+          <hr style="flex:1; border:0; border-top:1px solid rgba(255,255,255,0.1);"/>
+        </div>
+
+        <!-- Guest Nickname Input & Button -->
+        <div style="background: rgba(255,255,255,0.03); border: 1.5px solid var(--border-color); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; gap: 8px; box-sizing: border-box; width:100%;">
+          <input type="text" id="inpGuestNick" placeholder="Escribe tu Apodo (ej. BETO)" style="width: 100%; height: 44px; border: 1.5px solid var(--border-color); border-radius: 10px; background: #0f1318; color: #fff; font-size: 14px; font-weight: 800; text-align: center; text-transform: uppercase; outline: none; box-sizing: border-box;" />
+          <button type="button" class="btn btn-primary" id="btnGuestLogin" onclick="window.loginAsGuest()" style="padding:12px; font-size:14px; font-weight:900; border-radius:10px; width:100%; cursor:pointer;">
+            Ingresar con mi Apodo ▶
+          </button>
+        </div>
+
+        <button type="button" class="btn btn-secondary" onclick="window.switchGoogleAccount()" style="margin-top:10px; width:100%; font-size:11px; font-weight:800; border-radius:12px; padding:10px 14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);">
           🔄 Cambiar de Cuenta de Google
         </button>
       </div>
@@ -497,7 +511,7 @@
   <!-- Service Worker: Auto Silent Update -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=137.0', { updateViaCache: 'none' }).then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=138.0', { updateViaCache: 'none' }).then(reg => {
         reg.update().catch(() => {});
       }).catch(() => {});
 
