@@ -1,21 +1,20 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"/>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-  <meta http-equiv="Pragma" content="no-cache" />
-  <meta http-equiv="Expires" content="0" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <link rel="icon" type="image/jpeg" href="img/logo.jpg" />
+  <link rel="shortcut icon" href="img/logo.jpg" />
   <link rel="apple-touch-icon" href="img/logo.jpg" />
   <link rel="apple-touch-icon" sizes="180x180" href="img/logo.jpg" />
   <link rel="manifest" href="manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Admin Dashboard — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=121.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=122.0"/>
   <style>
     /* Styling overrides for admin features */
     .admin-tab-content {
@@ -25,134 +24,133 @@
 </head>
 <body>
   <div class="container animate-fade">
-    <!-- Header Bar -->
-    <header class="header-bar">
-      <div class="app-brand-header">
-        <a href="index.html" style="text-decoration: none; display: flex; align-items: center; gap: 12px;">
-          <img src="img/logo.jpg" alt="Drinks & Wins by Beto" class="app-brand-logo" />
-          <div>
-            <h1 class="header-title gradient-text">Drinks & Wins <span style="font-size: 14px; color: var(--accent-color); font-weight: bold;">(Panel Admin)</span></h1>
-            <p class="hint-text">Gestión de Juegos, Scores y Configuración</p>
-          </div>
-        </a>
-      </div>
-      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-        <span id="adminStatusText" class="badge danger">🔒 Sin Sesión de Administrador</span>
-        <button id="btnAdminGoogle" class="btn btn-secondary" style="display: none; width: auto; padding: 6px 12px; font-size: 12px;">🔑 Iniciar Sesión</button>
-        <button id="btnAdminLogout" class="btn btn-secondary" style="display: none; width: auto; padding: 6px 12px; font-size: 12px;">Cerrar Sesión</button>
-        <a href="index.html" class="btn btn-primary" style="text-decoration:none; padding:8px 12px; font-size:12px;">← Volver al Juego</a>
-      </div>
-    </header>
-
-    <!-- Admin Navigation Tabs -->
-    <div class="tabs-container">
-      <button class="tab-btn active" data-admin-target="admin-tab-grids">🏈 NFL Grids</button>
-      <button class="tab-btn" data-admin-target="admin-tab-quiniela">📋 Quiniela / Pick'em</button>
-      <button class="tab-btn" data-admin-target="admin-tab-survivor">🏆 Survivor</button>
-      <button class="tab-btn" data-admin-target="admin-tab-firstgoal">⚽ Primer Gol</button>
+    <!-- Auth Status Indicator Banner -->
+    <div id="adminAuthBanner" class="card" style="margin-bottom: 12px; background: rgba(0,0,0,0.3); padding: 8px 16px; font-size: 13px; display: flex; justify-content: space-between; align-items: center;">
+      <span id="adminStatusText">Verificando acceso...</span>
+      <button id="btnAdminGoogle" class="btn btn-secondary" style="width: auto; padding: 4px 12px; font-size: 12px; display: none;">Entrar con Google</button>
     </div>
 
-    <!-- 1. ADMIN TAB: GRIDS -->
-    <main id="admin-tab-grids" class="admin-tab-content">
-      <!-- Grid Creation Section -->
+    <header class="header-bar" style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+      <div class="app-brand-header">
+        <img src="img/logo.jpg" alt="Drinks & Wins by Beto" class="app-brand-logo" />
+        <div>
+          <h1 class="header-title gradient-text">Panel de Administración</h1>
+          <p class="hint-text">Drinks & Wins by Beto — Gestión Unificada</p>
+        </div>
+      </div>
+      <a href="index.html" class="btn btn-secondary" style="width: auto; padding: 8px 14px; text-decoration: none; font-size: 13px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;">
+        👤 Portal Jugador
+      </a>
+    </header>
+
+    <!-- Admin Game Switching Tabs -->
+    <div class="tabs-container">
+      <button class="tab-btn active" data-target="admin-grids">🏈 Grids</button>
+      <button class="tab-btn" data-target="admin-pools">📋 Quinielas & Pick'em</button>
+      <button class="tab-btn" data-target="admin-survivor">🏆 Survivor</button>
+      <button class="tab-btn" data-target="admin-firstgoal">⚽ Primer Gol</button>
+    </div>
+
+    <!-- ADMIN SECTIONS -->
+
+    <!-- 1. ADMIN GRIDS -->
+    <main id="admin-grids" class="admin-tab-content">
+      <!-- Create Grid Game -->
       <section class="card highlight">
         <h3 class="card-title">Crear Nuevo Grid</h3>
-        <div class="form-group">
-          <label>Sucursal / Bar</label>
-          <select id="selectStore">
-            <option value="matriz">Matriz</option>
-            <option value="sucursal-1">Sucursal 1</option>
-          </select>
-        </div>
 
-        <!-- ESPN Game Search Section -->
-        <div class="form-group" style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
-          <label style="font-weight: 800; color: var(--accent-color); display: flex; align-items: center; justify-content: space-between;">
-            <span>🏟️ Seleccionar Partido Próximo (ESPN)</span>
-            <span style="font-size: 11px; font-weight: normal; color: var(--text-muted);">Auto-configura logos y marcador en vivo</span>
-          </label>
-          <div style="display: flex; gap: 8px; margin-top: 8px;">
-            <select id="selectLeague" style="flex: 1; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.3); color: var(--text-color); border: 1px solid var(--border-color);">
+        <div class="flex-row" style="flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+          <div class="form-group" style="flex: 1; min-width: 140px; margin: 0;">
+            <label>Sucursal</label>
+            <select id="selectStore">
+              <option value="Juriquilla">Juriquilla</option>
+              <option value="Álamos">Álamos</option>
+              <option value="Paseo Qro">Paseo Qro</option>
+            </select>
+          </div>
+          <div class="form-group" style="flex: 1; min-width: 140px; margin: 0;">
+            <label>Liga</label>
+            <select id="selectLeague">
               <option value="nfl">🏈 NFL</option>
               <option value="college-football">🎓 NCAA Football</option>
             </select>
-            <button id="btnSearchGames" type="button" class="btn btn-secondary" style="padding: 10px 16px; font-weight: bold; white-space: nowrap;">
+          </div>
+          <div style="display: flex; align-items: flex-end;">
+            <button id="btnSearchGames" class="btn btn-primary" style="width: auto; padding: 10px 18px; font-size: 13px;">
               🔍 Buscar Partidos
             </button>
           </div>
-
-          <!-- Game Picker Results Dropdown / Modal List -->
-          <div id="gamePickerContainer" style="display: none; margin-top: 12px; max-height: 280px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 10px; background: rgba(0,0,0,0.5); padding: 8px;">
-            <div id="gamePickerList" style="display: flex; flex-direction: column; gap: 8px;"></div>
-          </div>
-
-          <!-- Selected Game Preview Card -->
-          <div id="selectedGamePreview" style="display: none; margin-top: 10px; padding: 10px 14px; background: rgba(255,209,0,0.08); border: 1.5px solid var(--accent-color); border-radius: 10px;">
-            <div style="font-size: 11px; color: var(--accent-color); font-weight: bold; text-transform: uppercase;">Partido Seleccionado:</div>
-            <div id="selectedGameInfo" style="font-size: 14px; font-weight: 800; margin-top: 2px;"></div>
-          </div>
         </div>
 
-        <button id="btnCreateGame" class="btn btn-primary" style="margin-top: 15px;">Crear Juego y Generar Código</button>
+        <!-- Game picker cards -->
+        <div id="gamePickerContainer" style="display:none;">
+          <p style="font-size:12px; color: var(--text-muted); margin-bottom: 8px;">Selecciona un partido para crear el Grid:</p>
+          <div id="gamePickerList" style="display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- Selected game preview -->
+        <div id="selectedGamePreview" style="display:none; margin-top: 12px; padding: 12px; background: rgba(255,209,0,0.06); border: 1px solid var(--accent-color); border-radius: 12px;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Partido seleccionado:</div>
+          <div id="selectedGameInfo" style="font-weight: 800; font-size: 15px;"></div>
+        </div>
+
+        <button id="btnCreateGame" class="btn btn-primary" style="margin-top: 14px;">Crear Grid de Juego</button>
       </section>
 
-      <!-- Manage Game Section -->
-      <section class="card">
-        <h3 class="card-title">Gestión de Grid Activo</h3>
+      <!-- Manage Grid Game -->
+      <section class="card" id="panelManage">
+        <h3 class="card-title">Administrar Grid</h3>
+        
         <div class="form-group">
-          <label>Seleccionar Grid</label>
-          <select id="selectGame">
-            <option disabled selected>— Cargando Grids —</option>
-          </select>
+          <label>Seleccionar Grid Activo</label>
+          <div class="flex-row" style="gap: 8px;">
+            <select id="selectGame" style="flex: 1;"></select>
+            <button id="btnLoadGame" class="btn btn-primary" style="width: auto; padding: 12px 18px;">Cargar</button>
+            <button id="btnDeleteCurrentGame" class="btn btn-danger" style="width: auto; padding: 12px 14px; font-size: 13px; font-weight: 700;">🗑️ Eliminar</button>
+          </div>
         </div>
 
-        <div class="admin-actions">
-          <button id="btnLoadGame" class="btn btn-secondary">Cargar Grid</button>
-          <button id="btnLock" class="btn btn-warning">🔒 Bloquear</button>
-          <button id="btnUnlock" class="btn btn-secondary">🔓 Desbloquear</button>
-          <button id="btnGen" class="btn btn-secondary">🎲 Generar Números</button>
-          <button id="btnShow" class="btn btn-secondary">👁 Mostrar Números</button>
-          <button id="btnHide" class="btn btn-secondary">🙈 Ocultar Números</button>
+        <div class="flex-row" style="flex-wrap: wrap; margin-bottom: 16px; gap: 8px;">
+          <button id="btnLock" class="btn btn-secondary" style="flex: 1; min-width: 100px;">🔒 Bloquear</button>
+          <button id="btnUnlock" class="btn btn-secondary" style="flex: 1; min-width: 100px;">🔓 Desbloquear</button>
+          <button id="btnGen" class="btn btn-secondary" style="flex: 1; min-width: 100px;">🎲 Generar Números</button>
+          <button id="btnShow" class="btn btn-secondary" style="flex: 1; min-width: 100px;">👁️ Mostrar Números</button>
+          <button id="btnHide" class="btn btn-secondary" style="flex: 1; min-width: 100px;">🙈 Ocultar Números</button>
         </div>
 
         <!-- TV Broadcast Scorebug Banner -->
-        <div class="tv-scorebug-wrapper" style="margin-top: 20px;">
+        <div class="tv-scorebug-wrapper">
           <div class="tv-scorebug-main">
             <!-- Away Team Wing: [Logo] [Abbr] [Score] -->
             <div class="tv-team-wing tv-away" id="adminTvAwayWing" style="--team-bg: #5A1414;">
               <div class="tv-team-logo-frame">
-                <img id="adminTvAwayLogo" src="https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png" alt="Away" style="width:36px;height:36px;object-fit:contain;" />
+                <img id="adminTvAwayLogo" src="https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png" alt="Away" />
               </div>
               <span class="tv-team-abbr-huge" id="adminTvAwayAbbr">AWAY</span>
-              <div class="tv-team-score">
-                <input type="number" id="inpScoreAway" class="scorebug-score-input" value="0" min="0" max="99" style="width:46px; background:transparent; color:#fff; font-size:22px; font-weight:900; text-align:center; border:1px solid rgba(255,255,255,0.2); border-radius:6px;" />
-              </div>
+              <div class="tv-team-score" id="adminTvAwayScore">0</div>
             </div>
 
             <!-- Center Segment -->
             <div class="tv-center-segment">
               <div class="tv-clock-quarter">
-                <span class="tv-quarter-text" id="adminScoreQuarter">Q1</span>
-                <span class="tv-clock-text" id="adminScoreClock">15:00</span>
+                <span class="tv-quarter-text" id="adminTvQuarter">Q1</span>
+                <span class="tv-clock-text" id="adminTvClock">15:00</span>
               </div>
-              <div class="tv-situation-bar" id="adminScoreStatus">EN VIVO</div>
+              <div class="tv-situation-bar" id="adminTvSituation">EN VIVO</div>
             </div>
 
             <!-- Home Team Wing: [Score] [Abbr] [Logo] -->
             <div class="tv-team-wing tv-home" id="adminTvHomeWing" style="--team-bg: #0076B6;">
-              <div class="tv-team-score">
-                <input type="number" id="inpScoreHome" class="scorebug-score-input" value="0" min="0" max="99" style="width:46px; background:transparent; color:#fff; font-size:22px; font-weight:900; text-align:center; border:1px solid rgba(255,255,255,0.2); border-radius:6px;" />
-              </div>
+              <div class="tv-team-score" id="adminTvHomeScore">0</div>
               <span class="tv-team-abbr-huge" id="adminTvHomeAbbr">HOME</span>
               <div class="tv-team-logo-frame">
-                <img id="adminTvHomeLogo" src="https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png" alt="Home" style="width:36px;height:36px;object-fit:contain;" />
+                <img id="adminTvHomeLogo" src="https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png" alt="Home" />
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- Sync status bar and quick action buttons -->
-        <div style="display:flex; justify-content:space-between; align-items:center; width:100%; max-width:650px; margin-top:10px; flex-wrap:wrap; gap:8px;">
+          <!-- Sync status bar and quick action buttons -->
+          <div style="display:flex; justify-content:space-between; align-items:center; width:100%; max-width:650px; margin-top:10px; flex-wrap:wrap; gap:8px;">
             <div style="display:flex; align-items:center; gap:8px;">
               <span id="espnSyncDot" style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#00e676; box-shadow:0 0 6px #00e676;"></span>
               <span id="espnStatus" style="font-size:11px; color:var(--text-muted);">ESPN Auto-Sync activo (cada 15s)</span>
@@ -166,6 +164,7 @@
               </button>
             </div>
           </div>
+        </div>
 
         <!-- Visual Grid -->
         <h4 style="margin: 16px 0 8px;">Visualización del Tablero</h4>
@@ -200,33 +199,35 @@
 
     <!-- 2. ADMIN QUINIELAS -->
     <main id="admin-pools" class="admin-tab-content hidden">
-
-      <!-- CREATE QUINIELA -->
-      <section class="card highlight" style="margin-bottom: 16px;">
+      <!-- CREATE NEW QUINIELA -->
+      <section class="card highlight">
         <h3 class="card-title">📋 Crear Nueva Quiniela</h3>
-        <p class="card-subtitle">Busca partidos por deporte/liga. Puedes elegir partidos de <strong>múltiples ligas</strong> (Liga MX, La Liga, NFL, etc.) antes de guardar.</p>
+        <p class="card-subtitle">Busca partidos de cualquier fecha o liga (NFL / Colegial) y agrégalos a una misma Quiniela.</p>
 
-        <!-- Name + Sport/League + Range row -->
-        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
-          <div class="form-group" style="flex:2; min-width:160px; margin:0;">
-            <label>Nombre de la Quiniela / Pick'em</label>
-            <input type="text" id="qName" placeholder="Ej. Quiniela Liga MX & Pick'em NFL — Fin de Semana"/>
+        <div class="form-group">
+          <label>Nombre de la Quiniela</label>
+          <input type="text" id="inpQuinielaName" placeholder="Ej. Semana 1 NFL 2026, Cartelera Especial, etc." style="font-size:14px; font-weight:700;" />
+        </div>
+
+        <div class="flex-row" style="flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+          <div class="form-group" style="flex:1; min-width:140px; margin:0;">
+            <label>Liga a Buscar</label>
+            <select id="selectQuinielaLeague">
+              <option value="nfl">🏈 NFL</option>
+              <option value="college-football">🎓 NCAA Football</option>
+            </select>
           </div>
-          <div class="form-group" style="flex:1.5; min-width:160px; margin:0;">
-            <label>Deporte / Liga</label>
-            <select id="qSportSelect"></select>
-          </div>
-          <div class="form-group" style="flex:1; min-width:120px; margin:0;">
-            <label>Rango de Fechas</label>
-            <select id="qDaysRange">
-              <option value="7">Próximos 7 días</option>
-              <option value="14">Próximos 14 días</option>
-              <option value="21" selected>Próximos 21 días</option>
-              <option value="30">Próximos 30 días</option>
+          <div class="form-group" style="flex:1; min-width:140px; margin:0;">
+            <label>Rango de Fecha</label>
+            <select id="selectQuinielaDateRange">
+              <option value="this-week">Esta Semana (Próximos 7 días)</option>
+              <option value="next-week">Próxima Semana (7 a 14 días)</option>
+              <option value="month">Próximo Mes (30 días)</option>
+              <option value="today">Solo Hoy</option>
             </select>
           </div>
           <div style="display:flex; align-items:flex-end;">
-            <button id="btnQSearchGames" class="btn btn-primary" style="width:auto; padding:10px 18px; font-size:13px;">
+            <button id="btnSearchQuinielaGames" class="btn btn-primary" style="width:auto; padding:10px 18px; font-size:13px;">
               🔍 Buscar Partidos
             </button>
           </div>
@@ -382,16 +383,16 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=121.0"></script>
-  <script src="js/auth.js?v=121.0"></script>
-  <script src="js/team-logos.js?v=121.0"></script>
-  <script src="js/admin.js?v=121.0"></script>
-  <script src="js/quiniela-admin.js?v=121.0"></script>
+  <script src="js/firebase-config.js?v=122.0"></script>
+  <script src="js/auth.js?v=122.0"></script>
+  <script src="js/team-logos.js?v=122.0"></script>
+  <script src="js/admin.js?v=122.0"></script>
+  <script src="js/quiniela-admin.js?v=122.0"></script>
 
   <!-- Admin Tab Switching -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const tabs = document.querySelectorAll('.tab-btn');
+      const tabs = document.querySelectorAll('.tabs-container .tab-btn');
       const contents = document.querySelectorAll('.admin-tab-content');
 
       tabs.forEach(tab => {
