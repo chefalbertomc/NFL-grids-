@@ -198,7 +198,30 @@
   const activePlayerUnsubs = {};
 
   function getActiveUser() {
-    return window.currentUser || (window.firebase && firebase.auth && firebase.auth() ? firebase.auth().currentUser : null);
+    let u = window.currentUser || (window.firebase && firebase.auth && firebase.auth() ? firebase.auth().currentUser : null);
+    if (!u) {
+      try {
+        const cached = localStorage.getItem('bww_last_auth_user');
+        if (cached) u = JSON.parse(cached);
+      } catch (e) {}
+    }
+    if (!u) {
+      const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name');
+      let savedId = localStorage.getItem('bww_player_id');
+      if (savedNick) {
+        if (!savedId) {
+          savedId = 'user_' + Math.random().toString(36).substring(2, 11);
+          localStorage.setItem('bww_player_id', savedId);
+        }
+        u = {
+          uid: savedId,
+          displayName: savedNick,
+          email: '',
+          photoURL: localStorage.getItem('user_custom_avatar') || 'img/logo.jpg'
+        };
+      }
+    }
+    return u;
   }
 
   // Load user registrations for each game & attach realtime listeners for status change

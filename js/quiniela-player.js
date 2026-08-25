@@ -27,7 +27,30 @@
   })();
 
   function getActiveUser() {
-    return window.currentUser || (window.firebase && firebase.auth && firebase.auth() ? firebase.auth().currentUser : null);
+    let u = window.currentUser || (window.firebase && firebase.auth && firebase.auth() ? firebase.auth().currentUser : null);
+    if (!u) {
+      try {
+        const cached = localStorage.getItem('bww_last_auth_user');
+        if (cached) u = JSON.parse(cached);
+      } catch (e) {}
+    }
+    if (!u) {
+      const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name');
+      let savedId = localStorage.getItem('bww_player_id');
+      if (savedNick) {
+        if (!savedId) {
+          savedId = 'user_' + Math.random().toString(36).substring(2, 11);
+          localStorage.setItem('bww_player_id', savedId);
+        }
+        u = {
+          uid: savedId,
+          displayName: savedNick,
+          email: '',
+          photoURL: localStorage.getItem('user_custom_avatar') || 'img/logo.jpg'
+        };
+      }
+    }
+    return u;
   }
 
   function initQPlayer() {
@@ -552,19 +575,14 @@
     const q = allQuinielas.find(x => x.id === qId);
     if (!q) return;
 
-    const activeUser = getActiveUser();
-    if (!activeUser) {
-      window.requireUserAuth(() => selectQuinielaToJoin(qId), '¡Inicia Sesión con Google!', 'Para solicitar tu entrada a la quiniela, inicia sesión con Google.');
-      return;
-    }
-
     // Close all other open join boxes
     document.querySelectorAll('.q-inline-join-container').forEach(el => el.style.display = 'none');
 
     const container = document.getElementById(`q_inline_join_${qId}`);
     if (!container) return;
 
-    const userNick = activeUser.displayName ? activeUser.displayName.toUpperCase().slice(0, 20) : '';
+    const activeUser = getActiveUser();
+    const userNick = (activeUser && activeUser.displayName) ? activeUser.displayName.toUpperCase().slice(0, 20) : (localStorage.getItem('player_nick') || '');
 
     container.innerHTML = `
       <div class="q-inline-join-box animate-fade">
@@ -609,11 +627,6 @@
 
   window.submitInlineJoin = async function(qId) {
     if (!db || !qId) return;
-    const activeUser = getActiveUser();
-    if (!activeUser) {
-      window.requireUserAuth(() => window.submitInlineJoin(qId), '¡Inicia Sesión con Google!', 'Para solicitar entrada a la quiniela, inicia sesión con Google.');
-      return;
-    }
 
     const inpNick = document.getElementById(`inp_inline_nick_${qId}`);
     const inpWaiter = document.getElementById(`inp_inline_waiter_${qId}`);
@@ -622,6 +635,35 @@
 
     const nick = (inpNick ? inpNick.value : '').trim().toUpperCase();
     const waiter = (inpWaiter ? inpWaiter.value : '').trim();
+
+    if (!nick) {
+      if (statusMsg) {
+        statusMsg.textContent = 'Por favor escribe tu apodo (Obligatorio).';
+        statusMsg.style.display = 'block';
+      }
+      if (inpNick) inpNick.focus();
+      return;
+    }
+
+    let activeUser = getActiveUser();
+    if (!activeUser) {
+      let savedId = localStorage.getItem('bww_player_id');
+      if (!savedId) {
+        savedId = 'user_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('bww_player_id', savedId);
+      }
+      activeUser = {
+        uid: savedId,
+        displayName: nick,
+        email: '',
+        photoURL: localStorage.getItem('user_custom_avatar') || 'img/logo.jpg'
+      };
+      window.currentUser = activeUser;
+      localStorage.setItem('bww_last_auth_user', JSON.stringify(activeUser));
+    }
+
+    localStorage.setItem('player_nick', nick);
+    localStorage.setItem('bww_q_name', nick);
 
     if (!nick) {
       if (statusMsg) {
