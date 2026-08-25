@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=116.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=117.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -278,9 +278,33 @@
         </div>
       </section>
     </main>
+
+    <!-- 5. TAB TRIVIA (PRÓXIMAMENTE) -->
+    <main id="tab-trivia" class="tab-content hidden">
+      <section class="card highlight text-center" style="padding: 30px 20px;">
+        <img src="img/games/badge_trivia.png" alt="Trivia" style="max-width: 220px; border-radius: 12px; margin: 0 auto 16px auto; display: block; box-shadow: 0 0 20px rgba(255, 209, 0, 0.3);" />
+        <h2 style="color: #ffd100; font-size: 22px; margin-bottom: 8px;">🧠 Trivia en Vivo</h2>
+        <p style="color: var(--text-muted); font-size: 14px; max-width: 400px; margin: 0 auto 16px auto;">
+          ¡Compite respondiendo preguntas deportivas en tiempo real desde tu mesa! Próximamente disponible en el bar.
+        </p>
+        <span class="badge badge-pending" style="font-size: 12px; padding: 6px 14px;">🚀 Próximamente</span>
+      </section>
+    </main>
+
+    <!-- 6. TAB BINGO (PRÓXIMAMENTE) -->
+    <main id="tab-bingo" class="tab-content hidden">
+      <section class="card highlight text-center" style="padding: 30px 20px;">
+        <img src="img/games/badge_bingo.png" alt="Game Day Bingo" style="max-width: 220px; border-radius: 12px; margin: 0 auto 16px auto; display: block; box-shadow: 0 0 20px rgba(255, 209, 0, 0.3);" />
+        <h2 style="color: #ffd100; font-size: 22px; margin-bottom: 8px;">🎱 Game Day Bingo</h2>
+        <p style="color: var(--text-muted); font-size: 14px; max-width: 400px; margin: 0 auto 16px auto;">
+          Llena tu cartón con jugadas reales durante la transmisión del partido y gana bebidas. Próximamente disponible.
+        </p>
+        <span class="badge badge-pending" style="font-size: 12px; padding: 6px 14px;">🚀 Próximamente</span>
+      </section>
+    </main>
   </div>
 
-  <!-- Mobile Bottom Navigation Bar with Full-Height Game Badges -->
+  <!-- Mobile Bottom Navigation Bar with Full-Height Game Badges (Swipeable) -->
   <nav class="mobile-nav">
     <a href="#" class="nav-item active" data-target="tab-grids" title="NFL Grids">
       <img src="img/games/badge_grids.png" alt="NFL Grids" class="nav-game-badge" />
@@ -293,6 +317,12 @@
     </a>
     <a href="#" class="nav-item" data-target="tab-firstgoal" title="Primer Gol">
       <img src="img/games/badge_firstgoal.png" alt="Primer Gol" class="nav-game-badge" />
+    </a>
+    <a href="#" class="nav-item" data-target="tab-trivia" title="Trivia">
+      <img src="img/games/badge_trivia.png" alt="Trivia" class="nav-game-badge" />
+    </a>
+    <a href="#" class="nav-item" data-target="tab-bingo" title="Game Day Bingo">
+      <img src="img/games/badge_bingo.png" alt="Bingo" class="nav-game-badge" />
     </a>
     <a href="admin.html" class="nav-item admin-only hidden" title="Panel Admin">
       <div class="nav-admin-card">
@@ -308,13 +338,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=116.0"></script>
-  <script src="js/auth.js?v=116.0"></script>
-  <script src="js/team-logos.js?v=116.0"></script>
-  <script src="js/grids.js?v=116.0"></script>
-  <script src="js/quiniela-player.js?v=116.0"></script>
-  <script src="js/survivor.js?v=116.0"></script>
-  <script src="js/firstgoal.js?v=116.0"></script>
+  <script src="js/firebase-config.js?v=117.0"></script>
+  <script src="js/auth.js?v=117.0"></script>
+  <script src="js/team-logos.js?v=117.0"></script>
+  <script src="js/grids.js?v=117.0"></script>
+  <script src="js/quiniela-player.js?v=117.0"></script>
+  <script src="js/survivor.js?v=117.0"></script>
+  <script src="js/firstgoal.js?v=117.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -328,7 +358,11 @@
           btn.classList.toggle('active', btn.getAttribute('data-target') === targetId);
         });
         document.querySelectorAll('.mobile-nav .nav-item').forEach(item => {
-          item.classList.toggle('active', item.getAttribute('data-target') === targetId);
+          const isActive = item.getAttribute('data-target') === targetId;
+          item.classList.toggle('active', isActive);
+          if (isActive) {
+            item.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+          }
         });
         contents.forEach(content => {
           content.classList.toggle('hidden', content.id !== targetId);

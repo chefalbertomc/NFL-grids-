@@ -327,29 +327,40 @@ input:focus, select:focus, textarea:focus {
   box-shadow: none !important;
 }
 
-/* Mobile Bottom Bar Navigation */
+/* Mobile Bottom Bar Navigation (Swipeable Carousel) */
 .mobile-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 70px;
+  height: 72px;
   background: rgba(10, 14, 22, 0.98);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1.5px solid rgba(255, 209, 0, 0.3);
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: stretch;
-  padding: 4px 6px calc(4px + env(safe-area-inset-bottom, 0px)) 6px;
-  gap: 6px;
+  padding: 6px 10px calc(6px + env(safe-area-inset-bottom, 0px)) 10px;
+  gap: 8px;
   z-index: 1000;
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.9);
   box-sizing: border-box;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  scroll-snap-type: x proximity;
+}
+
+.mobile-nav::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge */
 }
 
 .nav-item {
-  flex: 1;
+  flex: 0 0 74px;
+  min-width: 74px;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -359,11 +370,12 @@ input:focus, select:focus, textarea:focus {
   text-decoration: none;
   border-radius: 10px;
   background: #141923;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   padding: 0;
   overflow: hidden;
   position: relative;
   box-sizing: border-box;
+  scroll-snap-align: start;
 }
 
 .nav-game-badge {
