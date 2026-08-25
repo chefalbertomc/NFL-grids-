@@ -53,42 +53,43 @@
     alert('Error al iniciar sesión: ' + (err.message || err.code));
   }
 
-  let isAuthInProgress = false;
-
-  // 1-Click Google Sign In
+  // 1-Click Google Sign In (Always prompts account selector)
   window.loginWithGoogle = async function() {
-    if (isAuthInProgress) return;
-    isAuthInProgress = true;
-
-    setLoginButtonLoading('btnModalGoogle', true, 'Conectando con Google...');
+    console.log('[auth] loginWithGoogle triggered');
     try {
       if (!window.firebase || !firebase.auth) {
         alert('Firebase aún se está inicializando. Por favor intenta de nuevo en un segundo.');
         return;
       }
+      const auth = firebase.auth();
       const provider = new firebase.auth.GoogleAuthProvider();
+      // Force Google to show the account picker screen so the user can choose another email/account
       provider.setCustomParameters({ prompt: 'select_account' });
-      
+
+      setLoginButtonLoading('btnModalGoogle', true, 'Conectando con Google...');
+
       try {
-        const result = await firebase.auth().signInWithPopup(provider);
-        window.hideLoginModal();
-        if (pendingAuthAction) {
-          const action = pendingAuthAction;
-          pendingAuthAction = null;
-          action(result.user);
+        const result = await auth.signInWithPopup(provider);
+        if (result && result.user) {
+          window.currentUser = result.user;
+          window.hideLoginModal();
+          if (pendingAuthAction) {
+            const action = pendingAuthAction;
+            pendingAuthAction = null;
+            action(result.user);
+          }
         }
       } catch (err) {
-        console.warn('[auth] Popup sign-in note:', err);
-        if (err.code === 'auth/popup-blocked') {
-          // Popup blocked by browser policy, try redirect
+        console.warn('[auth] Popup sign-in error, trying redirect:', err);
+        if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment' || (err.message && err.message.includes('popup'))) {
           try {
-            await firebase.auth().signInWithRedirect(provider);
+            await auth.signInWithRedirect(provider);
             return;
           } catch (redErr) {
             handleAuthError(redErr);
           }
         } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-          // Closed by user
+          // Closed by user, no alert needed
         } else {
           handleAuthError(err);
         }
@@ -96,9 +97,21 @@
     } catch (err) {
       handleAuthError(err);
     } finally {
-      isAuthInProgress = false;
       setLoginButtonLoading('btnModalGoogle', false);
     }
+  };
+
+  // Switch Account: Signs out and immediately opens Google account chooser
+  window.switchGoogleAccount = async function() {
+    try {
+      if (window.firebase && firebase.auth && firebase.auth()) {
+        await firebase.auth().signOut();
+      }
+    } catch (e) {
+      console.warn('[auth] SignOut note:', e);
+    }
+    window.currentUser = null;
+    window.loginWithGoogle();
   };
 
   // Quick Nickname / Guest Login (100% reliable on WhatsApp, In-App WebViews, and all devices)
