@@ -140,6 +140,36 @@
         <div id="qCatalogGrid" class="q-catalog-grid">
           <div class="text-center hint-text py-4" style="grid-column: 1/-1;">Cargando quinielas disponibles...</div>
         </div>
+
+        <!-- Inline Registration Form for Quinielas -->
+        <section class="card" id="joinQuinielaForm" style="display: none; border: 2px solid var(--accent-color); background: linear-gradient(145deg, rgba(30,26,16,0.96), rgba(18,16,10,0.98)); box-shadow: 0 8px 24px rgba(255,209,0,0.2); padding: 12px 14px; margin-top: 12px; border-radius: 14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <div style="font-size: 13px; font-weight: 900; color: #ffffff;" id="selectedQuinielaLabel">
+              📝 Registrarse en Quiniela
+            </div>
+            <button type="button" onclick="document.getElementById('joinQuinielaForm').style.display='none'" style="background:transparent; border:none; color:var(--text-muted); font-size:16px; cursor:pointer; padding:2px 6px;">✕</button>
+          </div>
+
+          <!-- Single Row Form: [Apodo] [Mesero] [Solicitar Entrada] -->
+          <div style="display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap;">
+            <div style="flex: 1 1 140px; min-width: 120px;">
+              <label style="font-size: 11px; margin-bottom: 4px; font-weight: 800; color: #ffd100;">👤 Apodo (Obligatorio)*:</label>
+              <input type="text" id="inpQNick" placeholder="Ej. BETO" maxlength="20" style="padding: 8px 10px; font-size: 13px; font-weight: 800; color: #ffd100; text-transform: uppercase; border-radius: 10px;" />
+            </div>
+
+            <div style="flex: 1 1 140px; min-width: 120px;">
+              <label style="font-size: 11px; margin-bottom: 4px; font-weight: 700; color: var(--text-muted);">🍽️ Mesero (Opcional):</label>
+              <input type="text" id="inpQWaiter" placeholder="Ej. Carlos" maxlength="30" style="padding: 8px 10px; font-size: 13px; border-radius: 10px;" />
+            </div>
+
+            <div style="flex: 1 1 160px; min-width: 150px;">
+              <button id="btnSubmitJoinQuiniela" class="btn btn-primary" style="padding: 8px 14px; font-size: 13px; font-weight: 900; border-radius: 10px; height: 38px; white-space: nowrap; width:100%;">
+                ✅ Solicitar Entrada
+              </button>
+            </div>
+          </div>
+          <p id="qJoinStatus" class="hint-text text-center" style="font-size:11px; margin: 6px 0 0 0;"></p>
+        </section>
       </section>
 
       <!-- VIEW B: SINGLE QUINIELA DETAIL & PICKS -->
@@ -321,13 +351,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=93.0"></script>
-  <script src="js/auth.js?v=93.0"></script>
-  <script src="js/team-logos.js?v=93.0"></script>
-  <script src="js/grids.js?v=93.0"></script>
-  <script src="js/quiniela-player.js?v=93.0"></script>
-  <script src="js/survivor.js?v=93.0"></script>
-  <script src="js/firstgoal.js?v=93.0"></script>
+  <script src="js/firebase-config.js?v=97.0"></script>
+  <script src="js/auth.js?v=97.0"></script>
+  <script src="js/team-logos.js?v=97.0"></script>
+  <script src="js/grids.js?v=97.0"></script>
+  <script src="js/quiniela-player.js?v=97.0"></script>
+  <script src="js/survivor.js?v=97.0"></script>
+  <script src="js/firstgoal.js?v=97.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -437,6 +467,7 @@
   </div>
 
   <!-- Global Google Login Modal Gate -->
+  <!-- Global Google Login Modal Gate -->
   <div id="globalLoginModal" class="login-modal-overlay">
     <div class="login-modal-card">
       <button id="loginModalClose" class="login-modal-close" title="Cerrar" onclick="window.hideLoginModal()">✕</button>
@@ -445,7 +476,8 @@
       <p class="login-modal-subtitle" id="loginModalSubtitle">Accede con tu cuenta de Google para asegurar tus casillas, guardar pronósticos con tu foto de perfil y ver tus posiciones.</p>
       
       <div class="login-buttons-stack" style="margin-top:16px;">
-        <button type="button" class="btn-social-login btn-login-google" id="btnModalGoogle" onclick="window.loginWithGoogle()" style="padding:14px 20px; font-size:15px; border-radius:14px; box-shadow: 0 6px 20px rgba(0,0,0,0.4);">
+        <!-- Google 1-Click Login -->
+        <button type="button" class="btn-social-login btn-login-google" id="btnModalGoogle" style="padding:14px 20px; font-size:15px; border-radius:14px; box-shadow: 0 6px 20px rgba(0,0,0,0.4);">
           <svg class="btn-social-icon" viewBox="0 0 24 24" style="width:24px; height:24px;">
             <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
             <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"/>
@@ -454,8 +486,26 @@
           </svg>
           <span style="font-weight:900; letter-spacing:0.02em;">Continuar con Google</span>
         </button>
+
+        <!-- Divider -->
+        <div style="display:flex; align-items:center; gap:10px; margin: 14px 0 10px 0;">
+          <div style="flex:1; height:1px; background:rgba(255,255,255,0.12);"></div>
+          <span style="font-size:11px; color:var(--text-muted); font-weight:800; text-transform:uppercase; letter-spacing:0.05em;">O con tu Apodo</span>
+          <div style="flex:1; height:1px; background:rgba(255,255,255,0.12);"></div>
+        </div>
+
+        <!-- Quick Nickname Access -->
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="inpGuestNick" placeholder="Tu Apodo (ej. BETO)" maxlength="20" style="flex:1; padding:10px 12px; font-size:13px; font-weight:800; text-transform:uppercase; border-radius:10px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.2); color:#ffd100;" />
+          <button type="button" id="btnGuestLogin" class="btn btn-secondary" style="padding:10px 14px; font-size:13px; font-weight:900; border-radius:10px; white-space:nowrap; width:auto;">
+            Entrar ▶
+          </button>
+        </div>
+        <p style="font-size:10.5px; color:var(--text-muted); margin:8px 0 0 0; text-align:center;">💡 Si estás dentro de WhatsApp, puedes usar tu apodo para jugar directo.</p>
       </div>
     </div>
+  </div>
+
   <!-- Service Worker: Auto Silent Update -->
   <script>
     if ('serviceWorker' in navigator) {

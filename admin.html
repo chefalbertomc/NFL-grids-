@@ -278,7 +278,24 @@
         </div>
 
         <div id="qManagePanel" style="display:none;">
-          <h4 style="margin:0 0 10px; font-size:14px; color:var(--text-muted);">📊 Tabla de Pronósticos en Tiempo Real</h4>
+          <!-- Player Approval Requests Management for Quinielas -->
+          <h4 style="margin: 16px 0 8px; font-size:15px; font-weight:900; color:#ffd100;">👥 Gestión de Solicitudes de Jugadores en esta Quiniela</h4>
+          <div class="flex-row" style="flex-direction: column; gap: 12px; margin-bottom: 20px;">
+            <div>
+              <h5 style="font-size: 13px; color: var(--danger-color); margin-bottom: 6px; font-weight:800;">🚫 Solicitudes Pendientes de Aprobación</h5>
+              <div id="qListPend" class="hint-text py-2" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 12px; border: 1px solid var(--border-color);">
+                — Selecciona una quiniela para ver solicitudes pendientes —
+              </div>
+            </div>
+            <div>
+              <h5 style="font-size: 13px; color: var(--success-color); margin-bottom: 6px; font-weight:800;">✅ Jugadores Aprobados en esta Quiniela</h5>
+              <div id="qListAppr" class="hint-text py-2" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 12px; border: 1px solid var(--border-color);">
+                — Selecciona una quiniela para ver jugadores aprobados —
+              </div>
+            </div>
+          </div>
+
+          <h4 style="margin:16px 0 10px; font-size:14px; color:var(--text-muted); font-weight:800;">📊 Tabla Oficial de Posiciones & Pronósticos en Tiempo Real</h4>
           <div id="qAdminStandings">
             <div class="text-center hint-text py-3">Selecciona una quiniela para ver los pronósticos.</div>
           </div>
@@ -337,11 +354,11 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=87.0"></script>
-  <script src="js/auth.js?v=87.0"></script>
-  <script src="js/team-logos.js?v=87.0"></script>
-  <script src="js/admin.js?v=87.0"></script>
-  <script src="js/quiniela-admin.js?v=87.0"></script>
+  <script src="js/firebase-config.js?v=97.0"></script>
+  <script src="js/auth.js?v=97.0"></script>
+  <script src="js/team-logos.js?v=97.0"></script>
+  <script src="js/admin.js?v=97.0"></script>
+  <script src="js/quiniela-admin.js?v=97.0"></script>
 
   <!-- Admin Tab Switching -->
   <script>
@@ -361,6 +378,18 @@
         });
       });
     });
+  </script>
+
+  <!-- Service Worker: Auto Silent Update -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+      navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data && event.data.type === 'SW_UPDATED') {
+          window.location.reload();
+        }
+      });
+    }
   </script>
 </body>
 </html>

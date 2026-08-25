@@ -30,6 +30,108 @@
   let qSelectedMatches = {};
   let activeQuinielaId = null;
 
+  // --- Universal Match Date & Chronological Sorting Helper ---
+  function parseMatchTimestamp(m) {
+    if (!m) return 0;
+
+    // 1. If explicit ISO rawDate or dateISO or numeric timestamp is available
+    if (m.rawDate) {
+      const t = new Date(m.rawDate).getTime();
+      if (!isNaN(t) && t > 0) return t;
+    }
+    if (m.dateISO) {
+      const t = new Date(m.dateISO).getTime();
+      if (!isNaN(t) && t > 0) return t;
+    }
+    if (typeof m.timestamp === 'number' && m.timestamp > 0) {
+      return m.timestamp;
+    }
+
+    const str = (m.date || '').toLowerCase().trim();
+    if (!str) return 0;
+
+    // 2. Direct JavaScript Date parse
+    const direct = new Date(str).getTime();
+    if (!isNaN(direct) && direct > 0) return direct;
+
+    // 3. Multi-language month dictionary (Spanish & English)
+    const monthMap = {
+      'ene': 0, 'enero': 0, 'jan': 0, 'january': 0,
+      'feb': 1, 'febrero': 1, 'february': 1,
+      'mar': 2, 'marzo': 2, 'march': 2,
+      'abr': 3, 'abril': 3, 'apr': 3, 'april': 3,
+      'may': 4, 'mayo': 4,
+      'jun': 5, 'junio': 5, 'june': 5,
+      'jul': 6, 'julio': 6, 'july': 6,
+      'ago': 7, 'agosto': 7, 'aug': 7, 'august': 7,
+      'sep': 8, 'septiembre': 8, 'sept': 8, 'september': 8,
+      'oct': 9, 'octubre': 9, 'october': 9,
+      'nov': 10, 'noviembre': 10, 'november': 10,
+      'dic': 11, 'diciembre': 11, 'dec': 11, 'december': 11
+    };
+
+    // Extract Day (1-31) and Month Name
+    let day = null;
+    let month = null;
+
+    // Pattern A: "28 de ago" or "28 ago" or "28 de agosto"
+    const patternA = str.match(/(\d{1,2})\s*(?:de|\/|-)?\s*([a-záéíóú]+)/i);
+    if (patternA) {
+      const dVal = parseInt(patternA[1], 10);
+      const mRaw = patternA[2].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const mKey = mRaw.slice(0, 3);
+      if (dVal >= 1 && dVal <= 31 && (monthMap[mKey] !== undefined || monthMap[mRaw] !== undefined)) {
+        day = dVal;
+        month = monthMap[mKey] !== undefined ? monthMap[mKey] : monthMap[mRaw];
+      }
+    }
+
+    // Pattern B: "ago 28" or "agosto 28"
+    if (day === null || month === null) {
+      const patternB = str.match(/([a-záéíóú]+)\s*(\d{1,2})/i);
+      if (patternB) {
+        const mRaw = patternB[1].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const mKey = mRaw.slice(0, 3);
+        const dVal = parseInt(patternB[2], 10);
+        if (dVal >= 1 && dVal <= 31 && (monthMap[mKey] !== undefined || monthMap[mRaw] !== undefined)) {
+          day = dVal;
+          month = monthMap[mKey] !== undefined ? monthMap[mKey] : monthMap[mRaw];
+        }
+      }
+    }
+
+    // Extract Time: "12:45 p.m.", "05:00 p.m.", "17:00", "1:30 pm"
+    let hours = 12;
+    let minutes = 0;
+    const timeMatch = str.match(/(\d{1,2}):(\d{2})(?:\s*(a\.?m\.?|p\.?m\.?|am|pm))?/i);
+    if (timeMatch) {
+      hours = parseInt(timeMatch[1], 10);
+      minutes = parseInt(timeMatch[2], 10);
+      const ampm = (timeMatch[3] || '').toLowerCase().replace(/\./g, '');
+      if (ampm === 'pm' && hours < 12) hours += 12;
+      if (ampm === 'am' && hours === 12) hours = 0;
+    }
+
+    // Extract Year if present, otherwise default to current year
+    const yearMatch = str.match(/\b(20\d{2})\b/);
+    const year = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
+
+    if (day !== null && month !== null) {
+      return new Date(year, month, day, hours, minutes, 0, 0).getTime();
+    }
+
+    return 0;
+  }
+
+  function sortMatchesChronologically(matchesList) {
+    if (!Array.isArray(matchesList)) return [];
+    return [...matchesList].sort((a, b) => {
+      const tA = parseMatchTimestamp(a);
+      const tB = parseMatchTimestamp(b);
+      return tA - tB;
+    });
+  }
+
   function initQAdmin() {
     if (window.db) {
       db = window.db;
@@ -279,6 +381,7 @@
             slug: league.slug,
             leagueLabel: league.label,
             date: dateStr,
+            rawDate: ev.date || '',
             home: { name: homeName, logo: homeLogo, id: home.team?.id || '', abbr: home.team?.abbreviation || homeName.substring(0,3) },
             away: { name: awayName, logo: awayLogo, id: away.team?.id || '', abbr: away.team?.abbreviation || awayName.substring(0,3) }
           };
@@ -305,19 +408,20 @@
       if (container) container.insertBefore(summaryEl, container.firstChild);
     }
 
-    const entries = Object.values(qSelectedMatches);
+    const entries = sortMatchesChronologically(Object.values(qSelectedMatches));
     if (entries.length === 0) {
       summaryEl.innerHTML = '';
       return;
     }
 
-    summaryEl.innerHTML = '<div style="width:100%; font-size:11px; color:var(--text-muted); margin-bottom:4px; font-weight:700;">✅ PARTIDOS SELECCIONADOS (de todas las ligas):</div>' +
+    summaryEl.innerHTML = '<div style="width:100%; font-size:11px; color:var(--text-muted); margin-bottom:4px; font-weight:700;">✅ PARTIDOS SELECCIONADOS (Ordenados Cronológicamente):</div>' +
       entries.map(m => `
         <div style="display:inline-flex; align-items:center; gap:4px; background:rgba(255,209,0,0.1); border:1px solid rgba(255,209,0,0.4); border-radius:20px; padding:4px 10px; font-size:11px; font-weight:700;">
           <span style="font-size:9px; color:var(--accent-color);">${m.leagueLabel || ''}</span>
           <img src="${m.away.logo}" onerror="this.src='img/logo.jpg'" style="width:16px;height:16px;object-fit:contain;"/>
           ${m.away.abbr} vs ${m.home.abbr}
           <img src="${m.home.logo}" onerror="this.src='img/logo.jpg'" style="width:16px;height:16px;object-fit:contain;"/>
+          <span style="font-size:9px; color:var(--text-muted); margin-left:2px;">${m.date ? m.date.split(',')[1] || m.date : ''}</span>
         </div>
       `).join('');
   }
@@ -341,7 +445,10 @@
     if (!name) { alert('Escribe un nombre para la quiniela o pick\'em.'); return; }
     if (matchCount === 0) { alert('Selecciona al menos un partido.'); return; }
 
-    const matches = Object.values(qSelectedMatches).map((m, i) => ({
+    // Sort matches chronologically: earliest match first, latest match last (handles ISO and Spanish dates)
+    const rawList = sortMatchesChronologically(Object.values(qSelectedMatches));
+
+    const matches = rawList.map((m, i) => ({
       id: `m${i + 1}`,
       espnEventId: m.espnEventId,
       sport: m.sport || 'soccer',
@@ -354,6 +461,7 @@
       homeAbbr: m.home.abbr,
       awayAbbr: m.away.abbr,
       date: m.date,
+      rawDate: m.rawDate || '',
       homeScore: null,
       awayScore: null,
       status: 'scheduled',
@@ -423,58 +531,240 @@
     }
   }
 
-  async function loadQuinielaStandings(quinielaId) {
+  let qPlayersUnsub = null;
+  let lastQPendingCount = 0;
+
+  function loadQuinielaStandings(quinielaId) {
     if (!db || !quinielaId) return;
     const standingsEl = document.getElementById('qAdminStandings');
+    const listPend = document.getElementById('qListPend');
+    const listAppr = document.getElementById('qListAppr');
     if (!standingsEl) return;
+
+    if (qPlayersUnsub) {
+      qPlayersUnsub();
+      qPlayersUnsub = null;
+    }
+
     standingsEl.innerHTML = '<div class="text-center hint-text py-3">Cargando pronósticos...</div>';
 
-    try {
-      const quinielaSnap = await db.collection('quinielas').doc(quinielaId).get();
-      if (!quinielaSnap.exists) { standingsEl.innerHTML = '<div class="text-center hint-text py-2">Quiniela no encontrada.</div>'; return; }
+    db.collection('quinielas').doc(quinielaId).get().then(quinielaSnap => {
+      if (!quinielaSnap.exists) {
+        standingsEl.innerHTML = '<div class="text-center hint-text py-2">Quiniela no encontrada.</div>';
+        return;
+      }
       const q = quinielaSnap.data() || {};
-      const matches = q.matches || [];
+      const rawMatches = q.matches || [];
+
+      // Sort matches chronologically: earliest first, latest last (handles ISO and Spanish dates)
+      const matches = sortMatchesChronologically(rawMatches);
 
       updateLockBtnState(!!q.locked);
 
-      const picksSnap = await db.collection('quinielas').doc(quinielaId).collection('picks').get();
-      if (picksSnap.empty) {
-        standingsEl.innerHTML = `
-          <div class="text-center hint-text py-3">Aún no hay pronósticos registrados.</div>
-          <div style="margin-top:10px; text-align:center;">
-            <p style="font-size:12px; color:var(--text-muted);">Comparte la quiniela con los jugadores usando el botón 💬 WhatsApp</p>
-          </div>`;
-        return;
-      }
+      // Realtime listener on picks
+      qPlayersUnsub = db.collection('quinielas').doc(quinielaId).collection('picks').onSnapshot(picksSnap => {
+        const pendingDocs = [];
+        const approvedDocs = [];
+        const allPlayers = [];
 
-      const players = [];
-      picksSnap.forEach(doc => players.push({ id: doc.id, ...doc.data() }));
-
-      players.forEach(p => {
-        let pts = 0;
-        matches.forEach(m => {
-          if (m.homeScore === null || m.awayScore === null || m.status === 'pre') return;
-          const pick = p.picks?.[m.id];
-          if (!pick) return;
-          if (pick.homeScore === m.homeScore && pick.awayScore === m.awayScore) {
-            pts += 3;
+        picksSnap.forEach(doc => {
+          const p = doc.data() || {};
+          const isApproved = p.approved === true || p.status === 'approved';
+          const pData = { id: doc.id, ...p, isApproved };
+          allPlayers.push(pData);
+          if (isApproved) {
+            approvedDocs.push({ id: doc.id, ...p });
           } else {
-            const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-            const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
-            if (realWin === pickWin) pts += 1;
+            pendingDocs.push({ id: doc.id, ...p });
           }
         });
-        p.totalPoints = pts;
+
+        // Trigger chime on new pending requests
+        if (pendingDocs.length > lastQPendingCount && typeof playNotificationChime === 'function') {
+          playNotificationChime('admin');
+        }
+        lastQPendingCount = pendingDocs.length;
+
+        // Render player approval lists
+        renderQPlayersArray(listPend, pendingDocs, false, quinielaId);
+        renderQPlayersArray(listAppr, approvedDocs, true, quinielaId);
+
+        if (allPlayers.length === 0) {
+          standingsEl.innerHTML = `
+            <div class="text-center hint-text py-3">Aún no hay pronósticos registrados.</div>
+            <div style="margin-top:10px; text-align:center;">
+              <p style="font-size:12px; color:var(--text-muted);">Comparte la quiniela con los jugadores usando el botón 💬 WhatsApp</p>
+            </div>`;
+          return;
+        }
+
+        // Determine tiebreaker type
+        const isAllSoccer = matches.length > 0 && matches.every(m => detectSport(m) === 'soccer');
+        const lastMatch = matches.length > 0 ? matches[matches.length - 1] : null;
+
+        let actualTotalGoals = 0;
+        let actualLastGamePoints = 0;
+
+        matches.forEach(m => {
+          if (m.homeScore !== null && m.awayScore !== null && m.status !== 'pre') {
+            actualTotalGoals += (Number(m.homeScore) + Number(m.awayScore));
+          }
+        });
+
+        if (lastMatch && lastMatch.homeScore !== null && lastMatch.awayScore !== null && lastMatch.status !== 'pre') {
+          actualLastGamePoints = (Number(lastMatch.homeScore) + Number(lastMatch.awayScore));
+        }
+
+        const realTiebreakerValue = isAllSoccer ? actualTotalGoals : actualLastGamePoints;
+
+        // Calculate points for each player
+        allPlayers.forEach(p => {
+          let pts = 0;
+          let exactHits = 0;
+          let winnerHits = 0;
+
+          matches.forEach(m => {
+            if (m.homeScore === null || m.awayScore === null || m.status === 'pre') return;
+            const pick = p.picks?.[m.id];
+            if (!pick) return;
+
+            const sport = detectSport(m);
+            const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
+
+            if (sport === 'soccer') {
+              // Exact score: +3 pts, Outcome: +1 pt
+              if (pick.homeScore === m.homeScore && pick.awayScore === m.awayScore) {
+                pts += 3;
+                exactHits += 1;
+              } else {
+                const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
+                if (realWin === pickWin) {
+                  pts += 1;
+                  winnerHits += 1;
+                }
+              }
+            } else {
+              // US Sports (NFL, MLB, NBA): Pick Winner (+1 pt)
+              const playerWinPick = pick.winner ? pick.winner : (pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw');
+              if (playerWinPick === realWin) {
+                pts += 1;
+                winnerHits += 1;
+              }
+            }
+          });
+
+          p.totalPoints = pts;
+          p.exactHits = exactHits;
+          p.winnerHits = winnerHits;
+          
+          if (p.tiebreaker !== undefined && p.tiebreaker !== null && p.tiebreaker !== '') {
+            p.tiebreakerDiff = Math.abs(Number(p.tiebreaker) - realTiebreakerValue);
+          } else {
+            p.tiebreakerDiff = 9999;
+          }
+        });
+
+        // Sort: Approved first, then by Total Points desc, then by Tiebreaker diff asc
+        allPlayers.sort((a, b) => {
+          if (a.isApproved !== b.isApproved) return b.isApproved ? 1 : -1;
+          if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+          if (b.exactHits !== a.exactHits) return b.exactHits - a.exactHits;
+          return a.tiebreakerDiff - b.tiebreakerDiff;
+        });
+
+        renderAdminStandings(standingsEl, allPlayers, matches, isAllSoccer, realTiebreakerValue);
+      }, err => {
+        console.error('[QAdmin] realtime picks error:', err);
       });
-      players.sort((a, b) => b.totalPoints - a.totalPoints);
-      renderAdminStandings(standingsEl, players, matches);
-    } catch (err) {
+    }).catch(err => {
       console.error('[QAdmin] standings error:', err);
       standingsEl.innerHTML = '<div class="text-center hint-text py-2" style="color:var(--danger-color);">Error al cargar posiciones.</div>';
+    });
+  }
+
+  function renderQPlayersArray(container, docsArray, isApproved, quinielaId) {
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!docsArray || !docsArray.length) {
+      container.innerHTML = '<div class="hint-text py-2">— Sin solicitudes en esta categoría —</div>';
+      return;
+    }
+
+    docsArray.forEach(p => {
+      const id = p.id;
+      const userPhoto = p.photoURL || p.userPhoto || 'img/logo.jpg';
+      const realName = p.playerName || p.userName || 'Usuario';
+      const email = p.userEmail || '';
+      const waiter = p.waiter || 'Sin mesero';
+      const picksCount = p.picks ? Object.keys(p.picks).length : 0;
+      const tiebreakerVal = (p.tiebreaker !== undefined && p.tiebreaker !== null && p.tiebreaker !== '') ? p.tiebreaker : 'Sin capturar';
+
+      const card = document.createElement('div');
+      card.className = 'flex-between';
+      card.style.cssText = `padding:10px 12px; background:${isApproved ? 'rgba(255,255,255,0.02)' : 'rgba(255,209,0,0.05)'}; border:${isApproved ? '1px solid var(--border-color)' : '1.5px solid rgba(255,209,0,0.4)'}; border-radius:12px; margin-bottom:8px; gap:10px; flex-wrap:wrap;`;
+
+      card.innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px; min-width:220px; flex:1;">
+          <img src="${userPhoto}" alt="${realName}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width:40px; height:40px; border-radius:50%; object-fit:cover; border:2px solid ${isApproved ? '#ffd100' : '#ffc107'}; flex-shrink:0;" />
+          <div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-weight:900; font-size:14px; color:#ffd100;">${realName}</span>
+              ${!isApproved ? `<span class="badge" style="background:rgba(255,193,7,0.2); color:#ffc107; border:1px solid #ffc107; font-size:9.5px; padding:1px 5px; font-weight:800;">SOLICITUD ENTRADA</span>` : '<span class="badge success" style="font-size:9.5px; padding:1px 5px; font-weight:800;">APROBADO</span>'}
+            </div>
+            <div style="font-size:11.5px; color:#ffffff; font-weight:700; margin-top:2px;">
+              👤 ${realName} ${email ? `<span style="font-size:10.5px; color:var(--text-muted);">(${email})</span>` : ''}
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:3px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span>🤵 <strong>Mesero:</strong> ${waiter}</span>
+              <span>📝 <strong>Pronósticos:</strong> <strong style="color:${picksCount > 0 ? '#00e676' : '#aaa'};">${picksCount > 0 ? `${picksCount} partidos` : 'Pendiente'}</strong></span>
+              <span>🎯 <strong>Desempate:</strong> <strong style="color:#ffd100;">${tiebreakerVal}</strong></span>
+            </div>
+          </div>
+        </div>
+        <div class="flex-row" style="gap: 6px; align-items:center;">
+          ${isApproved 
+            ? `<button class="btn btn-secondary" data-q-player-id="${id}" data-action="reject" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; border-radius:8px; color:#ff4444;">✕ Desaprobar</button>
+               <button class="btn btn-danger" data-q-player-id="${id}" data-action="delete" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; border-radius:8px;">🗑️</button>`
+            : `<button class="btn btn-primary" data-q-player-id="${id}" data-action="approve" style="padding: 7px 14px; font-size: 12px; font-weight:900; width: auto; color: var(--bg-color); border-radius:8px; background:#00e676; border-color:#00e676;">✅ Aprobar</button>
+               <button class="btn btn-secondary" data-q-player-id="${id}" data-action="reject" style="padding: 7px 10px; font-size: 12px; font-weight:800; width: auto; border-radius:8px; color:#ff4444;">✕ Rechazar</button>
+               <button class="btn btn-danger" data-q-player-id="${id}" data-action="delete" style="padding: 7px 10px; font-size: 12px; font-weight:800; width: auto; border-radius:8px;">🗑️</button>`
+          }
+        </div>
+      `;
+
+      container.appendChild(card);
+    });
+
+    container.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-q-player-id');
+        const act = btn.getAttribute('data-action');
+        handleQPlayerAction(id, act, quinielaId);
+      });
+    });
+  }
+
+  async function handleQPlayerAction(playerDocId, action, quinielaId) {
+    if (!quinielaId || !db) return;
+    const pref = db.collection('quinielas').doc(quinielaId).collection('picks').doc(playerDocId);
+
+    try {
+      if (action === 'approve') {
+        await pref.update({ approved: true, status: 'approved' });
+      } else if (action === 'reject') {
+        await pref.update({ approved: false, status: 'rejected' });
+      } else if (action === 'delete') {
+        if (!confirm('¿Deseas eliminar a este participante de la quiniela?')) return;
+        await pref.delete();
+      }
+    } catch (err) {
+      console.error('[QAdmin] player action error:', err);
+      alert('Error en acción de jugador: ' + err.message);
     }
   }
 
-  function renderAdminStandings(container, players, matches) {
+  function renderAdminStandings(container, players, matches, isAllSoccer, realTiebreakerValue) {
     container.innerHTML = '';
     const wrap = document.createElement('div');
     wrap.style.cssText = 'overflow-x:auto; border-radius:12px;';
@@ -484,10 +774,9 @@
 
     const thead = table.createTHead();
     const hr = thead.insertRow();
-    hr.innerHTML = `<th style="text-align:left; padding:10px 12px; min-width:120px;">Jugador</th>` +
+    hr.innerHTML = `<th style="text-align:left; padding:10px 12px; min-width:140px;">Jugador</th>` +
       matches.map(m => {
         const isLive = m.status === 'in';
-        const isDone = m.completed || m.status === 'post';
         const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
 
         let scoreHtml = '<span style="font-size:9px; color:var(--text-muted); font-weight:700;">PENDIENTE</span>';
@@ -512,26 +801,43 @@
           </div>
         </th>`;
       }).join('') +
+      `<th style="text-align:center; padding:10px; min-width:70px;" title="Criterio de Desempate">Desempate</th>` +
       `<th style="text-align:center; padding:10px;">Pts</th>`;
 
     const tbody = table.createTBody();
     players.forEach((p, idx) => {
       const tr = tbody.insertRow();
       const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
+      const statusPill = p.isApproved ? '' : ` <span class="badge" style="background:rgba(255,193,7,0.2); color:#ffc107; font-size:9px;">PENDIENTE</span>`;
 
-      let cells = `<td style="padding:10px 12px; font-weight:700; white-space:nowrap;">${rankEmoji} ${p.playerName || 'Anónimo'}</td>`;
+      let cells = `<td style="padding:10px 12px; font-weight:700; white-space:nowrap;">${rankEmoji} ${p.playerName || 'Anónimo'}${statusPill}</td>`;
       matches.forEach(m => {
         const pick = p.picks?.[m.id];
         if (!pick) { cells += `<td class="q-s-cell q-cell-gray">—</td>`; return; }
-        const pickStr = `${pick.awayScore}-${pick.homeScore}`;
+
+        const sport = detectSport(m);
+        const isSoccer = sport === 'soccer';
+        const pickStr = isSoccer ? `${pick.awayScore}-${pick.homeScore}` : (pick.winner === 'home' ? m.homeAbbr || 'LOC' : pick.winner === 'away' ? m.awayAbbr || 'VIS' : `${pick.awayScore}-${pick.homeScore}`);
+
         if (m.homeScore === null || m.status === 'pre') { cells += `<td class="q-s-cell q-cell-gray">${pickStr}</td>`; return; }
-        const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
+
         const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-        const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
-        if (exact) cells += `<td class="q-s-cell q-cell-green" title="+3 pts">🎯 ${pickStr}</td>`;
-        else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-yellow" title="+1 pt">✓ ${pickStr}</td>`;
-        else cells += `<td class="q-s-cell q-cell-red" title="0 pts">✗ ${pickStr}</td>`;
+
+        if (isSoccer) {
+          const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
+          const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
+          if (exact) cells += `<td class="q-s-cell q-cell-green" title="+3 pts">🎯 ${pickStr}</td>`;
+          else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-yellow" title="+1 pt">✓ ${pickStr}</td>`;
+          else cells += `<td class="q-s-cell q-cell-red" title="0 pts">✗ ${pickStr}</td>`;
+        } else {
+          const playerWinPick = pick.winner ? pick.winner : (pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw');
+          if (playerWinPick === realWin) cells += `<td class="q-s-cell q-cell-green" title="+1 pt">✓ ${pickStr}</td>`;
+          else cells += `<td class="q-s-cell q-cell-red" title="0 pts">✗ ${pickStr}</td>`;
+        }
       });
+
+      const tieVal = (p.tiebreaker !== undefined && p.tiebreaker !== null && p.tiebreaker !== '') ? p.tiebreaker : '—';
+      cells += `<td style="text-align:center; font-size:12px; font-weight:800; color:#ffd100;">${tieVal}</td>`;
       cells += `<td style="text-align:center; font-weight:900; color:${p.totalPoints>0?'var(--accent-color)':'var(--text-muted)'}; font-size:15px;">${p.totalPoints}</td>`;
       tr.innerHTML = cells;
     });

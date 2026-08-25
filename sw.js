@@ -1,7 +1,7 @@
 // Service Worker: Network-First + Auto Silent Update
 // Siempre descarga la versión más nueva del servidor. Cuando hay una actualización,
 // se activa sola y recarga todos los clientes automáticamente sin que el usuario haga nada.
-const CACHE_NAME = 'dw-v93';
+const CACHE_NAME = 'dw-v97';
 
 // Install: skip waiting to activate immediately without user action
 self.addEventListener('install', event => {
@@ -30,7 +30,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   const isAsset = /\.(js|css|html)(\?.*)?$/.test(url.pathname);
 
-  if (isAsset || url.pathname === '/' || url.pathname.includes('index.html')) {
+  if (isAsset || url.pathname === '/' || url.pathname.endsWith('.html') || url.pathname.includes('index') || url.pathname.includes('admin') || url.pathname.includes('player')) {
     event.respondWith(
       fetch(event.request, { cache: 'no-store' })
         .catch(() => caches.match(event.request))

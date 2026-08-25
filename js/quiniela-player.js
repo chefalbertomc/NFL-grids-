@@ -53,6 +53,12 @@
       btnSave.addEventListener('click', savePlayerPicks);
     }
 
+    // Join Quiniela button
+    const btnSubmitJoin = document.getElementById('btnSubmitJoinQuiniela');
+    if (btnSubmitJoin) {
+      btnSubmitJoin.addEventListener('click', submitJoinQuiniela);
+    }
+
     // Filter pills
     const filterNav = document.getElementById('qFilterNav');
     if (filterNav) {
@@ -204,6 +210,111 @@
     await Promise.all(promises);
   }
 
+  // --- Universal Match Date & Chronological Sorting Helper ---
+  function parseMatchTimestamp(m) {
+    if (!m) return 0;
+
+    // 1. If explicit ISO rawDate or dateISO or numeric timestamp is available
+    if (m.rawDate) {
+      const t = new Date(m.rawDate).getTime();
+      if (!isNaN(t) && t > 0) return t;
+    }
+    if (m.dateISO) {
+      const t = new Date(m.dateISO).getTime();
+      if (!isNaN(t) && t > 0) return t;
+    }
+    if (typeof m.timestamp === 'number' && m.timestamp > 0) {
+      return m.timestamp;
+    }
+
+    const str = (m.date || '').toLowerCase().trim();
+    if (!str) return 0;
+
+    // 2. Direct JavaScript Date parse
+    const direct = new Date(str).getTime();
+    if (!isNaN(direct) && direct > 0) return direct;
+
+    // 3. Multi-language month dictionary (Spanish & English)
+    const monthMap = {
+      'ene': 0, 'enero': 0, 'jan': 0, 'january': 0,
+      'feb': 1, 'febrero': 1, 'february': 1,
+      'mar': 2, 'marzo': 2, 'march': 2,
+      'abr': 3, 'abril': 3, 'apr': 3, 'april': 3,
+      'may': 4, 'mayo': 4,
+      'jun': 5, 'junio': 5, 'june': 5,
+      'jul': 6, 'julio': 6, 'july': 6,
+      'ago': 7, 'agosto': 7, 'aug': 7, 'august': 7,
+      'sep': 8, 'septiembre': 8, 'sept': 8, 'september': 8,
+      'oct': 9, 'octubre': 9, 'october': 9,
+      'nov': 10, 'noviembre': 10, 'november': 10,
+      'dic': 11, 'diciembre': 11, 'dec': 11, 'december': 11
+    };
+
+    // Extract Day (1-31) and Month Name
+    let day = null;
+    let month = null;
+
+    // Pattern A: "28 de ago" or "28 ago" or "28 de agosto"
+    const patternA = str.match(/(\d{1,2})\s*(?:de|\/|-)?\s*([a-záéíóú]+)/i);
+    if (patternA) {
+      const dVal = parseInt(patternA[1], 10);
+      const mRaw = patternA[2].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const mKey = mRaw.slice(0, 3);
+      if (dVal >= 1 && dVal <= 31 && (monthMap[mKey] !== undefined || monthMap[mRaw] !== undefined)) {
+        day = dVal;
+        month = monthMap[mKey] !== undefined ? monthMap[mKey] : monthMap[mRaw];
+      }
+    }
+
+    // Pattern B: "ago 28" or "agosto 28"
+    if (day === null || month === null) {
+      const patternB = str.match(/([a-záéíóú]+)\s*(\d{1,2})/i);
+      if (patternB) {
+        const mRaw = patternB[1].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const mKey = mRaw.slice(0, 3);
+        const dVal = parseInt(patternB[2], 10);
+        if (dVal >= 1 && dVal <= 31 && (monthMap[mKey] !== undefined || monthMap[mRaw] !== undefined)) {
+          day = dVal;
+          month = monthMap[mKey] !== undefined ? monthMap[mKey] : monthMap[mRaw];
+        }
+      }
+    }
+
+    // Extract Time: "12:45 p.m.", "05:00 p.m.", "17:00", "1:30 pm"
+    let hours = 12;
+    let minutes = 0;
+    const timeMatch = str.match(/(\d{1,2}):(\d{2})(?:\s*(a\.?m\.?|p\.?m\.?|am|pm))?/i);
+    if (timeMatch) {
+      hours = parseInt(timeMatch[1], 10);
+      minutes = parseInt(timeMatch[2], 10);
+      const ampm = (timeMatch[3] || '').toLowerCase().replace(/\./g, '');
+      if (ampm === 'pm' && hours < 12) hours += 12;
+      if (ampm === 'am' && hours === 12) hours = 0;
+    }
+
+    // Extract Year if present, otherwise default to current year
+    const yearMatch = str.match(/\b(20\d{2})\b/);
+    const year = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
+
+    if (day !== null && month !== null) {
+      return new Date(year, month, day, hours, minutes, 0, 0).getTime();
+    }
+
+    return 0;
+  }
+
+  function sortMatchesChronologically(matchesList) {
+    if (!Array.isArray(matchesList)) return [];
+    return [...matchesList].sort((a, b) => {
+      const tA = parseMatchTimestamp(a);
+      const tB = parseMatchTimestamp(b);
+      return tA - tB;
+    });
+  }
+
+  window.sortMatchesChronologically = sortMatchesChronologically;
+  window.parseMatchTimestamp = parseMatchTimestamp;
+
   // Intelligent Lock Check: Lock if manual lock is on, or if first game started / kickoff date has passed
   function checkQuinielaLockStatus(q) {
     if (q.locked === true) {
@@ -221,15 +332,13 @@
       return { isLocked: true, reason: 'La jornada ya inició con el primer partido en curso o finalizado', earliestTime: null };
     }
 
-    // Check match start timestamps if available
+    // Check match start timestamps using universal date parser
     let earliestTime = null;
     matches.forEach(m => {
-      if (m.date) {
-        const d = new Date(m.date);
-        if (!isNaN(d.getTime())) {
-          if (!earliestTime || d.getTime() < earliestTime) {
-            earliestTime = d.getTime();
-          }
+      const t = parseMatchTimestamp(m);
+      if (t > 0) {
+        if (!earliestTime || t < earliestTime) {
+          earliestTime = t;
         }
       }
     });
@@ -340,15 +449,35 @@
             <span class="badge" style="background:rgba(255,255,255,0.06); font-weight:700;">
               ⚽ ${matches.length} Partidos
             </span>
-            ${isMine ? `<span class="badge accent" style="font-weight:900; background:rgba(255,209,0,0.18);">✅ Ya Participas</span>` : `<span class="badge" style="font-weight:700; color:var(--text-muted);">📝 Sin Pronosticar</span>`}
+            ${isMine 
+              ? ((myParticipations[q.id]?.approved === true || myParticipations[q.id]?.status === 'approved')
+                ? `<span class="badge" style="font-weight:900; background:rgba(0,230,118,0.18); color:#00e676; border:1px solid rgba(0,230,118,0.4);">✅ Confirmado</span>`
+                : `<span class="badge" style="font-weight:900; background:rgba(255,193,7,0.18); color:#ffc107; border:1px solid rgba(255,193,7,0.4);">🟡 Pendiente</span>`)
+              : `<span class="badge" style="font-weight:700; color:var(--text-muted);">📝 Sin Pronosticar</span>`}
           </div>
         </div>
 
         <!-- Card Actions (Enter Quiniela & 1 Single Share Button) -->
         <div class="q-catalog-actions" style="margin-top:14px; display:flex; gap:8px;">
-          <button class="btn btn-primary" data-open-q="${q.id}" style="flex:1; padding:11px 14px; font-size:13px; font-weight:900; border-radius:10px;">
-            ${isLocked ? '📊 Ver Resultados & Tabla' : '📝 Pronosticar Marcadores'}
-          </button>
+          ${(() => {
+            const myReg = myParticipations[q.id];
+            const isApproved = myReg && (myReg.approved === true || myReg.status === 'approved');
+            const isPending = myReg && !isApproved;
+
+            if (isApproved) {
+              return `<button class="btn btn-primary" data-open-q="${q.id}" style="flex:1; padding:11px 14px; font-size:13px; font-weight:900; border-radius:10px; background:linear-gradient(135deg, #ffd100, #ffb300); color:#000;">
+                ${isLocked ? '📊 Ver Resultados & Tabla' : '📝 Pronosticar Marcadores'}
+              </button>`;
+            } else if (isPending) {
+              return `<button class="btn btn-secondary" data-open-q="${q.id}" style="flex:1; padding:11px 14px; font-size:12px; font-weight:800; border-radius:10px; background:rgba(255,193,7,0.15); border:1px solid #ffc107; color:#ffc107;">
+                ⏳ Solicitud Enviada — Esperando Aprobación
+              </button>`;
+            } else {
+              return `<button class="btn btn-primary" data-join-q="${q.id}" style="flex:1; padding:11px 14px; font-size:13px; font-weight:900; border-radius:10px;">
+                📋 Unirse a esta Quiniela
+              </button>`;
+            }
+          })()}
           <button class="btn btn-secondary btn-whatsapp-share" data-share-q="${q.id}" style="width:auto; padding:11px 14px; font-size:13px; border-radius:10px; display:inline-flex; align-items:center; gap:6px;" title="Compartir en WhatsApp">
             <span>💬</span>
           </button>
@@ -370,6 +499,13 @@
       });
     });
 
+    grid.querySelectorAll('[data-join-q]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const qId = btn.getAttribute('data-join-q');
+        selectQuinielaToJoin(qId);
+      });
+    });
+
     grid.querySelectorAll('[data-share-q]').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -378,6 +514,106 @@
         if (q) shareQuinielaWhatsAppDirect(q);
       });
     });
+  }
+
+  let SELECTED_Q_ID_FOR_JOIN = null;
+
+  function selectQuinielaToJoin(qId) {
+    const q = allQuinielas.find(x => x.id === qId);
+    if (!q) return;
+
+    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    if (!activeUser) {
+      window.requireUserAuth(() => selectQuinielaToJoin(qId), '¡Inicia Sesión con Google!', 'Para solicitar tu entrada a la quiniela, inicia sesión.');
+      return;
+    }
+
+    SELECTED_Q_ID_FOR_JOIN = qId;
+    const form = document.getElementById('joinQuinielaForm');
+    const label = document.getElementById('selectedQuinielaLabel');
+    const inpNick = document.getElementById('inpQNick');
+    const inpWaiter = document.getElementById('inpQWaiter');
+    const statusMsg = document.getElementById('qJoinStatus');
+
+    if (label) label.textContent = `📝 Solicitar Entrada a "${q.name}"`;
+    if (inpNick && !inpNick.value) inpNick.value = activeUser.displayName ? activeUser.displayName.toUpperCase().slice(0, 20) : '';
+    if (statusMsg) statusMsg.textContent = '';
+    if (form) {
+      form.style.display = 'block';
+      form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+
+  window.selectQuinielaToJoin = selectQuinielaToJoin;
+
+  async function submitJoinQuiniela() {
+    if (!SELECTED_Q_ID_FOR_JOIN || !db) return;
+    const activeUser = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
+    if (!activeUser) {
+      window.requireUserAuth(submitJoinQuiniela, '¡Inicia Sesión!', 'Para solicitar entrada a la quiniela, inicia sesión con Google.');
+      return;
+    }
+
+    const inpNick = document.getElementById('inpQNick');
+    const inpWaiter = document.getElementById('inpQWaiter');
+    const statusMsg = document.getElementById('qJoinStatus');
+    const btnSubmit = document.getElementById('btnSubmitJoinQuiniela');
+
+    const nick = (inpNick ? inpNick.value : '').trim().toUpperCase();
+    const waiter = (inpWaiter ? inpWaiter.value : '').trim();
+
+    if (!nick) {
+      if (statusMsg) {
+        statusMsg.textContent = 'Por favor escribe tu apodo (Obligatorio).';
+        statusMsg.style.color = 'var(--danger-color)';
+      }
+      if (inpNick) inpNick.focus();
+      return;
+    }
+
+    if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = '⏳ Enviando solicitud...'; }
+
+    try {
+      const q = allQuinielas.find(x => x.id === SELECTED_Q_ID_FOR_JOIN);
+      const playerRef = db.collection('quinielas').doc(SELECTED_Q_ID_FOR_JOIN).collection('picks').doc(activeUser.uid);
+
+      const playerData = {
+        id: activeUser.uid,
+        playerId: activeUser.uid,
+        userUid: activeUser.uid,
+        userEmail: activeUser.email || '',
+        userName: activeUser.displayName || nick,
+        playerName: nick,
+        nickname: nick,
+        photoURL: activeUser.photoURL || '',
+        userPhoto: activeUser.photoURL || '',
+        waiter: waiter || 'Sin mesero',
+        approved: false,
+        status: 'pending',
+        picks: {},
+        tiebreaker: null,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
+      };
+
+      await playerRef.set(playerData, { merge: true });
+      myParticipations[SELECTED_Q_ID_FOR_JOIN] = playerData;
+
+      alert(`✅ ¡Solicitud enviada para ${nick}! En cuanto el mesero o administrador te apruebe, el botón cambiará para que puedas ingresar tus pronósticos.`);
+      
+      const form = document.getElementById('joinQuinielaForm');
+      if (form) form.style.display = 'none';
+
+      renderQuinielasCatalog();
+    } catch (err) {
+      console.error('[QPlayer] Error joining quiniela:', err);
+      if (statusMsg) {
+        statusMsg.textContent = 'Error al enviar solicitud: ' + err.message;
+        statusMsg.style.color = 'var(--danger-color)';
+      }
+    } finally {
+      if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = '✅ Solicitar Entrada'; }
+    }
   }
 
   let isEditingPicks = false;
@@ -399,7 +635,7 @@
     const qObj = allQuinielas.find(x => x.id === quinielaId);
     if (!qObj) return;
 
-    activeQuiniela = qObj;
+    activeQuiniela = { ...qObj, matches: sortMatchesChronologically(qObj.matches || []) };
 
     // Switch view
     const catalogSec = document.getElementById('qCatalogSection');
@@ -454,10 +690,33 @@
       isEditingPicks = true;
     }
 
+    // Real-time listener for current player's approval status in this quiniela
+    if (authUid) {
+      db.collection('quinielas').doc(quinielaId).collection('picks').doc(authUid).onSnapshot(doc => {
+        if (doc.exists) {
+          const data = doc.data() || {};
+          const prevStatus = myParticipations[quinielaId]?.status;
+          const wasApproved = myParticipations[quinielaId]?.approved === true || prevStatus === 'approved';
+          const isNowApproved = data.approved === true || data.status === 'approved';
+
+          myParticipations[quinielaId] = data;
+          picks = data.picks || picks;
+
+          if (isNowApproved && !wasApproved && prevStatus === 'pending') {
+            if (typeof playVictoryChime === 'function') playVictoryChime();
+            showToast(`🎉 ¡Tu participación en "${activeQuiniela?.name || 'la quiniela'}" fue aprobada! 🏆`);
+          }
+
+          if (activeQuiniela) updateQuinielaView(activeQuiniela);
+        }
+      });
+    }
+
     // Live Snapshot listener on quiniela
     liveUnsubscribe = db.collection('quinielas').doc(quinielaId).onSnapshot(snap => {
       if (!snap.exists) return;
-      activeQuiniela = { id: snap.id, ...snap.data() };
+      const data = snap.data() || {};
+      activeQuiniela = { id: snap.id, ...data, matches: sortMatchesChronologically(data.matches || []) };
       updateQuinielaView(activeQuiniela);
       if (latestPicksSnap) {
         renderLiveStandings(latestPicksSnap, activeQuiniela.matches || []);
@@ -564,7 +823,7 @@
         banner.querySelector('span').textContent = '🟢';
       }
       if (titleEl) titleEl.textContent = 'Pronósticos Abiertos';
-      if (subEl) subEl.textContent = 'Ingresa tus marcadores antes del pitazo inicial del primer partido. Se bloquearán automáticamente al comenzar.';
+      if (subEl) subEl.textContent = 'Ingresa tus pronósticos antes del pitazo inicial del primer partido. Se bloquearán automáticamente al comenzar.';
       if (timerContainer) timerContainer.style.display = 'block';
       if (badgeEl) {
         badgeEl.className = 'badge success';
@@ -602,6 +861,7 @@
     }
   }
 
+  // Helper for Stepper in Soccer matches
   window.stepScore = function(matchId, side, delta) {
     if (!activeQuiniela) return;
     const lockInfo = checkQuinielaLockStatus(activeQuiniela);
@@ -618,6 +878,10 @@
     if (val < 0) val = 0;
     if (val > 99) val = 99;
     inp.value = val;
+
+    if (!picks[matchId]) picks[matchId] = {};
+    if (side === 'away') picks[matchId].awayScore = val;
+    if (side === 'home') picks[matchId].homeScore = val;
 
     // Dynamic points preview
     const match = (activeQuiniela.matches || []).find(m => m.id === matchId);
@@ -640,6 +904,55 @@
     }
   };
 
+  // Helper for Winner Selection in Non-Soccer matches (NFL, MLB, NBA, etc.)
+  window.pickWinner = function(matchId, winnerSide) {
+    if (!activeQuiniela) return;
+    const lockInfo = checkQuinielaLockStatus(activeQuiniela);
+    if (lockInfo.isLocked) {
+      alert('🔒 La jornada ya inició. No se pueden modificar los pronósticos de esta quiniela.');
+      return;
+    }
+
+    if (!picks[matchId]) picks[matchId] = {};
+    picks[matchId].winner = winnerSide;
+    picks[matchId].awayScore = winnerSide === 'away' ? 1 : 0;
+    picks[matchId].homeScore = winnerSide === 'home' ? 1 : 0;
+
+    const btnAway = document.getElementById(`btn_pick_away_${matchId}`);
+    const btnHome = document.getElementById(`btn_pick_home_${matchId}`);
+    const chkAway = document.getElementById(`chk_pick_away_${matchId}`);
+    const chkHome = document.getElementById(`chk_pick_home_${matchId}`);
+
+    if (btnAway && btnHome) {
+      if (winnerSide === 'away') {
+        btnAway.classList.add('selected');
+        btnHome.classList.remove('selected');
+        if (chkAway) chkAway.textContent = '✓';
+        if (chkHome) chkHome.textContent = '';
+      } else if (winnerSide === 'home') {
+        btnHome.classList.add('selected');
+        btnAway.classList.remove('selected');
+        if (chkHome) chkHome.textContent = '✓';
+        if (chkAway) chkAway.textContent = '';
+      }
+    }
+
+    // Dynamic result preview
+    const match = (activeQuiniela.matches || []).find(m => m.id === matchId);
+    if (match && match.homeScore !== null && match.awayScore !== null && match.status !== 'pre') {
+      const card = document.getElementById(`card_match_${matchId}`);
+      const statusLabel = document.getElementById(`status_label_${matchId}`);
+      const realWin = match.homeScore > match.awayScore ? 'home' : match.awayScore > match.homeScore ? 'away' : 'draw';
+      const isCorrect = winnerSide === realWin;
+      if (card) {
+        card.className = 'q-match-card ' + (isCorrect ? 'q-match-green' : 'q-match-red');
+      }
+      if (statusLabel) {
+        statusLabel.textContent = isCorrect ? '✓ Ganador (+1 pt)' : '✗ 0 pts';
+      }
+    }
+  };
+
   function renderPicksForm(q, isLocked) {
     const formEl = document.getElementById('qMatchPicksForm');
     const titleEl = document.getElementById('qPicksTitle');
@@ -647,26 +960,82 @@
 
     if (titleEl) titleEl.textContent = `Pronósticos — ${q.name}`;
 
-    const currentInputs = {};
-    (q.matches || []).forEach(m => {
-      const awayInp = document.getElementById(`pick_away_${m.id}`);
-      const homeInp = document.getElementById(`pick_home_${m.id}`);
-      if (awayInp && awayInp.value !== '') currentInputs[`away_${m.id}`] = awayInp.value;
-      if (homeInp && homeInp.value !== '') currentInputs[`home_${m.id}`] = homeInp.value;
-    });
-
     formEl.innerHTML = '';
-    const matches = q.matches || [];
+    const rawMatches = q.matches || [];
 
-    if (matches.length === 0) {
+    if (rawMatches.length === 0) {
       formEl.innerHTML = '<div class="text-center hint-text py-3">Esta quiniela no tiene partidos asignados aún.</div>';
       return;
     }
 
+    // 1. Sort matches chronologically: earliest first, latest last (handles rawDate, dateISO, and Spanish strings)
+    const matches = sortMatchesChronologically(rawMatches);
+
+    // 2. Check Player Registration & Approval State
+    const myReg = myParticipations[q.id];
+    const isApproved = myReg && (myReg.approved === true || myReg.status === 'approved');
+    const isPending = myReg && !isApproved;
+    const isNotJoined = !myReg;
+    const btnSave = document.getElementById('btnSaveQPicks');
+
+    if (isNotJoined) {
+      if (btnSave) btnSave.style.display = 'none';
+      formEl.innerHTML = `
+        <div class="card" style="border:2px solid var(--accent-color); background:linear-gradient(145deg, rgba(30,26,16,0.96), rgba(18,16,10,0.98)); padding:24px 18px; text-align:center; border-radius:16px; margin-bottom:14px;">
+          <div style="font-size:38px; margin-bottom:8px;">📋</div>
+          <h3 style="color:#ffd100; margin-bottom:6px; font-weight:900;">Solicita Unirte a esta Quiniela</h3>
+          <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px; line-height:1.4;">
+            Para participar en <strong>"${q.name}"</strong>, primero debes registrarte con tu apodo y esperar a que el mesero o administrador apruebe tu entrada.
+          </p>
+          <button type="button" class="btn btn-primary" onclick="window.selectQuinielaToJoin('${q.id}')" style="font-size:14px; font-weight:900; padding:12px 24px; border-radius:12px; display:inline-flex; align-items:center; gap:8px;">
+            📝 Solicitar Entrada a la Quiniela
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    if (isPending) {
+      if (btnSave) btnSave.style.display = 'none';
+      formEl.innerHTML = `
+        <div class="card" style="border:2px solid #ffc107; background:linear-gradient(145deg, rgba(26,20,8,0.96), rgba(14,10,4,0.98)); padding:24px 18px; text-align:center; border-radius:16px; margin-bottom:14px;">
+          <div style="font-size:38px; margin-bottom:8px;">⏳</div>
+          <h3 style="color:#ffc107; margin-bottom:6px; font-weight:900;">Solicitud Pendiente de Aprobación</h3>
+          <p style="font-size:13.5px; color:#ffffff; margin-bottom:10px; font-weight:700;">
+            Tu solicitud para <strong>"${q.name}"</strong> fue enviada (Mesero: <em>${myReg.waiter || 'Sin mesero'}</em>).
+          </p>
+          <p style="font-size:12px; color:var(--text-muted); margin:0; line-height:1.4;">
+            En cuanto el mesero o administrador apruebe tu solicitud, esta pantalla se actualizará automáticamente y podrás ingresar tus pronósticos.
+          </p>
+        </div>
+      `;
+      return;
+    }
+
+    if (btnSave && !isLocked) {
+      btnSave.style.display = 'block';
+    }
+
+    const statusBanner = document.createElement('div');
+    statusBanner.className = 'q-player-status-card approved';
+    statusBanner.innerHTML = `
+      <div style="font-size:24px;">✅</div>
+      <div>
+        <strong style="font-size:13px; color:#00e676;">¡Participación Aprobada!</strong>
+        <div style="font-size:11.5px; color:#ffffff; opacity:0.9;">Tu registro está autorizado. Ingresa tus pronósticos y tu criterio de desempate antes del inicio de la jornada:</div>
+      </div>
+    `;
+    formEl.appendChild(statusBanner);
+
+    // 3. Render Match Cards
     matches.forEach(m => {
-      const existPick = picks[m.id] || { homeScore: 0, awayScore: 0 };
-      const currentAwayVal = currentInputs[`away_${m.id}`] !== undefined ? currentInputs[`away_${m.id}`] : (existPick.awayScore !== '' && existPick.awayScore !== undefined ? existPick.awayScore : 0);
-      const currentHomeVal = currentInputs[`home_${m.id}`] !== undefined ? currentInputs[`home_${m.id}`] : (existPick.homeScore !== '' && existPick.homeScore !== undefined ? existPick.homeScore : 0);
+      const sport = detectSport(m);
+      const isSoccer = sport === 'soccer';
+      const existPick = picks[m.id] || {};
+      const savedWinner = existPick.winner || (existPick.awayScore > existPick.homeScore ? 'away' : existPick.homeScore > existPick.awayScore ? 'home' : '');
+
+      const currentAwayVal = existPick.awayScore !== undefined && existPick.awayScore !== '' ? existPick.awayScore : 0;
+      const currentHomeVal = existPick.homeScore !== undefined && existPick.homeScore !== '' ? existPick.homeScore : 0;
 
       const isLive = m.status === 'in';
       const isDone = m.completed || m.status === 'post';
@@ -675,20 +1044,98 @@
 
       let statusClass = '';
       let statusLabel = '';
-      if (hasScore && currentHomeVal !== '' && currentAwayVal !== '') {
-        const pickH = Number(currentHomeVal);
-        const pickA = Number(currentAwayVal);
-        const exact = pickH === m.homeScore && pickA === m.awayScore;
+
+      if (hasScore) {
         const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-        const pickWin = pickH > pickA ? 'home' : pickA > pickH ? 'away' : 'draw';
-        if (exact) { statusClass = 'q-match-green'; statusLabel = '🎯 Exacto (+3 pts)'; }
-        else if (realWin === pickWin) { statusClass = 'q-match-yellow'; statusLabel = '✓ Ganador (+1 pt)'; }
-        else { statusClass = 'q-match-red'; statusLabel = '✗ 0 pts'; }
+        if (isSoccer) {
+          const pickH = Number(currentHomeVal);
+          const pickA = Number(currentAwayVal);
+          const exact = pickH === m.homeScore && pickA === m.awayScore;
+          const pickWin = pickH > pickA ? 'home' : pickA > pickH ? 'away' : 'draw';
+          if (exact) { statusClass = 'q-match-green'; statusLabel = '🎯 Exacto (+3 pts)'; }
+          else if (realWin === pickWin) { statusClass = 'q-match-yellow'; statusLabel = '✓ Ganador (+1 pt)'; }
+          else { statusClass = 'q-match-red'; statusLabel = '✗ 0 pts'; }
+        } else {
+          const isCorrect = savedWinner === realWin;
+          if (isCorrect) { statusClass = 'q-match-green'; statusLabel = '✓ Ganador (+1 pt)'; }
+          else { statusClass = 'q-match-red'; statusLabel = '✗ 0 pts'; }
+        }
       }
 
       const card = document.createElement('div');
       card.id = `card_match_${m.id}`;
       card.className = `q-match-card ${statusClass}`;
+
+      let matchContentHtml = '';
+
+      if (isSoccer) {
+        // SOCCER: Exact score steppers
+        matchContentHtml = `
+          <div class="q-match-row-horizontal">
+            <!-- Away Team (Left) -->
+            <div class="q-team-side q-team-away">
+              <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" class="q-team-row-logo" alt="${m.away}"/>
+              <div class="q-team-text-block">
+                <span class="q-team-row-name" title="${m.away}">${m.away}</span>
+                ${hasScore ? `<span class="q-row-live-badge ${m.awayScore > m.homeScore ? 'winning' : ''}">${isLive ? '🔴 ' : ''}Marcador: ${m.awayScore}</span>` : ''}
+              </div>
+            </div>
+
+            <!-- Steppers Widget (Center) -->
+            <div class="q-steppers-center">
+              <div class="q-counter-box">
+                <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">−</button>
+                <input type="number" min="0" max="99" class="q-score-box" id="pick_away_${m.id}" value="${currentAwayVal}" readonly />
+                <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', 1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Sumar">+</button>
+              </div>
+
+              <span class="q-vs-separator">:</span>
+
+              <div class="q-counter-box">
+                <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'home', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">−</button>
+                <input type="number" min="0" max="99" class="q-score-box" id="pick_home_${m.id}" value="${currentHomeVal}" readonly />
+                <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'home', 1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Sumar">+</button>
+              </div>
+            </div>
+
+            <!-- Home Team (Right) -->
+            <div class="q-team-side q-team-home">
+              <div class="q-team-text-block text-right">
+                <span class="q-team-row-name" title="${m.home}">${m.home}</span>
+                ${hasScore ? `<span class="q-row-live-badge ${m.homeScore > m.awayScore ? 'winning' : ''}">${isLive ? '🔴 ' : ''}Marcador: ${m.homeScore}</span>` : ''}
+              </div>
+              <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" class="q-team-row-logo" alt="${m.home}"/>
+            </div>
+          </div>
+        `;
+      } else {
+        // US SPORTS (NFL, MLB, NBA, Basketball, Baseball, etc.): Pick Winner Buttons
+        const awaySelected = savedWinner === 'away';
+        const homeSelected = savedWinner === 'home';
+
+        matchContentHtml = `
+          <div class="q-winner-selector">
+            <!-- Away Winner Button -->
+            <button type="button" class="q-winner-team-btn ${awaySelected ? 'selected' : ''}" id="btn_pick_away_${m.id}" onclick="pickWinner('${m.id}', 'away')" ${isIndividualMatchLocked ? 'disabled' : ''}>
+              <div class="q-winner-check" id="chk_pick_away_${m.id}">${awaySelected ? '✓' : ''}</div>
+              <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" class="q-winner-team-logo" alt="${m.away}"/>
+              <span class="q-winner-team-name">${m.away}</span>
+              ${hasScore ? `<span class="q-row-live-badge ${m.awayScore > m.homeScore ? 'winning' : ''}" style="margin-left:auto; font-size:12px;">${m.awayScore}</span>` : ''}
+            </button>
+
+            <span class="q-winner-vs-tag">vs</span>
+
+            <!-- Home Winner Button -->
+            <button type="button" class="q-winner-team-btn ${homeSelected ? 'selected' : ''}" id="btn_pick_home_${m.id}" onclick="pickWinner('${m.id}', 'home')" ${isIndividualMatchLocked ? 'disabled' : ''}>
+              <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" class="q-winner-team-logo" alt="${m.home}"/>
+              <span class="q-winner-team-name">${m.home}</span>
+              ${hasScore ? `<span class="q-row-live-badge ${m.homeScore > m.awayScore ? 'winning' : ''}" style="margin-left:auto; font-size:12px;">${m.homeScore}</span>` : ''}
+              <div class="q-winner-check" id="chk_pick_home_${m.id}">${homeSelected ? '✓' : ''}</div>
+            </button>
+          </div>
+        `;
+      }
+
       card.innerHTML = `
         <div class="q-match-header">
           <div>
@@ -702,48 +1149,40 @@
             <span id="status_label_${m.id}" style="font-weight:800; font-size:11px;">${statusLabel}</span>
           </div>
         </div>
-
-        <div class="q-match-row-horizontal">
-          <!-- Away Team (Left) -->
-          <div class="q-team-side q-team-away">
-            <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" class="q-team-row-logo" alt="${m.away}"/>
-            <div class="q-team-text-block">
-              <span class="q-team-row-name" title="${m.away}">${m.away}</span>
-              ${hasScore ? `<span class="q-row-live-badge ${m.awayScore > m.homeScore ? 'winning' : ''}">${isLive ? '🔴 ' : ''}Marcador: ${m.awayScore}</span>` : ''}
-            </div>
-          </div>
-
-          <!-- Steppers Widget (Center) -->
-          <div class="q-steppers-center">
-            <!-- Away Counter -->
-            <div class="q-counter-box">
-              <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">−</button>
-              <input type="number" min="0" max="99" class="q-score-box" id="pick_away_${m.id}" value="${currentAwayVal}" readonly />
-              <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', 1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Sumar">+</button>
-            </div>
-
-            <span class="q-vs-separator">:</span>
-
-            <!-- Home Counter -->
-            <div class="q-counter-box">
-              <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'home', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">−</button>
-              <input type="number" min="0" max="99" class="q-score-box" id="pick_home_${m.id}" value="${currentHomeVal}" readonly />
-              <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'home', 1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Sumar">+</button>
-            </div>
-          </div>
-
-          <!-- Home Team (Right) -->
-          <div class="q-team-side q-team-home">
-            <div class="q-team-text-block text-right">
-              <span class="q-team-row-name" title="${m.home}">${m.home}</span>
-              ${hasScore ? `<span class="q-row-live-badge ${m.homeScore > m.awayScore ? 'winning' : ''}">${isLive ? '🔴 ' : ''}Marcador: ${m.homeScore}</span>` : ''}
-            </div>
-            <img src="${m.homeLogo}" onerror="this.src='img/logo.jpg'" class="q-team-row-logo" alt="${m.home}"/>
-          </div>
-        </div>
+        ${matchContentHtml}
       `;
+
       formEl.appendChild(card);
     });
+
+    // 4. Dynamic Tiebreaker Input Section
+    const isAllSoccer = matches.every(m => detectSport(m) === 'soccer');
+    const lastMatch = matches[matches.length - 1];
+    const savedTiebreaker = myReg?.tiebreaker !== undefined && myReg?.tiebreaker !== null ? myReg.tiebreaker : '';
+
+    const tiebreakerCard = document.createElement('div');
+    tiebreakerCard.className = 'q-tiebreaker-card';
+    tiebreakerCard.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+        <div style="flex:1; min-width:200px;">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+            <span style="font-size:18px;">🎯</span>
+            <strong style="color:#ffd100; font-size:13px;">Criterio de Desempate Oficial</strong>
+            <span class="badge" style="background:rgba(255,209,0,0.2); color:#ffd100; font-size:10px; font-weight:800;">Obligatorio</span>
+          </div>
+          <p style="font-size:12px; color:var(--text-color); margin:0; line-height:1.4;">
+            ${isAllSoccer 
+              ? '¿Cuántos <strong>GOLES EN TOTAL</strong> se anotarán en toda esta quiniela?'
+              : `¿Cuántos <strong>PUNTOS EN TOTAL</strong> se anotarán entre ambos equipos en el <strong>ÚLTIMO JUEGO</strong> (${lastMatch.away} vs ${lastMatch.home})?`}
+          </p>
+          <div style="font-size:10.5px; color:var(--text-muted); margin-top:2px;">(Se usará únicamente en caso de empate en puntos para definir al ganador)</div>
+        </div>
+        <div>
+          <input type="number" id="qTiebreakerInput" min="0" max="999" class="q-tiebreaker-input" placeholder="0" value="${savedTiebreaker}" ${isLocked ? 'disabled' : ''} />
+        </div>
+      </div>
+    `;
+    formEl.appendChild(tiebreakerCard);
   }
 
   async function savePlayerPicks() {
@@ -759,12 +1198,21 @@
     // Re-verify strict lock before saving
     const lockInfo = checkQuinielaLockStatus(activeQuiniela);
     if (lockInfo.isLocked) {
-      alert('🔒 La jornada ya inició con el primer partido. No es posible guardar o modificar marcadores.');
+      alert('🔒 La jornada ya inició con el primer partido. No es posible guardar o modificar pronósticos.');
       return;
     }
 
     const nameInp = document.getElementById('qPlayerName');
     const name = (nameInp ? nameInp.value : '').trim() || activeUser.displayName || 'Jugador';
+
+    const tieInp = document.getElementById('qTiebreakerInput');
+    const tieVal = tieInp ? tieInp.value.trim() : '';
+
+    if (tieVal === '' || isNaN(Number(tieVal))) {
+      alert('⚠️ Por favor ingresa tu pronóstico de Desempate (número de goles o puntos totales).');
+      if (tieInp) tieInp.focus();
+      return;
+    }
 
     playerName = name;
     localStorage.setItem('bww_q_name', name);
@@ -774,12 +1222,21 @@
     const newPicks = {};
 
     matches.forEach(m => {
-      const awayInp = document.getElementById(`pick_away_${m.id}`);
-      const homeInp = document.getElementById(`pick_home_${m.id}`);
-      const awayVal = awayInp ? awayInp.value.trim() : '0';
-      const homeVal = homeInp ? homeInp.value.trim() : '0';
-
-      newPicks[m.id] = { awayScore: Number(awayVal || 0), homeScore: Number(homeVal || 0) };
+      const sport = detectSport(m);
+      if (sport === 'soccer') {
+        const awayInp = document.getElementById(`pick_away_${m.id}`);
+        const homeInp = document.getElementById(`pick_home_${m.id}`);
+        const awayVal = awayInp ? awayInp.value.trim() : '0';
+        const homeVal = homeInp ? homeInp.value.trim() : '0';
+        newPicks[m.id] = { awayScore: Number(awayVal || 0), homeScore: Number(homeVal || 0) };
+      } else {
+        const currentWinner = picks[m.id]?.winner || 'away';
+        newPicks[m.id] = {
+          winner: currentWinner,
+          awayScore: currentWinner === 'away' ? 1 : 0,
+          homeScore: currentWinner === 'home' ? 1 : 0
+        };
+      }
     });
 
     const btn = document.getElementById('btnSaveQPicks');
@@ -787,6 +1244,15 @@
 
     try {
       picks = newPicks;
+
+      const existingDoc = myParticipations[activeQuiniela.id] || {};
+      const isAlreadyApproved = existingDoc.approved === true || existingDoc.status === 'approved';
+
+      if (!isAlreadyApproved) {
+        alert('🔒 Tu solicitud aún no ha sido aprobada por el mesero o administrador. En cuanto seas aprobado, podrás guardar tus pronósticos.');
+        return;
+      }
+
       const pickData = {
         playerId: activeUser.uid,
         userUid: activeUser.uid,
@@ -795,6 +1261,9 @@
         playerName: name,
         deviceId,
         picks: newPicks,
+        tiebreaker: Number(tieVal),
+        approved: true,
+        status: 'approved',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp
           ? firebase.firestore.FieldValue.serverTimestamp()
           : Date.now()
@@ -829,7 +1298,7 @@
     const gamesList = matches.slice(0, 5).map(m => `⚽ ${m.away} vs ${m.home}`).join('\n');
     const extra = matches.length > 5 ? `\n...y ${matches.length - 5} partidos más` : '';
 
-    const text = `🏆 *¡Únete a la Quiniela "${q.name}" en Drinks & Wins!*\n\n${gamesList}${extra}\n\n🎯 *Pronostica los marcadores antes de que empiece la jornada:*\n${url}\n\n¡Compite por el primer lugar! 🥇`;
+    const text = `🏆 *¡Únete a la Quiniela "${q.name}" en Drinks & Wins!*\n\n${gamesList}${extra}\n\n🎯 *Pronostica antes de que empiece la jornada:*\n${url}\n\n¡Compite por el primer lugar! 🥇`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   }
 
@@ -853,7 +1322,7 @@
   }
 
   // Interactive Live Leaderboard & Quiniela PRO Matrix Table
-  function renderLiveStandings(picksSnap, matches) {
+  function renderLiveStandings(picksSnap, rawMatches) {
     const leaderCardEl = document.getElementById('qLiveLeaderCard');
     const standingsListEl = document.getElementById('qLiveStandings');
     if (!standingsListEl) return;
@@ -862,23 +1331,58 @@
     const players = [];
     picksSnap.forEach(doc => players.push({ id: doc.id, ...doc.data() }));
 
-    // Calculate live points & exact hits count for THIS quiniela
+    // 1. Sort matches chronologically: earliest first, latest last (handles rawDate, dateISO, and Spanish strings)
+    const matches = sortMatchesChronologically(rawMatches || []);
+
+    // 2. Determine actual tiebreaker value
+    const isAllSoccer = matches.length > 0 && matches.every(m => detectSport(m) === 'soccer');
+    const lastMatch = matches.length > 0 ? matches[matches.length - 1] : null;
+
+    let actualTotalGoals = 0;
+    let actualLastGamePoints = 0;
+
+    matches.forEach(m => {
+      if (m.homeScore !== null && m.awayScore !== null && m.status !== 'pre') {
+        actualTotalGoals += (Number(m.homeScore) + Number(m.awayScore));
+      }
+    });
+
+    if (lastMatch && lastMatch.homeScore !== null && lastMatch.awayScore !== null && lastMatch.status !== 'pre') {
+      actualLastGamePoints = (Number(lastMatch.homeScore) + Number(lastMatch.awayScore));
+    }
+
+    const realTiebreakerValue = isAllSoccer ? actualTotalGoals : actualLastGamePoints;
+
+    // 3. Calculate live points & exact hits count for THIS quiniela
     players.forEach(p => {
       let pts = 0;
       let exactHits = 0;
       let winnerHits = 0;
+      const isApproved = p.approved === true || p.status === 'approved';
+      p.isApproved = isApproved;
 
       matches.forEach(m => {
         if (m.homeScore === null || m.awayScore === null || m.status === 'pre') return;
         const pick = p.picks?.[m.id];
         if (!pick) return;
-        if (pick.homeScore === m.homeScore && pick.awayScore === m.awayScore) {
-          pts += 3;
-          exactHits += 1;
+
+        const sport = detectSport(m);
+        const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
+
+        if (sport === 'soccer') {
+          if (pick.homeScore === m.homeScore && pick.awayScore === m.awayScore) {
+            pts += 3;
+            exactHits += 1;
+          } else {
+            const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
+            if (realWin === pickWin) {
+              pts += 1;
+              winnerHits += 1;
+            }
+          }
         } else {
-          const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-          const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
-          if (realWin === pickWin) {
+          const playerWinPick = pick.winner ? pick.winner : (pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw');
+          if (playerWinPick === realWin) {
             pts += 1;
             winnerHits += 1;
           }
@@ -888,9 +1392,21 @@
       p.totalPoints = pts;
       p.exactHits = exactHits;
       p.winnerHits = winnerHits;
+
+      if (p.tiebreaker !== undefined && p.tiebreaker !== null && p.tiebreaker !== '') {
+        p.tiebreakerDiff = Math.abs(Number(p.tiebreaker) - realTiebreakerValue);
+      } else {
+        p.tiebreakerDiff = 9999;
+      }
     });
 
-    players.sort((a, b) => b.totalPoints - a.totalPoints || b.exactHits - a.exactHits);
+    // Sort: Approved first, Total Points desc, Exact hits desc, Tiebreaker diff asc
+    players.sort((a, b) => {
+      if (a.isApproved !== b.isApproved) return b.isApproved ? 1 : -1;
+      if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+      if (b.exactHits !== a.exactHits) return b.exactHits - a.exactHits;
+      return a.tiebreakerDiff - b.tiebreakerDiff;
+    });
 
     if (players.length === 0) {
       if (leaderCardEl) leaderCardEl.style.display = 'none';
@@ -901,7 +1417,7 @@
     // 1. Render Live Leader Card (Top Player or Tie)
     if (leaderCardEl) {
       const topPts = players[0].totalPoints;
-      const leaders = players.filter(p => p.totalPoints === topPts && topPts > 0);
+      const leaders = players.filter(p => p.isApproved && p.totalPoints === topPts && topPts > 0);
 
       leaderCardEl.style.display = 'flex';
       leaderCardEl.className = 'q-leader-card';
@@ -933,7 +1449,7 @@
           </div>
           <div class="q-leader-pts-badge">
             <div class="q-leader-pts-val">${leader.totalPoints} PTS</div>
-            <div class="q-leader-pts-sub">🎯 ${leader.exactHits} Marcadores exactos</div>
+            <div class="q-leader-pts-sub">🎯 ${leader.exactHits} Aciertos exactos</div>
           </div>
         `;
       } else {
@@ -967,7 +1483,6 @@
     hr.innerHTML = `<th style="text-align:left; padding:12px 14px; min-width:150px; position:sticky; left:0; background:#161d2a; z-index:5; border-bottom:1px solid rgba(255,255,255,0.12); color:#ffd100; font-weight:900;">JUGADOR</th>` +
       matches.map(m => {
         const isLive = m.status === 'in';
-        const isDone = m.completed || m.status === 'post';
         const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
 
         let scoreHtml = '<span style="font-size:9px; color:var(--text-muted); font-weight:800; display:inline-block; margin-top:2px;">PENDIENTE</span>';
@@ -992,6 +1507,7 @@
           </div>
         </th>`;
       }).join('') +
+      `<th style="text-align:center; padding:10px; min-width:65px; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.12); background:#161d2a; color:#ffd100; font-weight:900;" title="Pronóstico de Desempate">DESEMPATE</th>` +
       `<th style="text-align:center; padding:10px; min-width:55px; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.12); background:#161d2a; color:#ffd100; font-weight:900;">PTS</th>`;
 
     const tbody = table.createTBody();
@@ -1000,6 +1516,7 @@
       const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
       const photo = p.photoURL || 'img/logo.jpg';
       const name = p.playerName || 'Anónimo';
+      const statusPill = p.isApproved ? '' : ` <span class="badge" style="background:rgba(255,193,7,0.2); color:#ffc107; font-size:9px; padding:1px 4px;">PENDIENTE</span>`;
 
       const tr = tbody.insertRow();
       tr.className = `q-matrix-row ${isMe ? 'is-me' : ''}`;
@@ -1009,6 +1526,7 @@
           <span style="font-size:12px;">${rankEmoji}</span>
           <img src="${photo}" alt="${name}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1.5px solid ${isMe ? '#ffd100' : '#444'};" />
           <span style="color:${isMe ? '#ffd100' : '#ffffff'}; font-size:13px; max-width:95px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name} ${isMe ? '(Tú)' : ''}</span>
+          ${statusPill}
         </div>
       </td>`;
 
@@ -1018,19 +1536,33 @@
           cells += `<td class="q-s-cell q-cell-gray" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);">—</td>`;
           return;
         }
-        const pickStr = `${pick.awayScore}-${pick.homeScore}`;
+
+        const sport = detectSport(m);
+        const isSoccer = sport === 'soccer';
+        const pickStr = isSoccer ? `${pick.awayScore}-${pick.homeScore}` : (pick.winner === 'home' ? m.homeAbbr || 'LOC' : pick.winner === 'away' ? m.awayAbbr || 'VIS' : `${pick.awayScore}-${pick.homeScore}`);
+
         if (m.homeScore === null || m.status === 'pre') {
           cells += `<td class="q-s-cell q-cell-gray" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);">${pickStr}</td>`;
           return;
         }
-        const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
+
         const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-        const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
-        if (exact) cells += `<td class="q-s-cell q-cell-green" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="+3 pts">🎯 ${pickStr}</td>`;
-        else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-yellow" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="+1 pt">✓ ${pickStr}</td>`;
-        else cells += `<td class="q-s-cell q-cell-red" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="0 pts">✗ ${pickStr}</td>`;
+
+        if (isSoccer) {
+          const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
+          const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
+          if (exact) cells += `<td class="q-s-cell q-cell-green" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="+3 pts">🎯 ${pickStr}</td>`;
+          else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-yellow" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="+1 pt">✓ ${pickStr}</td>`;
+          else cells += `<td class="q-s-cell q-cell-red" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="0 pts">✗ ${pickStr}</td>`;
+        } else {
+          const playerWinPick = pick.winner ? pick.winner : (pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw');
+          if (playerWinPick === realWin) cells += `<td class="q-s-cell q-cell-green" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="+1 pt">✓ ${pickStr}</td>`;
+          else cells += `<td class="q-s-cell q-cell-red" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="0 pts">✗ ${pickStr}</td>`;
+        }
       });
 
+      const tieVal = (p.tiebreaker !== undefined && p.tiebreaker !== null && p.tiebreaker !== '') ? p.tiebreaker : '—';
+      cells += `<td style="text-align:center; font-size:12px; font-weight:800; color:#ffd100; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.05);">${tieVal}</td>`;
       cells += `<td style="text-align:center; font-weight:900; color:${p.totalPoints > 0 ? '#ffd100' : 'var(--text-muted)'}; font-size:14px; padding:8px; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.05);">${p.totalPoints}</td>`;
       tr.innerHTML = cells;
     });

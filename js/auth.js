@@ -38,17 +38,28 @@
 
   function handleAuthError(err) {
     console.error('[auth] Google sign-in error:', err);
-    if (err.code === 'auth/popup-closed-by-user') {
-      // User closed popup
-    } else if (err.code === 'auth/cancelled-popup-request') {
-      // User triggered multiple
-    } else {
-      alert('Error al iniciar sesión con Google: ' + (err.message || err.code));
+    if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+      // User closed popup or cancelled, do not alert
+      return;
     }
+    if (err.code === 'auth/unauthorized-domain') {
+      alert('⚠️ Error de Dominio: El dominio actual (' + window.location.hostname + ') no está en la lista de dominios autorizados de Firebase Console (Authentication > Settings > Authorized domains).');
+      return;
+    }
+    if (err.code === 'auth/operation-not-supported-in-this-environment' || (err.message && err.message.includes('disallowed_useragent'))) {
+      alert('📱 Aviso: El navegador interno de esta app (ej. WhatsApp/Instagram) bloquea el acceso con Google.\n\n👉 Usa la opción "O con tu Apodo" abajo o abre este enlace en Safari o Chrome (tres puntos ⋮ arriba a la derecha).');
+      return;
+    }
+    alert('Error al iniciar sesión: ' + (err.message || err.code));
   }
+
+  let isAuthInProgress = false;
 
   // 1-Click Google Sign In
   window.loginWithGoogle = async function() {
+    if (isAuthInProgress) return;
+    isAuthInProgress = true;
+
     setLoginButtonLoading('btnModalGoogle', true, 'Conectando con Google...');
     try {
       if (!window.firebase || !firebase.auth) {
@@ -67,9 +78,17 @@
           action(result.user);
         }
       } catch (err) {
-        console.warn('[auth] Popup failed or blocked, attempting redirect:', err);
-        if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-          await firebase.auth().signInWithRedirect(provider);
+        console.warn('[auth] Popup sign-in note:', err);
+        if (err.code === 'auth/popup-blocked') {
+          // Popup blocked by browser policy, try redirect
+          try {
+            await firebase.auth().signInWithRedirect(provider);
+            return;
+          } catch (redErr) {
+            handleAuthError(redErr);
+          }
+        } else if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+          // Closed by user
         } else {
           handleAuthError(err);
         }
@@ -77,7 +96,83 @@
     } catch (err) {
       handleAuthError(err);
     } finally {
+      isAuthInProgress = false;
       setLoginButtonLoading('btnModalGoogle', false);
+    }
+  };
+
+  // Quick Nickname / Guest Login (100% reliable on WhatsApp, In-App WebViews, and all devices)
+  window.loginAsGuest = async function(nickName) {
+    if (isAuthInProgress) return;
+    isAuthInProgress = true;
+
+    const inp = document.getElementById('inpGuestNick');
+    const nick = (nickName || (inp ? inp.value : '')).trim().toUpperCase();
+
+    if (!nick) {
+      alert('Por favor escribe tu apodo para continuar.');
+      if (inp) inp.focus();
+      isAuthInProgress = false;
+      return;
+    }
+
+    const btn = document.getElementById('btnGuestLogin');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Entrando...'; }
+
+    try {
+      if (!window.firebase || !firebase.auth) {
+        alert('Firebase aún se está inicializando. Por favor intenta de nuevo.');
+        return;
+      }
+
+      let user = null;
+      try {
+        const res = await firebase.auth().signInAnonymously();
+        user = res.user;
+      } catch (anonErr) {
+        console.warn('[auth] signInAnonymously note:', anonErr);
+      }
+
+      localStorage.setItem('player_nick', nick);
+      localStorage.setItem('bww_q_name', nick);
+
+      if (user) {
+        try {
+          await user.updateProfile({ displayName: nick });
+        } catch (e) {}
+        window.currentUser = user;
+      } else {
+        // Fallback local user representation
+        let savedId = localStorage.getItem('bww_player_id');
+        if (!savedId) {
+          savedId = 'guest_' + Math.random().toString(36).substring(2, 10);
+          localStorage.setItem('bww_player_id', savedId);
+        }
+        window.currentUser = {
+          uid: savedId,
+          displayName: nick,
+          email: '',
+          photoURL: 'img/logo.jpg',
+          isAnonymous: true
+        };
+      }
+
+      window.hideLoginModal();
+      updateHeaderUI(window.currentUser);
+
+      if (pendingAuthAction) {
+        const action = pendingAuthAction;
+        pendingAuthAction = null;
+        action(window.currentUser);
+      }
+
+      notifyCallbacks();
+    } catch (err) {
+      console.error('[auth] Guest login error:', err);
+      alert('Error al acceder: ' + (err.message || err));
+    } finally {
+      isAuthInProgress = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Entrar ▶'; }
     }
   };
 
@@ -594,6 +689,20 @@
     }
 
     if (btnModalGoogle) btnModalGoogle.addEventListener('click', window.loginWithGoogle);
+
+    const btnGuestLogin = document.getElementById('btnGuestLogin');
+    const inpGuestNick = document.getElementById('inpGuestNick');
+    if (btnGuestLogin) {
+      btnGuestLogin.addEventListener('click', () => window.loginAsGuest());
+    }
+    if (inpGuestNick) {
+      inpGuestNick.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          window.loginAsGuest();
+        }
+      });
+    }
 
     if (btnSignOut) {
       btnSignOut.addEventListener('click', window.logoutFromModal);

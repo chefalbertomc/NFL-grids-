@@ -2234,6 +2234,134 @@ input:focus, select:focus, textarea:focus {
   opacity: 0.9;
 }
 
+/* Winner Pick Selector for US Sports (NFL, MLB, NBA, etc.) */
+.q-winner-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+}
+.q-winner-team-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1.5px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  touch-action: manipulation;
+  color: var(--text-color);
+}
+.q-winner-team-btn:hover {
+  background: rgba(255, 209, 0, 0.1);
+  border-color: rgba(255, 209, 0, 0.5);
+  transform: translateY(-1px);
+}
+.q-winner-team-btn.selected {
+  background: linear-gradient(135deg, rgba(255, 209, 0, 0.22), rgba(255, 179, 0, 0.12));
+  border-color: #ffd100;
+  box-shadow: 0 0 14px rgba(255, 209, 0, 0.35);
+}
+.q-winner-team-btn.selected .q-winner-team-name {
+  color: #ffd100;
+  font-weight: 900;
+}
+.q-winner-team-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.q-winner-check {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 900;
+  flex-shrink: 0;
+  background: rgba(0,0,0,0.3);
+}
+.q-winner-team-btn.selected .q-winner-check {
+  border-color: #ffd100;
+  background: #ffd100;
+  color: #000;
+}
+.q-winner-team-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.q-winner-team-name {
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.q-winner-vs-tag {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* Tiebreaker Card */
+.q-tiebreaker-card {
+  background: linear-gradient(145deg, rgba(255, 209, 0, 0.08), rgba(20, 24, 31, 0.95));
+  border: 1.5px solid rgba(255, 209, 0, 0.4);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-top: 14px;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.q-tiebreaker-input {
+  font-size: 18px;
+  font-weight: 900;
+  color: #ffd100;
+  background: #0f1318;
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  padding: 8px 14px;
+  text-align: center;
+  width: 100px;
+}
+.q-tiebreaker-input:focus {
+  border-color: #ffd100;
+  box-shadow: 0 0 10px rgba(255,209,0,0.4);
+}
+
+/* Player Pending / Approval Banners */
+.q-player-status-card {
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.q-player-status-card.pending {
+  background: linear-gradient(145deg, rgba(255, 193, 7, 0.12), rgba(20, 16, 4, 0.9));
+  border: 1.5px solid #ffc107;
+  color: #ffc107;
+}
+.q-player-status-card.approved {
+  background: linear-gradient(145deg, rgba(0, 230, 118, 0.12), rgba(4, 20, 10, 0.9));
+  border: 1.5px solid #00e676;
+  color: #00e676;
+}
+
+
 
 
 

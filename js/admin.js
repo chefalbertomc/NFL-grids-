@@ -164,16 +164,24 @@
     });
   }
 
-  const btnSwitchAccount = document.getElementById('btnSwitchAccount');
-  if (btnSwitchAccount) {
-    btnSwitchAccount.addEventListener('click', async () => {
+  const btnAdminGoogle = document.getElementById('btnAdminGoogle');
+  if (btnAdminGoogle) {
+    btnAdminGoogle.addEventListener('click', async () => {
       try {
-        await firebase.auth().signOut();
+        if (!firebase.auth) return;
         const provider = new firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
-        await firebase.auth().signInWithPopup(provider);
+        try {
+          await firebase.auth().signInWithPopup(provider);
+        } catch (popupErr) {
+          if (popupErr.code === 'auth/popup-blocked') {
+            await firebase.auth().signInWithRedirect(provider);
+          } else if (popupErr.code !== 'auth/popup-closed-by-user' && popupErr.code !== 'auth/cancelled-popup-request') {
+            alert('Error al acceder con Google: ' + (popupErr.message || popupErr.code));
+          }
+        }
       } catch (err) {
-        console.error('[admin] Switch account error:', err);
+        console.error('[admin] Google login error:', err);
       }
     });
   }
@@ -185,8 +193,12 @@
 
       if (!user) {
         if (adminStatusText) {
-          adminStatusText.textContent = 'Sin Sesión - Usa "Cambiar Cuenta de Google" para entrar con chefalbertomc';
+          adminStatusText.textContent = '🔒 Sin Sesión de Administrador';
           adminStatusText.className = 'badge danger';
+        }
+        if (btnAdminGoogle) {
+          btnAdminGoogle.style.display = 'inline-flex';
+          btnAdminGoogle.textContent = '🔑 Entrar con Google';
         }
         disableAllInputs(true);
         return;
@@ -195,16 +207,24 @@
       if (!CAN_ADMIN) {
         if (adminStatusText) {
           const userEmail = user.email || user.displayName || user.uid;
-          adminStatusText.textContent = `Cuenta actual (${userEmail}) no es Admin. Usa "Cambiar Cuenta" para entrar con chefalbertomc`;
+          adminStatusText.textContent = `Cuenta actual (${userEmail}) no tiene permisos de Admin.`;
           adminStatusText.className = 'badge danger';
+        }
+        if (btnAdminGoogle) {
+          btnAdminGoogle.style.display = 'inline-flex';
+          btnAdminGoogle.textContent = '🔄 Cambiar Cuenta';
         }
         disableAllInputs(true);
         return;
       }
 
       if (adminStatusText) {
-        adminStatusText.textContent = 'Admin Autorizado (' + (user.email || user.displayName || 'Google') + ')';
+        adminStatusText.textContent = '✅ Admin Autorizado (' + (user.email || user.displayName || 'Google') + ')';
         adminStatusText.className = 'badge success';
+      }
+      if (btnAdminGoogle) {
+        btnAdminGoogle.style.display = 'inline-flex';
+        btnAdminGoogle.textContent = '🔄 Cambiar Cuenta';
       }
       disableAllInputs(false);
 
