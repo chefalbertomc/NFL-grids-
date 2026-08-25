@@ -53,18 +53,25 @@
     alert('Error al iniciar sesión: ' + (err.message || err.code));
   }
 
-  // 1-Click Google Sign In (Always prompts account selector)
-  window.loginWithGoogle = async function() {
-    console.log('[auth] loginWithGoogle triggered');
+  // 1-Click Google Sign In
+  window.loginWithGoogle = async function(isSwitchAccount = false) {
+    console.log('[auth] loginWithGoogle triggered, isSwitchAccount:', isSwitchAccount);
     try {
       if (!window.firebase || !firebase.auth) {
         alert('Firebase aún se está inicializando. Por favor intenta de nuevo en un segundo.');
         return;
       }
       const auth = firebase.auth();
+      try {
+        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+      } catch (pErr) {
+        console.warn('[auth] setPersistence note:', pErr);
+      }
+
       const provider = new firebase.auth.GoogleAuthProvider();
-      // Force Google to show the account picker screen so the user can choose another email/account
-      provider.setCustomParameters({ prompt: 'select_account' });
+      if (isSwitchAccount) {
+        provider.setCustomParameters({ prompt: 'select_account' });
+      }
 
       setLoginButtonLoading('btnModalGoogle', true, 'Conectando con Google...');
 
@@ -72,6 +79,7 @@
         const result = await auth.signInWithPopup(provider);
         if (result && result.user) {
           window.currentUser = result.user;
+          localStorage.setItem('bww_last_auth_user', JSON.stringify({ uid: result.user.uid, displayName: result.user.displayName, email: result.user.email }));
           window.hideLoginModal();
           if (pendingAuthAction) {
             const action = pendingAuthAction;
@@ -80,7 +88,7 @@
           }
         }
       } catch (err) {
-        console.warn('[auth] Popup sign-in error, trying redirect:', err);
+        console.warn('[auth] Popup sign-in error, checking redirect fallback:', err);
         if (err.code === 'auth/popup-blocked' || err.code === 'auth/operation-not-supported-in-this-environment' || (err.message && err.message.includes('popup'))) {
           try {
             await auth.signInWithRedirect(provider);
@@ -111,7 +119,8 @@
       console.warn('[auth] SignOut note:', e);
     }
     window.currentUser = null;
-    window.loginWithGoogle();
+    localStorage.removeItem('bww_last_auth_user');
+    window.loginWithGoogle(true);
   };
 
   // Quick Nickname / Guest Login (100% reliable on WhatsApp, In-App WebViews, and all devices)
@@ -730,6 +739,7 @@
       firebase.auth().getRedirectResult().then(result => {
         if (result && result.user) {
           window.currentUser = result.user;
+          localStorage.setItem('bww_last_auth_user', JSON.stringify({ uid: result.user.uid, displayName: result.user.displayName, email: result.user.email }));
           window.hideLoginModal();
         }
       }).catch(err => {
@@ -744,6 +754,7 @@
 
         if (user) {
           window.currentUser = user;
+          localStorage.setItem('bww_last_auth_user', JSON.stringify({ uid: user.uid, displayName: user.displayName, email: user.email }));
           window.hideLoginModal();
 
           // Check if Admin
@@ -780,8 +791,11 @@
           updateHeaderUI(null);
           document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
 
-          // MANDATORY LOGIN ON INITIAL PAGE LOAD
-          window.showLoginModal('¡Inicia Sesión para Jugar!', 'Para entrar a los Grids, escoger casillas y ver tus juegos, por favor inicia sesión con Google.');
+          // Only prompt login if there's no active session
+          const hasSavedSession = localStorage.getItem('bww_last_auth_user');
+          if (!hasSavedSession) {
+            window.showLoginModal('¡Inicia Sesión para Jugar!', 'Para entrar a los Grids, escoger casillas y ver tus juegos, por favor inicia sesión con Google.');
+          }
         }
 
         notifyCallbacks();

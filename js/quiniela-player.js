@@ -695,6 +695,8 @@
     // Switch view
     const catalogSec = document.getElementById('qCatalogSection');
     const detailSec = document.getElementById('qDetailSection');
+    const formEl = document.getElementById('qMatchPicksForm');
+    if (formEl) formEl.removeAttribute('data-render-key');
     if (catalogSec) catalogSec.style.display = 'none';
     if (detailSec) detailSec.style.display = 'block';
 
@@ -996,6 +998,16 @@
     const formEl = document.getElementById('qMatchPicksForm');
     if (!formEl) return;
 
+    const myReg = myParticipations[q.id];
+    const isApproved = myReg && (myReg.approved === true || myReg.status === 'approved');
+    const statusKey = isApproved ? 'approved' : myReg ? 'pending' : 'not_joined';
+    const renderKey = `${q.id}_${statusKey}_${isLocked}`;
+
+    // If form is already mounted for this quiniela and approval state, don't wipe and rebuild DOM
+    if (formEl.getAttribute('data-render-key') === renderKey && formEl.children.length > 0) {
+      return;
+    }
+    formEl.setAttribute('data-render-key', renderKey);
     formEl.innerHTML = '';
     const rawMatches = q.matches || [];
 
