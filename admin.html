@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Admin Dashboard — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=117.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=118.0"/>
   <style>
     /* Styling overrides for admin features */
     .admin-tab-content {
@@ -348,17 +348,45 @@
     </main>
   </div>
 
+  <!-- Mobile Bottom Navigation Bar with Full-Height Game Badges (Swipeable) -->
+  <nav class="mobile-nav">
+    <a href="index.html#tab-grids" class="nav-item" title="NFL Grids">
+      <img src="img/games/badge_grids.png" alt="NFL Grids" class="nav-game-badge" />
+    </a>
+    <a href="index.html#tab-pools" class="nav-item" title="Quiniela / Pick'em">
+      <img src="img/games/badge_quiniela.png" alt="Quiniela" class="nav-game-badge" />
+    </a>
+    <a href="index.html#tab-survivor" class="nav-item" title="Survivor">
+      <img src="img/games/badge_survivor.png" alt="Survivor" class="nav-game-badge" />
+    </a>
+    <a href="index.html#tab-firstgoal" class="nav-item" title="Primer Gol">
+      <img src="img/games/badge_firstgoal.png" alt="Primer Gol" class="nav-game-badge" />
+    </a>
+    <a href="index.html#tab-trivia" class="nav-item" title="Trivia">
+      <img src="img/games/badge_trivia.png" alt="Trivia" class="nav-game-badge" />
+    </a>
+    <a href="index.html#tab-bingo" class="nav-item" title="Game Day Bingo">
+      <img src="img/games/badge_bingo.png" alt="Bingo" class="nav-game-badge" />
+    </a>
+    <a href="admin.html" class="nav-item active" title="Panel Admin">
+      <div class="nav-admin-card">
+        <span class="nav-admin-icon">⚙️</span>
+        <span class="nav-admin-text">Admin</span>
+      </div>
+    </a>
+  </nav>
+
   <!-- Firebase v8 SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=117.0"></script>
-  <script src="js/auth.js?v=117.0"></script>
-  <script src="js/team-logos.js?v=117.0"></script>
-  <script src="js/admin.js?v=117.0"></script>
-  <script src="js/quiniela-admin.js?v=117.0"></script>
+  <script src="js/firebase-config.js?v=118.0"></script>
+  <script src="js/auth.js?v=118.0"></script>
+  <script src="js/team-logos.js?v=118.0"></script>
+  <script src="js/admin.js?v=118.0"></script>
+  <script src="js/quiniela-admin.js?v=118.0"></script>
 
   <!-- Admin Tab Switching -->
   <script>
