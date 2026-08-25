@@ -1616,33 +1616,38 @@
       const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
       const dateParam = `dates=${fmt(start)}-${fmt(end)}&limit=100`;
 
-      const endpoints = [
-        { sport: 'soccer', slug: 'mex.1' },
-        { sport: 'soccer', slug: 'mex.w.1' },
-        { sport: 'soccer', slug: 'eng.1' },
-        { sport: 'soccer', slug: 'esp.1' },
-        { sport: 'soccer', slug: 'ita.1' },
-        { sport: 'soccer', slug: 'ger.1' },
-        { sport: 'soccer', slug: 'fra.1' },
-        { sport: 'soccer', slug: 'usa.1' },
-        { sport: 'soccer', slug: 'uefa.champions' },
-        { sport: 'football', slug: 'nfl' },
-        { sport: 'baseball', slug: 'mlb' },
-        { sport: 'basketball', slug: 'nba' },
-      ];
+      // Only query endpoints for sports/leagues present in this quiniela
+      const neededEndpoints = [];
+      const seen = new Set();
+      matches.forEach(m => {
+        const sp = detectSport(m);
+        const sl = m.slug || (sp === 'football' ? 'nfl' : sp === 'baseball' ? 'mlb' : sp === 'basketball' ? 'nba' : 'mex.1');
+        const key = `${sp}/${sl}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          neededEndpoints.push({ sport: sp, slug: sl });
+        }
+      });
+
+      if (neededEndpoints.length === 0) {
+        neededEndpoints.push({ sport: 'soccer', slug: 'mex.1' }, { sport: 'football', slug: 'nfl' });
+      }
 
       const eventsBySport = {};
-      const fetchPromises = endpoints.map(ep => 
-        fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?${dateParam}`)
-          .then(r => r.json())
-          .then(data => {
-            if (data && data.events) {
-              if (!eventsBySport[ep.sport]) eventsBySport[ep.sport] = [];
-              eventsBySport[ep.sport].push(...data.events.map(ev => ({ ...ev, _sport: ep.sport, _slug: ep.slug })));
-            }
-          })
-          .catch(() => {})
-      );
+      const fetchPromises = neededEndpoints.map(async ep => {
+        try {
+          let res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?${dateParam}`);
+          if (!res.ok) {
+            res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?limit=100`);
+          }
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data && data.events) {
+            if (!eventsBySport[ep.sport]) eventsBySport[ep.sport] = [];
+            eventsBySport[ep.sport].push(...data.events.map(ev => ({ ...ev, _sport: ep.sport, _slug: ep.slug })));
+          }
+        } catch (e) {}
+      });
 
       await Promise.all(fetchPromises);
 
