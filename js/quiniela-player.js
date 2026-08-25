@@ -1248,7 +1248,7 @@
         matchContentHtml = `
           <div class="q-scorebug-split">
             <!-- Away Team Wing (Left half with Away Color) -->
-            <div class="q-scorebug-wing q-away ${awaySelected ? 'selected' : ''}" id="btn_pick_away_${m.id}" onclick="pickWinner('${m.id}', 'away')" style="--team-bg: ${awayColor};" ${isIndividualMatchLocked ? 'style="pointer-events:none;"' : ''}>
+            <div class="q-scorebug-wing q-away ${awaySelected ? 'selected' : ''}" id="btn_pick_away_${m.id}" onclick="pickWinner('${m.id}', 'away')" style="--team-bg: ${awayColor}; ${isIndividualMatchLocked ? 'pointer-events:none;' : ''}">
               <div class="q-scorebug-logo-frame">
                 <img src="${m.awayLogo}" onerror="this.src='img/logo.jpg'" alt="${m.away}"/>
               </div>
@@ -1264,7 +1264,7 @@
             </div>
 
             <!-- Home Team Wing (Right half with Home Color) -->
-            <div class="q-scorebug-wing q-home ${homeSelected ? 'selected' : ''}" id="btn_pick_home_${m.id}" onclick="pickWinner('${m.id}', 'home')" style="--team-bg: ${homeColor};" ${isIndividualMatchLocked ? 'style="pointer-events:none;"' : ''}>
+            <div class="q-scorebug-wing q-home ${homeSelected ? 'selected' : ''}" id="btn_pick_home_${m.id}" onclick="pickWinner('${m.id}', 'home')" style="--team-bg: ${homeColor}; ${isIndividualMatchLocked ? 'pointer-events:none;' : ''}">
               <div class="q-scorebug-check" id="chk_pick_home_${m.id}">${homeSelected ? '✓' : ''}</div>
               ${hasScore ? `<span class="q-scorebug-score-box">${m.homeScore}</span>` : ''}
               <span class="q-scorebug-abbr text-right" title="${m.home}">${homeShort}</span>

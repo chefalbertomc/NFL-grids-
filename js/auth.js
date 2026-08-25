@@ -95,11 +95,16 @@
     if (isGoogleAuthInProgress) return;
 
     if (isInAppBrowser()) {
-      alert('📱 Estás usando el navegador interno (WhatsApp/Instagram) o modo PWA.\n\nPara evitar errores de pantalla blanca, por favor ingresa usando la opción "O CON TU APODO" escribiendo tu nombre abajo.');
       const inp = document.getElementById('inpGuestNick');
       if (inp) {
+        inp.style.borderColor = '#ffd100';
+        inp.style.boxShadow = '0 0 14px rgba(255,209,0,0.6)';
         inp.focus();
         inp.scrollIntoView({ behavior: 'smooth' });
+        setTimeout(() => {
+          inp.style.borderColor = '';
+          inp.style.boxShadow = '';
+        }, 3000);
       }
       return;
     }
@@ -751,9 +756,13 @@
     const modal = document.getElementById('globalLoginModal');
     const titleEl = document.getElementById('loginModalTitle');
     const subEl = document.getElementById('loginModalSubtitle');
+    const warningEl = document.getElementById('inAppBrowserWarning');
 
     if (titleEl && customTitle) titleEl.textContent = customTitle;
     if (subEl && customSubtitle) subEl.textContent = customSubtitle;
+    if (warningEl) {
+      warningEl.style.display = isInAppBrowser() ? 'block' : 'none';
+    }
 
     if (modal) modal.classList.add('active');
   };

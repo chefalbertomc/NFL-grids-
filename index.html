@@ -339,13 +339,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=138.0"></script>
-  <script src="js/auth.js?v=138.0"></script>
-  <script src="js/team-logos.js?v=138.0"></script>
-  <script src="js/grids.js?v=138.0"></script>
-  <script src="js/quiniela-player.js?v=138.0"></script>
-  <script src="js/survivor.js?v=138.0"></script>
-  <script src="js/firstgoal.js?v=138.0"></script>
+  <script src="js/firebase-config.js?v=139.0"></script>
+  <script src="js/auth.js?v=139.0"></script>
+  <script src="js/team-logos.js?v=139.0"></script>
+  <script src="js/grids.js?v=139.0"></script>
+  <script src="js/quiniela-player.js?v=139.0"></script>
+  <script src="js/survivor.js?v=139.0"></script>
+  <script src="js/firstgoal.js?v=139.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -472,9 +472,11 @@
     <div class="login-modal-card" style="max-width:390px;">
       <button id="loginModalClose" class="login-modal-close" title="Cerrar" onclick="window.hideLoginModal()">✕</button>
       <div class="login-modal-icon">🏆</div>
-      <h3 class="login-modal-title" id="loginModalTitle">¡Inicia Sesión para Jugar!</h3>
-      <p class="login-modal-subtitle" id="loginModalSubtitle">Accede para asegurar tus casillas, guardar pronósticos con tu foto de perfil y ver tus posiciones.</p>
-      
+      <!-- Inline In-App Browser Warning -->
+      <div id="inAppBrowserWarning" style="display:none; color:#ffd100; font-size:12px; font-weight:800; background:rgba(255,209,0,0.1); border:1.5px solid rgba(255,209,0,0.35); padding:10px 14px; border-radius:12px; margin: 12px 0; line-height:1.4; text-align:left; box-shadow:0 4px 12px rgba(255,209,0,0.1);">
+        📱 Navegador de WhatsApp/Instagram o PWA detectado: Inicia con tu apodo abajo para evitar pantallas blancas.
+      </div>
+
       <div class="login-buttons-stack" style="margin-top:16px;">
         <!-- Google 1-Click Login -->
         <button type="button" class="btn-social-login btn-login-google" id="btnModalGoogle" onclick="window.loginWithGoogle()" style="padding:14px 20px; font-size:15px; border-radius:14px; box-shadow: 0 6px 20px rgba(0,0,0,0.4); cursor:pointer; width:100%;">
@@ -511,7 +513,7 @@
   <!-- Service Worker: Auto Silent Update -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=138.0', { updateViaCache: 'none' }).then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=139.0', { updateViaCache: 'none' }).then(reg => {
         reg.update().catch(() => {});
       }).catch(() => {});
 
