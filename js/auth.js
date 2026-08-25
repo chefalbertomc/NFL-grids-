@@ -378,10 +378,13 @@
     window.closeUserProfileModal();
     if (confirm('¿Deseas cerrar sesión de Drinks & Wins?')) {
       try {
+        window._explicitSignOut = true;
+        localStorage.removeItem('bww_last_auth_user');
+        localStorage.removeItem('user_custom_avatar');
+        window.currentUser = null;
         if (firebase.auth && firebase.auth()) {
           await firebase.auth().signOut();
         }
-        localStorage.removeItem('user_custom_avatar');
         window.location.reload();
       } catch (err) {
         console.error('Logout error:', err);
@@ -806,16 +809,20 @@
             el.classList.toggle('hidden', !(window.isAdmin || isLocal));
           });
         } else {
+          // If we had a cached user in localStorage and user did not explicitly sign out, keep the session active
+          const cachedUser = localStorage.getItem('bww_last_auth_user');
+          if (cachedUser && !window._explicitSignOut) {
+            try {
+              window.currentUser = JSON.parse(cachedUser);
+              updateHeaderUI(window.currentUser);
+              notifyCallbacks();
+              return;
+            } catch (e) {}
+          }
           window.currentUser = null;
           window.isAdmin = false;
           updateHeaderUI(null);
           document.querySelectorAll('.admin-only').forEach(el => el.classList.add('hidden'));
-
-          // Only prompt login if there's no active session
-          const hasSavedSession = localStorage.getItem('bww_last_auth_user');
-          if (!hasSavedSession) {
-            window.showLoginModal('¡Inicia Sesión para Jugar!', 'Para entrar a los Grids, escoger casillas y ver tus juegos, por favor inicia sesión con Google.');
-          }
         }
 
         notifyCallbacks();
