@@ -152,7 +152,7 @@
     if (!db) return;
     if (catalogUnsubscribe) catalogUnsubscribe();
 
-    catalogUnsubscribe = db.collection('quinielas').onSnapshot(async snap => {
+    function processQuinielasSnap(snap) {
       const list = [];
       snap.forEach(doc => {
         const q = doc.data();
@@ -164,8 +164,7 @@
       list.sort((a, b) => (b.createdAt?.seconds || b.createdAt || 0) - (a.createdAt?.seconds || a.createdAt || 0));
       allQuinielas = list;
 
-      // Load user participations for each quiniela
-      await loadUserParticipations();
+      loadUserParticipations();
       renderQuinielasCatalog();
 
       // Check if URL has quiniela ID
@@ -176,10 +175,17 @@
         if (poolTabBtn) poolTabBtn.click();
         openQuiniela(targetQId);
       }
-    }, err => {
+    }
+
+    // Immediate initial fetch
+    db.collection('quinielas').get().then(processQuinielasSnap).catch(e => console.warn('[QPlayer] initial get note:', e));
+
+    catalogUnsubscribe = db.collection('quinielas').onSnapshot(processQuinielasSnap, err => {
       console.error('[QPlayer] catalog error:', err);
       const grid = document.getElementById('qCatalogGrid');
-      if (grid) grid.innerHTML = `<div class="text-center hint-text py-4" style="grid-column:1/-1;">Error al cargar quinielas: ${err.message}</div>`;
+      if (grid && allQuinielas.length === 0) {
+        grid.innerHTML = `<div class="text-center hint-text py-4" style="grid-column:1/-1;">Error al cargar quinielas: ${err.message}</div>`;
+      }
     });
   }
 

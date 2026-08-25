@@ -15,7 +15,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=107.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=108.0"/>
 </head>
 <body>
   <div class="container animate-fade">
@@ -296,19 +296,34 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=107.0"></script>
-  <script src="js/auth.js?v=107.0"></script>
-  <script src="js/team-logos.js?v=107.0"></script>
-  <script src="js/grids.js?v=107.0"></script>
-  <script src="js/quiniela-player.js?v=107.0"></script>
-  <script src="js/survivor.js?v=107.0"></script>
-  <script src="js/firstgoal.js?v=107.0"></script>
+  <script src="js/firebase-config.js?v=108.0"></script>
+  <script src="js/auth.js?v=108.0"></script>
+  <script src="js/team-logos.js?v=108.0"></script>
+  <script src="js/grids.js?v=108.0"></script>
+  <script src="js/quiniela-player.js?v=108.0"></script>
+  <script src="js/survivor.js?v=108.0"></script>
+  <script src="js/firstgoal.js?v=108.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const tabs = document.querySelectorAll('.tab-btn, .mobile-nav .nav-item');
       const contents = document.querySelectorAll('.tab-content');
+
+      function activateTab(targetId) {
+        if (!targetId) return;
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-target') === targetId);
+        });
+        document.querySelectorAll('.mobile-nav .nav-item').forEach(item => {
+          item.classList.toggle('active', item.getAttribute('data-target') === targetId);
+        });
+        contents.forEach(content => {
+          content.classList.toggle('hidden', content.id !== targetId);
+        });
+      }
+
+      window.activateTab = activateTab;
 
       tabs.forEach(tab => {
         tab.addEventListener('click', (e) => {
@@ -317,21 +332,15 @@
           }
           e.preventDefault();
           const targetId = tab.getAttribute('data-target');
-
-          // Update tabs active state
-          document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.getAttribute('data-target') === targetId);
-          });
-          document.querySelectorAll('.mobile-nav .nav-item').forEach(item => {
-            item.classList.toggle('active', item.getAttribute('data-target') === targetId);
-          });
-
-          // Show correct tab content
-          contents.forEach(content => {
-            content.classList.toggle('hidden', content.id !== targetId);
-          });
+          activateTab(targetId);
         });
       });
+
+      // Auto-activate tab from URL hash (e.g. index.html#tab-pools)
+      const rawHash = window.location.hash.replace('#', '');
+      if (rawHash && document.getElementById(rawHash)) {
+        activateTab(rawHash);
+      }
     });
   </script>
   <!-- User Profile & Photo Uploader Modal -->
