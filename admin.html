@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Admin Dashboard — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=122.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=123.0"/>
   <style>
     /* Styling overrides for admin features */
     .admin-tab-content {
@@ -383,27 +383,55 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=122.0"></script>
-  <script src="js/auth.js?v=122.0"></script>
-  <script src="js/team-logos.js?v=122.0"></script>
-  <script src="js/admin.js?v=122.0"></script>
-  <script src="js/quiniela-admin.js?v=122.0"></script>
+  <script src="js/firebase-config.js?v=123.0"></script>
+  <script src="js/auth.js?v=123.0"></script>
+  <script src="js/team-logos.js?v=123.0"></script>
+  <script src="js/admin.js?v=123.0"></script>
+  <script src="js/quiniela-admin.js?v=123.0"></script>
 
-  <!-- Admin Tab Switching -->
+  <!-- Admin Tab Switching with Bottom Nav integration -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const tabs = document.querySelectorAll('.tabs-container .tab-btn');
       const contents = document.querySelectorAll('.admin-tab-content');
+      const bottomNavItems = document.querySelectorAll('.mobile-nav .nav-item');
 
-      tabs.forEach(tab => {
-        tab.addEventListener('click', (e) => {
-          e.preventDefault();
-          const targetId = tab.getAttribute('data-target');
+      function activateAdminPanel(targetId, navItem) {
+        if (!targetId) return;
 
-          tabs.forEach(btn => btn.classList.toggle('active', btn === tab));
-          contents.forEach(content => {
-            content.classList.toggle('hidden', content.id !== targetId);
-          });
+        contents.forEach(content => {
+          content.classList.toggle('hidden', content.id !== targetId);
+        });
+
+        if (navItem) {
+          bottomNavItems.forEach(i => i.classList.remove('active'));
+          navItem.classList.add('active');
+          if (typeof navItem.scrollIntoView === 'function') {
+            navItem.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+          }
+        }
+      }
+
+      // Map bottom navigation items to admin panels
+      bottomNavItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+          const href = item.getAttribute('href') || '';
+          if (href.includes('#tab-grids')) {
+            e.preventDefault();
+            activateAdminPanel('admin-grids', item);
+          } else if (href.includes('#tab-pools')) {
+            e.preventDefault();
+            activateAdminPanel('admin-pools', item);
+          } else if (href.includes('#tab-survivor')) {
+            e.preventDefault();
+            activateAdminPanel('admin-survivor', item);
+          } else if (href.includes('#tab-firstgoal')) {
+            e.preventDefault();
+            activateAdminPanel('admin-firstgoal', item);
+          } else if (href === 'admin.html') {
+            e.preventDefault();
+            // Default to grids when Admin gear is clicked
+            activateAdminPanel('admin-grids', item);
+          }
         });
       });
     });

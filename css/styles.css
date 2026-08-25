@@ -428,14 +428,9 @@ input:focus, select:focus, textarea:focus {
   color: #ffd100;
 }
 
-/* Hide top tabs on mobile to remove duplication and maximize screen area */
+/* Hide top tabs on all screens so navigation is 100% unified in the bottom menu */
 .tabs-container {
-  display: none;
-}
-@media (min-width: 900px) {
-  .tabs-container {
-    display: flex;
-  }
+  display: none !important;
 }
 
 /* =============================================
