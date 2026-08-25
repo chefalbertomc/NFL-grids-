@@ -150,6 +150,7 @@
       });
     } catch (e) {}
   }
+  window.playVictoryChime = playVictoryChime;
 
   function showPlayerApprovalToast(gameCode, gameName, quota) {
     let toast = document.getElementById('playerApprovalToast');

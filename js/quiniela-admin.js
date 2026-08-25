@@ -70,15 +70,18 @@
       'dic': 11, 'diciembre': 11, 'dec': 11, 'december': 11
     };
 
+    // Clean accents and punctuation
+    const cleanStr = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
     // Extract Day (1-31) and Month Name
     let day = null;
     let month = null;
 
     // Pattern A: "28 de ago" or "28 ago" or "28 de agosto"
-    const patternA = str.match(/(\d{1,2})\s*(?:de|\/|-)?\s*([a-záéíóú]+)/i);
+    const patternA = cleanStr.match(/(\d{1,2})\s*(?:de|\/|-)?\s*([a-z]+)/i);
     if (patternA) {
       const dVal = parseInt(patternA[1], 10);
-      const mRaw = patternA[2].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const mRaw = patternA[2].toLowerCase();
       const mKey = mRaw.slice(0, 3);
       if (dVal >= 1 && dVal <= 31 && (monthMap[mKey] !== undefined || monthMap[mRaw] !== undefined)) {
         day = dVal;
@@ -88,9 +91,9 @@
 
     // Pattern B: "ago 28" or "agosto 28"
     if (day === null || month === null) {
-      const patternB = str.match(/([a-záéíóú]+)\s*(\d{1,2})/i);
+      const patternB = cleanStr.match(/([a-z]+)\s*(\d{1,2})/i);
       if (patternB) {
-        const mRaw = patternB[1].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const mRaw = patternB[1].toLowerCase();
         const mKey = mRaw.slice(0, 3);
         const dVal = parseInt(patternB[2], 10);
         if (dVal >= 1 && dVal <= 31 && (monthMap[mKey] !== undefined || monthMap[mRaw] !== undefined)) {
@@ -100,20 +103,19 @@
       }
     }
 
-    // Extract Time: "12:45 p.m.", "05:00 p.m.", "17:00", "1:30 pm"
+    // Extract Time: "12:45 p.m.", "05:00 p.m.", "05:00 p. m.", "17:00", "1:30 pm"
     let hours = 12;
     let minutes = 0;
-    const timeMatch = str.match(/(\d{1,2}):(\d{2})(?:\s*(a\.?m\.?|p\.?m\.?|am|pm))?/i);
+    const timeMatch = cleanStr.match(/(\d{1,2}):(\d{2})(?:\s*([ap])\.?\s*m\.?)?/i);
     if (timeMatch) {
       hours = parseInt(timeMatch[1], 10);
       minutes = parseInt(timeMatch[2], 10);
-      const ampm = (timeMatch[3] || '').toLowerCase().replace(/\./g, '');
-      if (ampm === 'pm' && hours < 12) hours += 12;
-      if (ampm === 'am' && hours === 12) hours = 0;
+      const ap = (timeMatch[3] || '').toLowerCase();
+      if (ap === 'p' && hours < 12) hours += 12;
+      if (ap === 'a' && hours === 12) hours = 0;
     }
 
-    // Extract Year if present, otherwise default to current year
-    const yearMatch = str.match(/\b(20\d{2})\b/);
+    const yearMatch = cleanStr.match(/\b(20\d{2})\b/);
     const year = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
 
     if (day !== null && month !== null) {
@@ -518,6 +520,7 @@
         opt.textContent = `${q.name} (${q.matches?.length || 0} partidos)`;
         sel.appendChild(opt);
       });
+      attachGlobalQuinielasWatchers(docs);
       if (!activeQuinielaId || !Array.from(sel.options).some(o => o.value === activeQuinielaId)) {
         activeQuinielaId = sel.options[0]?.value;
       }
@@ -529,6 +532,41 @@
     } catch (err) {
       console.error('[QAdmin] load quinielas error:', err);
     }
+  }
+
+  const globalQUnsubs = {};
+  const globalQPendingCounts = {};
+
+  function attachGlobalQuinielasWatchers(docs) {
+    if (!db || !Array.isArray(docs)) return;
+    docs.forEach(q => {
+      if (globalQUnsubs[q.id]) return;
+      let isFirstSnap = true;
+      globalQUnsubs[q.id] = db.collection('quinielas').doc(q.id).collection('picks').onSnapshot(snap => {
+        let pending = 0;
+        let newestPending = null;
+        snap.forEach(doc => {
+          const p = doc.data() || {};
+          if (p.approved !== true && p.status !== 'approved') {
+            pending++;
+            newestPending = p;
+          }
+        });
+
+        if (!isFirstSnap && pending > (globalQPendingCounts[q.id] || 0)) {
+          if (typeof window.playNotificationChime === 'function') {
+            window.playNotificationChime('admin');
+          }
+          const nick = newestPending?.nickname || newestPending?.name || 'Jugador';
+          const waiter = newestPending?.waiter ? ` • Mesero: ${newestPending.waiter}` : '';
+          if (typeof window.sendSystemNotification === 'function') {
+            window.sendSystemNotification('🔔 ¡Nueva Solicitud en Quinielas!', `${nick} solicitó entrar a "${q.name}"${waiter}.`);
+          }
+        }
+        isFirstSnap = false;
+        globalQPendingCounts[q.id] = pending;
+      }, err => console.warn('[QAdmin] watcher error:', err));
+    });
   }
 
   let qPlayersUnsub = null;
@@ -851,11 +889,13 @@
   }
 
   function detectSport(m) {
+    if (!m) return 'soccer';
     if (m.sport && m.sport !== 'mixed') return m.sport;
     const label = (m.leagueLabel || '').toLowerCase();
-    if (label.includes('nfl') || label.includes('ncaa football') || label.includes('football')) return 'football';
-    if (label.includes('mlb') || label.includes('beisbol') || label.includes('baseball')) return 'baseball';
-    if (label.includes('nba') || label.includes('wnba') || label.includes('basquet')) return 'basketball';
+    const slug = (m.slug || '').toLowerCase();
+    if (label.includes('nfl') || label.includes('ncaa football') || label.includes('football') || slug.includes('nfl') || slug.includes('football') || slug.includes('college-football')) return 'football';
+    if (label.includes('mlb') || label.includes('beisbol') || label.includes('baseball') || slug.includes('mlb') || slug.includes('baseball')) return 'baseball';
+    if (label.includes('nba') || label.includes('wnba') || label.includes('basquet') || label.includes('basketball') || slug.includes('nba') || slug.includes('wnba') || slug.includes('basketball') || slug.includes('mens-college-basketball')) return 'basketball';
     return 'soccer';
   }
 

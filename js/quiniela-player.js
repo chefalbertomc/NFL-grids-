@@ -183,31 +183,45 @@
     });
   }
 
+  const qParticipationUnsubs = {};
+
   async function loadUserParticipations() {
     if (!db) return;
     const user = firebase.auth && firebase.auth() ? firebase.auth().currentUser : null;
     const authUid = user ? user.uid : null;
 
-    const promises = allQuinielas.map(async q => {
-      try {
-        let foundDoc = null;
-        if (authUid) {
-          const authSnap = await db.collection('quinielas').doc(q.id).collection('picks').doc(authUid).get();
-          if (authSnap.exists) foundDoc = authSnap.data();
-        }
-        if (!foundDoc) {
-          const devSnap = await db.collection('quinielas').doc(q.id).collection('picks').doc(deviceId).get();
-          if (devSnap.exists) foundDoc = devSnap.data();
-        }
+    if (!authUid) return;
 
-        if (foundDoc) {
-          myParticipations[q.id] = foundDoc;
-        } else {
-          delete myParticipations[q.id];
+    allQuinielas.forEach(q => {
+      try {
+        const playerDocRef = db.collection('quinielas').doc(q.id).collection('picks').doc(authUid);
+        if (!qParticipationUnsubs[q.id]) {
+          qParticipationUnsubs[q.id] = playerDocRef.onSnapshot(doc => {
+            if (doc.exists) {
+              const data = doc.data() || {};
+              const prevStatus = myParticipations[q.id]?.status;
+              const wasApproved = myParticipations[q.id]?.approved === true || prevStatus === 'approved';
+              const isNowApproved = data.approved === true || data.status === 'approved';
+
+              myParticipations[q.id] = data;
+
+              if (isNowApproved && !wasApproved && prevStatus === 'pending') {
+                if (typeof window.playVictoryChime === 'function') window.playVictoryChime();
+                showToast(`🎉 ¡Tu solicitud fue APROBADA en "${q.name}"! 🏆`);
+              }
+
+              renderQuinielasCatalog();
+              if (activeQuiniela && activeQuiniela.id === q.id) {
+                updateQuinielaView(activeQuiniela);
+              }
+            } else {
+              delete myParticipations[q.id];
+              renderQuinielasCatalog();
+            }
+          });
         }
       } catch (e) {}
     });
-    await Promise.all(promises);
   }
 
   // --- Universal Match Date & Chronological Sorting Helper ---
@@ -250,15 +264,18 @@
       'dic': 11, 'diciembre': 11, 'dec': 11, 'december': 11
     };
 
+    // Clean accents and punctuation
+    const cleanStr = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
     // Extract Day (1-31) and Month Name
     let day = null;
     let month = null;
 
     // Pattern A: "28 de ago" or "28 ago" or "28 de agosto"
-    const patternA = str.match(/(\d{1,2})\s*(?:de|\/|-)?\s*([a-záéíóú]+)/i);
+    const patternA = cleanStr.match(/(\d{1,2})\s*(?:de|\/|-)?\s*([a-z]+)/i);
     if (patternA) {
       const dVal = parseInt(patternA[1], 10);
-      const mRaw = patternA[2].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+      const mRaw = patternA[2].toLowerCase();
       const mKey = mRaw.slice(0, 3);
       if (dVal >= 1 && dVal <= 31 && (monthMap[mKey] !== undefined || monthMap[mRaw] !== undefined)) {
         day = dVal;
@@ -268,9 +285,9 @@
 
     // Pattern B: "ago 28" or "agosto 28"
     if (day === null || month === null) {
-      const patternB = str.match(/([a-záéíóú]+)\s*(\d{1,2})/i);
+      const patternB = cleanStr.match(/([a-z]+)\s*(\d{1,2})/i);
       if (patternB) {
-        const mRaw = patternB[1].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        const mRaw = patternB[1].toLowerCase();
         const mKey = mRaw.slice(0, 3);
         const dVal = parseInt(patternB[2], 10);
         if (dVal >= 1 && dVal <= 31 && (monthMap[mKey] !== undefined || monthMap[mRaw] !== undefined)) {
@@ -280,20 +297,19 @@
       }
     }
 
-    // Extract Time: "12:45 p.m.", "05:00 p.m.", "17:00", "1:30 pm"
+    // Extract Time: "12:45 p.m.", "05:00 p.m.", "05:00 p. m.", "17:00", "1:30 pm"
     let hours = 12;
     let minutes = 0;
-    const timeMatch = str.match(/(\d{1,2}):(\d{2})(?:\s*(a\.?m\.?|p\.?m\.?|am|pm))?/i);
+    const timeMatch = cleanStr.match(/(\d{1,2}):(\d{2})(?:\s*([ap])\.?\s*m\.?)?/i);
     if (timeMatch) {
       hours = parseInt(timeMatch[1], 10);
       minutes = parseInt(timeMatch[2], 10);
-      const ampm = (timeMatch[3] || '').toLowerCase().replace(/\./g, '');
-      if (ampm === 'pm' && hours < 12) hours += 12;
-      if (ampm === 'am' && hours === 12) hours = 0;
+      const ap = (timeMatch[3] || '').toLowerCase();
+      if (ap === 'p' && hours < 12) hours += 12;
+      if (ap === 'a' && hours === 12) hours = 0;
     }
 
-    // Extract Year if present, otherwise default to current year
-    const yearMatch = str.match(/\b(20\d{2})\b/);
+    const yearMatch = cleanStr.match(/\b(20\d{2})\b/);
     const year = yearMatch ? parseInt(yearMatch[1], 10) : new Date().getFullYear();
 
     if (day !== null && month !== null) {
@@ -321,10 +337,12 @@
       return { isLocked: true, reason: 'Quiniela bloqueada por el administrador', earliestTime: null };
     }
 
-    const matches = q.matches || [];
-    if (matches.length === 0) {
+    const rawMatches = q.matches || [];
+    if (rawMatches.length === 0) {
       return { isLocked: false, reason: 'Sin partidos', earliestTime: null };
     }
+
+    const matches = sortMatchesChronologically(rawMatches);
 
     // Check if any match is already LIVE, POST or COMPLETED
     const anyStarted = matches.some(m => m.status === 'in' || m.status === 'post' || m.completed === true);
@@ -362,11 +380,13 @@
   }
 
   function detectSport(m) {
+    if (!m) return 'soccer';
     if (m.sport && m.sport !== 'mixed') return m.sport;
     const label = (m.leagueLabel || '').toLowerCase();
-    if (label.includes('nfl') || label.includes('ncaa football') || label.includes('football')) return 'football';
-    if (label.includes('mlb') || label.includes('beisbol') || label.includes('baseball')) return 'baseball';
-    if (label.includes('nba') || label.includes('wnba') || label.includes('basquet')) return 'basketball';
+    const slug = (m.slug || '').toLowerCase();
+    if (label.includes('nfl') || label.includes('ncaa football') || label.includes('football') || slug.includes('nfl') || slug.includes('football') || slug.includes('college-football')) return 'football';
+    if (label.includes('mlb') || label.includes('beisbol') || label.includes('baseball') || slug.includes('mlb') || slug.includes('baseball')) return 'baseball';
+    if (label.includes('nba') || label.includes('wnba') || label.includes('basquet') || label.includes('basketball') || slug.includes('nba') || slug.includes('wnba') || slug.includes('basketball') || slug.includes('mens-college-basketball')) return 'basketball';
     return 'soccer';
   }
 

@@ -735,8 +735,11 @@
           tag: tag || 'drinks-wins-alert'
         });
       } catch (e) {}
-    }
   }
+
+  window.playNotificationChime = playNotificationChime;
+  window.sendSystemNotification = sendSystemNotification;
+  window.playVictoryChime = () => playNotificationChime('victory');
 
   let lastPendingCount = 0;
 
