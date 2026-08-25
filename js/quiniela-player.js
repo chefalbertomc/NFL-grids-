@@ -621,6 +621,16 @@
         }
       });
     }
+
+    const inpW = document.getElementById(`inp_inline_waiter_${q.id}`);
+    if (inpW) {
+      inpW.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          window.submitInlineJoin(q.id);
+        }
+      });
+    }
   }
 
   window.selectQuinielaToJoin = selectQuinielaToJoin;
