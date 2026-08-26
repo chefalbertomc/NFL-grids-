@@ -134,13 +134,6 @@
             console.warn('[auth] Redirect note:', redErr);
           }
         }
-        
-        // If popup closed or COOP blocked without completing, prompt for nickname fallback
-        const saved = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '';
-        const nick = prompt('📱 Escribe tu Nombre o Apodo para ingresar a jugar de inmediato:', saved);
-        if (nick && nick.trim()) {
-          await window.loginAsGuest(nick.trim().toUpperCase());
-        }
       }
     } catch (err) {
       handleAuthError(err);
@@ -856,11 +849,23 @@
       firebase.auth().getRedirectResult().then(result => {
         if (result && result.user) {
           window.currentUser = result.user;
-          localStorage.setItem('bww_last_auth_user', JSON.stringify({ uid: result.user.uid, displayName: result.user.displayName, email: result.user.email }));
+          const userPayload = {
+            uid: result.user.uid,
+            displayName: result.user.displayName,
+            email: result.user.email,
+            photoURL: result.user.photoURL || 'img/logo.jpg'
+          };
+          localStorage.setItem('bww_last_auth_user', JSON.stringify(userPayload));
+          if (result.user.displayName) {
+            localStorage.setItem('player_nick', result.user.displayName.toUpperCase());
+            localStorage.setItem('bww_q_name', result.user.displayName.toUpperCase());
+          }
           window.hideLoginModal();
+          updateHeaderUI(result.user);
+          notifyCallbacks();
         }
       }).catch(err => {
-        console.warn('[auth] Redirect result error:', err);
+        console.warn('[auth] Redirect result note:', err);
       });
     }
 
@@ -871,7 +876,13 @@
 
         if (user) {
           window.currentUser = user;
-          localStorage.setItem('bww_last_auth_user', JSON.stringify({ uid: user.uid, displayName: user.displayName, email: user.email }));
+          const userPayload = {
+            uid: user.uid,
+            displayName: user.displayName,
+            email: user.email,
+            photoURL: user.photoURL || 'img/logo.jpg'
+          };
+          localStorage.setItem('bww_last_auth_user', JSON.stringify(userPayload));
           window.hideLoginModal();
 
           // Check if Admin

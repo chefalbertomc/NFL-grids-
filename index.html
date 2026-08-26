@@ -608,14 +608,14 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=156.0"></script>
-  <script src="js/auth.js?v=156.0"></script>
-  <script src="js/team-logos.js?v=156.0"></script>
-  <script src="js/grids.js?v=156.0"></script>
-  <script src="js/quiniela-player.js?v=156.0"></script>
-  <script src="js/survivor.js?v=156.0"></script>
-  <script src="js/firstgoal.js?v=156.0"></script>
-  <script src="js/bingo-player.js?v=156.0"></script>
+  <script src="js/firebase-config.js?v=157.0"></script>
+  <script src="js/auth.js?v=157.0"></script>
+  <script src="js/team-logos.js?v=157.0"></script>
+  <script src="js/grids.js?v=157.0"></script>
+  <script src="js/quiniela-player.js?v=157.0"></script>
+  <script src="js/survivor.js?v=157.0"></script>
+  <script src="js/firstgoal.js?v=157.0"></script>
+  <script src="js/bingo-player.js?v=157.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -813,18 +813,13 @@
 
   <!-- Global Google Login Modal Gate -->
   <div id="globalLoginModal" class="login-modal-overlay">
-    <div class="login-modal-card" style="max-width:390px;">
+    <div class="login-modal-card" style="max-width:380px;">
       <button id="loginModalClose" class="login-modal-close" title="Cerrar" onclick="window.hideLoginModal()">✕</button>
       <div class="login-modal-icon">🏆</div>
-      <h3 class="login-modal-title" id="loginModalTitle" style="font-size:18px; font-weight:900; margin-bottom:4px;">¡Inicia Sesión para Jugar!</h3>
-      <p class="login-modal-subtitle" id="loginModalSubtitle" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Accede con Google o escribe tu Apodo para registrar pronósticos y asegurar tus jugadas.</p>
+      <h3 class="login-modal-title" id="loginModalTitle" style="font-size:18px; font-weight:900; margin-bottom:4px;">¡Inicia Sesión con Google!</h3>
+      <p class="login-modal-subtitle" id="loginModalSubtitle" style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">Accede con tu cuenta de Google para asegurar tus casillas, guardar pronósticos y ver tus posiciones en tiempo real.</p>
 
-      <!-- Inline In-App Browser Warning -->
-      <div id="inAppBrowserWarning" style="display:none; color:#ffd100; font-size:12px; font-weight:800; background:rgba(255,209,0,0.1); border:1.5px solid rgba(255,209,0,0.35); padding:10px 14px; border-radius:12px; margin: 12px 0; line-height:1.4; text-align:left; box-shadow:0 4px 12px rgba(255,209,0,0.1);">
-        📱 Navegador de WhatsApp/Instagram o PWA detectado: Inicia con tu apodo abajo para evitar pantallas blancas.
-      </div>
-
-      <div class="login-buttons-stack" style="margin-top:14px;">
+      <div class="login-buttons-stack">
         <!-- Google 1-Click Login -->
         <button type="button" class="btn-social-login btn-login-google" id="btnModalGoogle" onclick="window.loginWithGoogle()" style="padding:14px 20px; font-size:15px; border-radius:14px; box-shadow: 0 6px 20px rgba(0,0,0,0.4); cursor:pointer; width:100%;">
           <svg class="btn-social-icon" viewBox="0 0 24 24" style="width:24px; height:24px;">
@@ -835,19 +830,6 @@
           </svg>
           <span style="font-weight:900; letter-spacing:0.02em;">Continuar con Google</span>
         </button>
-
-        <div style="display:flex; align-items:center; gap:8px; margin: 12px 0; color:var(--text-muted); font-size:11px; font-weight:700;">
-          <div style="flex:1; height:1px; background:rgba(255,255,255,0.12);"></div>
-          <span>O CON TU APODO</span>
-          <div style="flex:1; height:1px; background:rgba(255,255,255,0.12);"></div>
-        </div>
-
-        <div style="display:flex; gap:8px;">
-          <input type="text" id="inpGuestNick" class="q-inline-input" placeholder="TU APODO (EJ. BETO)" maxlength="20" style="flex:1; padding:12px 14px; font-size:13px; font-weight:800; border-radius:12px; background:rgba(255,255,255,0.08); border:1.5px solid rgba(255,255,255,0.2); color:#fff; text-transform:uppercase;" onkeydown="if(event.key==='Enter'){event.preventDefault();window.loginAsGuest();}" />
-          <button type="button" id="btnGuestLogin" class="btn btn-primary" onclick="window.loginAsGuest()" style="width:auto; padding:12px 16px; font-size:13px; font-weight:900; border-radius:12px;">
-            Entrar ▶
-          </button>
-        </div>
 
         <button type="button" class="btn btn-secondary" onclick="window.switchGoogleAccount()" style="margin-top:10px; width:100%; font-size:11px; font-weight:800; border-radius:12px; padding:10px 14px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);">
           🔄 Cambiar de Cuenta de Google
