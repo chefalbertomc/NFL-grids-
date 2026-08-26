@@ -112,8 +112,23 @@
       const isFinal = game.status === 'completed' || game.status === 'post';
       const clockText = game.clock ? `${game.clock}` : (isLive ? '1T' : '');
 
-      let statusBadgeHtml = `<span class="fg-tv-status-badge scheduled">🗓️ ${game.matchDateFormatted || 'Por Iniciar'}</span>`;
-      let centerScoreHtml = `<div class="fg-tv-vs-badge">VS</div><div class="fg-tv-kickoff-time">${game.matchTime ? game.matchTime + ' hrs' : 'Por Iniciar'}</div>`;
+      let scheduleText = '';
+      if (game.matchDateFormatted && game.matchDateFormatted !== 'HOY' && game.matchDateFormatted !== 'Por Iniciar') {
+        scheduleText = game.matchDateFormatted;
+      } else if (game.matchDate) {
+        try {
+          const d = new Date(game.matchDate);
+          if (!isNaN(d.getTime())) {
+            const dStr = d.toLocaleDateString('es-MX', { weekday: 'short', month: 'short', day: 'numeric' });
+            const tStr = game.matchTime || d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) + ' hrs';
+            scheduleText = `${dStr} • ${tStr}`;
+          }
+        } catch (e) {}
+      }
+      if (!scheduleText) scheduleText = game.matchTime ? `${game.matchTime} hrs` : 'Próximo Partido';
+
+      let statusBadgeHtml = `<span class="fg-tv-status-badge scheduled">🗓️ ${scheduleText}</span>`;
+      let centerScoreHtml = `<div class="fg-tv-vs-badge">VS</div><div class="fg-tv-kickoff-time">${game.matchTime ? game.matchTime + ' hrs' : 'Próximo'}</div>`;
 
       if (isLive) {
         statusBadgeHtml = `<span class="fg-tv-status-badge live"><span class="pulse-dot"></span> 🔴 EN VIVO • Min ${clockText}</span>`;
@@ -137,7 +152,7 @@
           <div>
             👉 Toca cualquier celda vacía con borde verde <strong style="color:#00e676;">+ ELEGIR</strong> para reclamar tu minuto. Límite: <strong style="color:#ffd100;">${maxLimit === 999 ? 'Ilimitado' : maxLimit + ' bloque(s)'}</strong> por persona.
           </div>
-          <button type="button" class="btn btn-secondary" onclick="window.shareFirstStrikerWhatsApp('${game.id}', '${encodeURIComponent(homeStyle.name)}', '${encodeURIComponent(awayStyle.name)}', '${encodeURIComponent(game.matchDateFormatted || game.matchDate || '')}', '${encodeURIComponent(game.matchTime || '')}')" style="width:auto; padding:6px 12px; font-size:11.5px; font-weight:800; border-radius:8px; background:rgba(37,211,102,0.15); border:1px solid #25d366; color:#25d366; display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
+          <button type="button" class="btn btn-secondary" onclick="window.shareFirstStrikerWhatsApp('${game.id}', '${encodeURIComponent(homeStyle.name)}', '${encodeURIComponent(awayStyle.name)}', '${encodeURIComponent(scheduleText)}', '${encodeURIComponent(game.matchTime || '')}')" style="width:auto; padding:6px 12px; font-size:11.5px; font-weight:800; border-radius:8px; background:rgba(37,211,102,0.15); border:1px solid #25d366; color:#25d366; display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
             <span>📲</span> Compartir en WhatsApp
           </button>
         </div>
@@ -147,7 +162,7 @@
       const tvScorebugHtml = `
         <div class="fg-tv-scorebug">
           <div class="fg-tv-header">
-            <span class="fg-tv-league">🏆 ${game.leagueName || 'First Striker Wins'} • 📍 ${game.store || 'Todas'} • 🗓️ ${game.matchDateFormatted || game.matchDate || 'Hoy'}</span>
+            <span class="fg-tv-league">🏆 ${game.leagueName && game.leagueName !== 'First Striker Wins' ? game.leagueName : 'Fútbol'} • 📍 ${game.store || 'Todas'}</span>
             ${statusBadgeHtml}
           </div>
           <div class="fg-tv-body">
@@ -155,7 +170,6 @@
               <img class="fg-tv-team-logo" src="${awayStyle.logo}" alt="${awayStyle.abbr}" onerror="this.src='img/logo.jpg'"/>
               <div class="fg-tv-team-info">
                 <span class="fg-tv-team-name">${awayStyle.name}</span>
-                <span class="fg-tv-team-role">Visitante</span>
               </div>
             </div>
             <div class="fg-tv-center-bug">
@@ -164,7 +178,6 @@
             <div class="fg-tv-team-side home" style="background: linear-gradient(225deg, ${homeStyle.color}dd 0%, rgba(10,15,24,0.95) 100%);">
               <div class="fg-tv-team-info">
                 <span class="fg-tv-team-name">${homeStyle.name}</span>
-                <span class="fg-tv-team-role">Local</span>
               </div>
               <img class="fg-tv-team-logo" src="${homeStyle.logo}" alt="${homeStyle.abbr}" onerror="this.src='img/logo.jpg'"/>
             </div>
@@ -349,14 +362,14 @@
           <table class="fg-board-table">
             <thead>
               <tr>
-                <th class="away" style="width:calc(50% - 40px); background: linear-gradient(135deg, ${aStyle.color}88 0%, rgba(10,15,24,0.95) 100%); font-size:12px; font-weight:900; color:#ffd100; letter-spacing:0.5px; padding:10px;">
-                  ⚽ ${away}
+                <th class="away" style="width:calc(50% - 40px); background: linear-gradient(135deg, ${aStyle.color}88 0%, rgba(10,15,24,0.95) 100%); font-size:12px; font-weight:900; color:#ffd100; letter-spacing:1px; padding:10px;">
+                  VISITANTE
                 </th>
                 <th style="width:80px; background:rgba(0,0,0,0.5); color:#ffffff; font-weight:900; font-size:11.5px; padding:10px; letter-spacing:0.5px;">
                   MINUTO
                 </th>
-                <th class="local" style="width:calc(50% - 40px); background: linear-gradient(225deg, ${hStyle.color}88 0%, rgba(10,15,24,0.95) 100%); font-size:12px; font-weight:900; color:#ffd100; letter-spacing:0.5px; padding:10px;">
-                  ⚽ ${home}
+                <th class="local" style="width:calc(50% - 40px); background: linear-gradient(225deg, ${hStyle.color}88 0%, rgba(10,15,24,0.95) 100%); font-size:12px; font-weight:900; color:#ffd100; letter-spacing:1px; padding:10px;">
+                  LOCAL
                 </th>
               </tr>
             </thead>
@@ -652,6 +665,20 @@
       }
     }
   }
+
+  window.openFGHowToPlayModal = function() {
+    const modal = document.getElementById('fgHowToPlayModal');
+    if (modal) {
+      modal.classList.add('active');
+    }
+  };
+
+  window.closeFGHowToPlayModal = function() {
+    const modal = document.getElementById('fgHowToPlayModal');
+    if (modal) {
+      modal.classList.remove('active');
+    }
+  };
 
   if (!liveSyncInterval) {
     liveSyncInterval = setInterval(syncActiveGamesESPN, 35000);
