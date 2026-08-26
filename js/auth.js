@@ -1,7 +1,7 @@
-// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v78.0)
+// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v156.0)
 (function() {
   'use strict';
-  console.log('%c🚀 DRINKS & WINS v155.0 CARGADO EXITOSAMENTE', 'background: #ffd100; color: #000; font-weight: bold; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
+  console.log('%c🚀 DRINKS & WINS v156.0 CARGADO EXITOSAMENTE', 'background: #ffd100; color: #000; font-weight: bold; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
 
   window.currentUser = null;
   window.isAdmin = false;
@@ -67,7 +67,6 @@
   function handleAuthError(err) {
     console.error('[auth] Google sign-in error:', err);
     if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-      // User closed popup or cancelled, do not alert
       return;
     }
     if (err.code === 'auth/unauthorized-domain') {
@@ -103,7 +102,17 @@
         const result = await auth.signInWithPopup(provider);
         if (result && result.user) {
           window.currentUser = result.user;
-          localStorage.setItem('bww_last_auth_user', JSON.stringify({ uid: result.user.uid, displayName: result.user.displayName, email: result.user.email }));
+          const userPayload = {
+            uid: result.user.uid,
+            displayName: result.user.displayName,
+            email: result.user.email,
+            photoURL: result.user.photoURL || 'img/logo.jpg'
+          };
+          localStorage.setItem('bww_last_auth_user', JSON.stringify(userPayload));
+          if (result.user.displayName) {
+            localStorage.setItem('player_nick', result.user.displayName.toUpperCase());
+            localStorage.setItem('bww_q_name', result.user.displayName.toUpperCase());
+          }
           window.hideLoginModal();
           updateHeaderUI(result.user);
           notifyCallbacks();
@@ -112,15 +121,23 @@
             pendingAuthAction = null;
             action(result.user);
           }
-        }
-      } catch (err) {
-        console.warn('[auth] Popup sign-in error:', err);
-        if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
           return;
         }
-        // On mobile / Safari where popups or third-party cookies might be blocked:
+      } catch (err) {
+        console.warn('[auth] Popup sign-in note:', err);
+        if (err.code === 'auth/popup-blocked' || (err.message && err.message.includes('opener'))) {
+          try {
+            console.log('[auth] Intentando fallback por redirección...');
+            await auth.signInWithRedirect(provider);
+            return;
+          } catch (redErr) {
+            console.warn('[auth] Redirect note:', redErr);
+          }
+        }
+        
+        // If popup closed or COOP blocked without completing, prompt for nickname fallback
         const saved = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '';
-        const nick = prompt('📱 Escribe tu Nombre o Apodo para ingresar a jugar:', saved);
+        const nick = prompt('📱 Escribe tu Nombre o Apodo para ingresar a jugar de inmediato:', saved);
         if (nick && nick.trim()) {
           await window.loginAsGuest(nick.trim().toUpperCase());
         }
@@ -895,6 +912,23 @@
               notifyCallbacks();
               return;
             } catch (e) {}
+          }
+          const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name');
+          let savedId = localStorage.getItem('bww_player_id');
+          if (savedNick && !window._explicitSignOut) {
+            if (!savedId) {
+              savedId = 'user_' + Math.random().toString(36).substring(2, 11);
+              localStorage.setItem('bww_player_id', savedId);
+            }
+            window.currentUser = {
+              uid: savedId,
+              displayName: savedNick,
+              email: '',
+              photoURL: localStorage.getItem('user_custom_avatar') || 'img/logo.jpg'
+            };
+            updateHeaderUI(window.currentUser);
+            notifyCallbacks();
+            return;
           }
           window.currentUser = null;
           window.isAdmin = false;
