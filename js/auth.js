@@ -1,7 +1,7 @@
-// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v156.0)
+// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v182.0)
 (function() {
   'use strict';
-  console.log('%c🚀 DRINKS & WINS v156.0 CARGADO EXITOSAMENTE', 'background: #ffd100; color: #000; font-weight: bold; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
+  console.log('%c🚀 DRINKS & WINS v182.0 CARGADO EXITOSAMENTE', 'background: #ffd100; color: #000; font-weight: bold; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
 
   window.currentUser = null;
   window.isAdmin = false;
@@ -46,8 +46,15 @@
   };
 
   function notifyCallbacks() {
-    authCallbacks.forEach(cb => cb(window.currentUser, window.isAdmin));
+    authCallbacks.forEach(cb => {
+      try {
+        cb(window.currentUser, window.isAdmin);
+      } catch (e) {
+        console.warn('[auth] Callback error:', e);
+      }
+    });
   }
+  window.notifyAuthCallbacks = notifyCallbacks;
 
   function setLoginButtonLoading(btnId, isLoading, text) {
     const btn = document.getElementById(btnId);
@@ -65,16 +72,17 @@
   }
 
   function handleAuthError(err) {
-    console.error('[auth] Google sign-in error:', err);
+    if (!err) return;
     if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-      return;
+      return; // Clean silent return on user dismissing popup
     }
+    console.error('[auth] Google sign-in error:', err);
     if (err.code === 'auth/unauthorized-domain') {
       alert('⚠️ Error de Dominio: El dominio actual (' + window.location.hostname + ') no está en la lista de dominios autorizados de Firebase Console (Authentication > Settings > Authorized domains).');
       return;
     }
     if (err.code === 'auth/operation-not-supported-in-this-environment' || (err.message && err.message.includes('disallowed_useragent'))) {
-      alert('📱 Aviso: El navegador interno de esta app (ej. WhatsApp/Instagram) bloquea el acceso con Google.\n\n👉 Usa la opción "O con tu Apodo" abajo o abre este enlace en Safari o Chrome (tres puntos ⋮ arriba a la derecha).');
+      alert('📱 Aviso: El navegador interno de esta app (ej. WhatsApp/Instagram) bloquea el acceso con Google.\n\n👉 Abre este enlace en Safari o Chrome (tres puntos ⋮ arriba a la derecha) para iniciar sesión con Google.');
       return;
     }
     alert('Error al iniciar sesión: ' + (err.message || err.code));
@@ -109,6 +117,8 @@
             photoURL: result.user.photoURL || 'img/logo.jpg'
           };
           localStorage.setItem('bww_last_auth_user', JSON.stringify(userPayload));
+          localStorage.setItem('player_nick', result.user.displayName || '');
+          localStorage.setItem('bww_q_name', result.user.displayName || '');
           window.hideLoginModal();
           updateHeaderUI(result.user);
           notifyCallbacks();
@@ -120,9 +130,8 @@
           return;
         }
       } catch (err) {
-        console.warn('[auth] Popup sign-in error:', err);
         if (err.code === 'auth/popup-blocked' || (err.message && err.message.includes('opener'))) {
-          alert('📱 Aviso: Tu navegador bloqueó la ventana emergente de Google.\n\n👉 Puedes iniciar sesión fácilmente escribiendo tu Apodo en "O entra con tu Apodo" o permitiendo ventanas emergentes en Safari/Chrome.');
+          alert('📱 Aviso: Tu navegador bloqueó la ventana emergente de Google.\n\n👉 Permite ventanas emergentes en Safari/Chrome o abre el enlace en tu navegador principal.');
         } else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
           handleAuthError(err);
         }
@@ -765,14 +774,22 @@
       warningEl.style.display = isInAppBrowser() ? 'block' : 'none';
     }
 
-    if (modal) modal.classList.add('active');
+    if (modal) {
+      modal.style.display = 'flex';
+      modal.classList.add('active');
+    }
   };
 
   window.hideLoginModal = function() {
     const modal = document.getElementById('globalLoginModal');
-    if (modal) modal.classList.remove('active');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+    }
     pendingAuthAction = null;
   };
+
+  window.updateHeaderUI = updateHeaderUI;
 
   function initAuthUI() {
     const btnHeaderLogin = document.getElementById('btnHeaderLogin');
