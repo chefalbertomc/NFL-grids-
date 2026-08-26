@@ -1760,12 +1760,14 @@
   function renderFGGamesList(events) {
     const container = document.getElementById('fgGamePickerContainer');
     const list = document.getElementById('fgGamePickerList');
+    if (!container || !list) return;
+
     container.style.display = 'block';
     list.innerHTML = '';
     fgSelectedMatchData = null;
 
     if (!events || events.length === 0) {
-      list.innerHTML = '<div class="hint-text text-center py-2">No hay partidos agendados o activos en ESPN.</div>';
+      list.innerHTML = '<div class="hint-text text-center" style="padding:16px 0; color:var(--text-muted); text-align:center;">No hay partidos agendados o activos en ESPN para este deporte/rango.</div>';
       return;
     }
 
@@ -1781,8 +1783,29 @@
       const rawHome = team1.homeAway === 'home' ? team1 : team2;
       const rawAway = team1.homeAway === 'away' ? team1 : team2;
 
-      const home = window.resolveTeamStyle ? window.resolveTeamStyle(rawHome.team || rawHome) : { name: rawHome.team?.shortDisplayName || 'Local', abbr: 'HOM', logo: rawHome.team?.logo || 'img/logo.jpg', color: '#1a1a24', secondaryColor: '#ffd100' };
-      const away = window.resolveTeamStyle ? window.resolveTeamStyle(rawAway.team || rawAway) : { name: rawAway.team?.shortDisplayName || 'Visitante', abbr: 'AWY', logo: rawAway.team?.logo || 'img/logo.jpg', color: '#1a1a24', secondaryColor: '#ffd100' };
+      const homeObj = rawHome.team || rawHome;
+      const awayObj = rawAway.team || rawAway;
+
+      const home = window.resolveTeamStyle ? window.resolveTeamStyle(homeObj) : {
+        name: homeObj.shortDisplayName || homeObj.displayName || homeObj.name || 'Local',
+        abbr: homeObj.abbreviation || 'HOM',
+        logo: homeObj.logo || 'img/logo.jpg',
+        color: '#1a1a24',
+        secondaryColor: '#ffd100'
+      };
+
+      const away = window.resolveTeamStyle ? window.resolveTeamStyle(awayObj) : {
+        name: awayObj.shortDisplayName || awayObj.displayName || awayObj.name || 'Visitante',
+        abbr: awayObj.abbreviation || 'AWY',
+        logo: awayObj.logo || 'img/logo.jpg',
+        color: '#1a1a24',
+        secondaryColor: '#ffd100'
+      };
+
+      const homeName = home.name || homeObj.shortDisplayName || homeObj.displayName || 'Local';
+      const awayName = away.name || awayObj.shortDisplayName || awayObj.displayName || 'Visitante';
+      const homeLogo = home.logo || homeObj.logo || 'img/logo.jpg';
+      const awayLogo = away.logo || awayObj.logo || 'img/logo.jpg';
 
       const state = ev.status?.type?.state || 'pre';
       const isLive = state === 'in';
@@ -1796,68 +1819,85 @@
       const awayScore = rawAway.score !== undefined ? rawAway.score : '-';
       const homeScore = rawHome.score !== undefined ? rawHome.score : '-';
 
-      let statusBadgeHtml = `<span class="fg-tv-status-badge scheduled">🗓️ ${dateStr} • ${timeStr}</span>`;
-      let centerHtml = `<div class="fg-tv-vs-badge">VS</div><div class="fg-tv-kickoff-time">${timeStr}</div>`;
-
+      let statusBadge = `<span style="font-size:11px; color:#a0aab8; font-weight:700; background:rgba(255,255,255,0.06); padding:3px 8px; border-radius:6px;">🗓️ ${dateStr} • ${timeStr}</span>`;
       if (isLive) {
-        statusBadgeHtml = `<span class="fg-tv-status-badge live"><span class="pulse-dot"></span> 🔴 EN VIVO • Min ${clockStr}</span>`;
-        centerHtml = `<div class="fg-tv-score-digits">${awayScore} - ${homeScore}</div><div class="fg-tv-clock">${clockStr}</div>`;
+        statusBadge = `<span style="font-size:11px; color:#fff; font-weight:900; background:linear-gradient(135deg, #ff3b30, #c70000); padding:3px 8px; border-radius:6px; box-shadow:0 0 10px rgba(255,59,48,0.5);">🔴 EN VIVO • Min ${clockStr} (${awayScore}-${homeScore})</span>`;
       } else if (isFinal) {
-        statusBadgeHtml = `<span class="fg-tv-status-badge final">🏁 FINAL</span>`;
-        centerHtml = `<div class="fg-tv-score-digits">${awayScore} - ${homeScore}</div><div class="fg-tv-clock" style="color:#a0aab8;">FINAL</div>`;
+        statusBadge = `<span style="font-size:11px; color:#ffd100; font-weight:800; background:rgba(255,209,0,0.15); border:1px solid rgba(255,209,0,0.3); padding:3px 8px; border-radius:6px;">🏁 FINAL (${awayScore}-${homeScore})</span>`;
       }
 
       const card = document.createElement('div');
-      card.className = 'fg-tv-scorebug';
-      card.style.cursor = 'pointer';
-      card.style.transition = 'all 0.2s ease';
+      card.className = 'fg-match-card';
+      card.style.cssText = 'background:#121824; border:1.5px solid rgba(255,255,255,0.12); border-radius:14px; padding:12px 14px; cursor:pointer; transition:all 0.2s ease; display:flex; flex-direction:column; gap:10px; margin-bottom:8px; user-select:none;';
+      
       card.innerHTML = `
-        <div class="fg-tv-header">
-          <span class="fg-tv-league">🏆 ${defaultLeagueName}</span>
-          ${statusBadgeHtml}
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
+          <span style="font-size:11px; font-weight:900; color:#ffd100; text-transform:uppercase; letter-spacing:0.5px;">🏆 ${defaultLeagueName}</span>
+          ${statusBadge}
         </div>
-        <div class="fg-tv-body">
-          <div class="fg-tv-team-side away" style="background: linear-gradient(135deg, ${away.color}dd 0%, rgba(10,15,24,0.95) 100%);">
-            <img class="fg-tv-team-logo" src="${away.logo}" alt="${away.abbr}" onerror="this.src='img/logo.jpg'"/>
-            <div class="fg-tv-team-info">
-              <span class="fg-tv-team-name">${away.name}</span>
-              <span class="fg-tv-team-role">Visitante</span>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; background:rgba(0,0,0,0.35); padding:10px 14px; border-radius:10px;">
+          <!-- Away Team -->
+          <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
+            <img src="${awayLogo}" alt="${away.abbr || 'AWY'}" onerror="this.src='img/logo.jpg'" style="width:34px; height:34px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));" />
+            <div style="min-width:0; overflow:hidden;">
+              <div style="font-size:13.5px; font-weight:900; color:#ffffff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${awayName}</div>
+              <div style="font-size:10px; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase;">Visitante</div>
             </div>
           </div>
-          <div class="fg-tv-center-bug">
-            ${centerHtml}
+
+          <!-- VS / Score Center -->
+          <div style="text-align:center; padding:0 8px; flex-shrink:0;">
+            ${isLive || isFinal ? `
+              <div style="font-size:16px; font-weight:900; color:#ffd100; letter-spacing:1px; line-height:1;">${awayScore} - ${homeScore}</div>
+              <div style="font-size:9.5px; font-weight:800; color:#a0aab8; margin-top:2px;">${isLive ? clockStr : 'FINAL'}</div>
+            ` : `
+              <div style="font-size:11px; font-weight:900; color:#ffd100; background:rgba(255,209,0,0.15); border:1px solid rgba(255,209,0,0.3); padding:3px 8px; border-radius:6px;">VS</div>
+              <div style="font-size:9.5px; font-weight:700; color:#a0aab8; margin-top:2px;">${timeStr}</div>
+            `}
           </div>
-          <div class="fg-tv-team-side home" style="background: linear-gradient(225deg, ${home.color}dd 0%, rgba(10,15,24,0.95) 100%);">
-            <div class="fg-tv-team-info">
-              <span class="fg-tv-team-name">${home.name}</span>
-              <span class="fg-tv-team-role">Local</span>
+
+          <!-- Home Team -->
+          <div style="display:flex; align-items:center; justify-content:flex-end; gap:10px; flex:1; min-width:0; text-align:right;">
+            <div style="min-width:0; overflow:hidden;">
+              <div style="font-size:13.5px; font-weight:900; color:#ffffff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${homeName}</div>
+              <div style="font-size:10px; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase;">Local</div>
             </div>
-            <img class="fg-tv-team-logo" src="${home.logo}" alt="${home.abbr}" onerror="this.src='img/logo.jpg'"/>
+            <img src="${homeLogo}" alt="${home.abbr || 'HOM'}" onerror="this.src='img/logo.jpg'" style="width:34px; height:34px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));" />
           </div>
+        </div>
+        <div class="fg-select-indicator" style="display:none; text-align:center; font-size:11px; font-weight:900; color:#ffd100; background:rgba(255,209,0,0.12); padding:4px; border-radius:6px; border:1px dashed #ffd100;">
+          ✓ PARTIDO SELECCIONADO PARA CREAR SALA
         </div>
       `;
 
       card.addEventListener('click', () => {
-        document.querySelectorAll('#fgGamePickerList .fg-tv-scorebug').forEach(c => {
-          c.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+        document.querySelectorAll('#fgGamePickerList .fg-match-card').forEach(c => {
+          c.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+          c.style.background = '#121824';
           c.style.boxShadow = 'none';
+          const ind = c.querySelector('.fg-select-indicator');
+          if (ind) ind.style.display = 'none';
         });
-        card.style.border = '2px solid #ffd100';
-        card.style.boxShadow = '0 0 20px rgba(255, 209, 0, 0.4)';
-        
-        const defName = `${away.name} vs ${home.name}`;
+
+        card.style.borderColor = '#ffd100';
+        card.style.background = 'rgba(255, 209, 0, 0.06)';
+        card.style.boxShadow = '0 0 16px rgba(255, 209, 0, 0.35)';
+        const ind = card.querySelector('.fg-select-indicator');
+        if (ind) ind.style.display = 'block';
+
+        const defName = `${awayName} vs ${homeName}`;
         fgSelectedMatchData = {
           eventId: ev.id,
-          homeTeam: home.name,
-          awayTeam: away.name,
-          homeAbbr: home.abbr,
-          awayAbbr: away.abbr,
-          homeLogo: home.logo,
-          awayLogo: away.logo,
-          homeColor: home.color,
-          awayColor: away.color,
-          homeSecondaryColor: home.secondaryColor,
-          awaySecondaryColor: away.secondaryColor,
+          homeTeam: homeName,
+          awayTeam: awayName,
+          homeAbbr: home.abbr || 'HOM',
+          awayAbbr: away.abbr || 'AWY',
+          homeLogo: homeLogo,
+          awayLogo: awayLogo,
+          homeColor: home.color || '#1a1a24',
+          awayColor: away.color || '#1a1a24',
+          homeSecondaryColor: home.secondaryColor || '#ffd100',
+          awaySecondaryColor: away.secondaryColor || '#ffd100',
           leagueName: defaultLeagueName,
           matchDate: ev.date || '',
           matchTime: timeStr,
@@ -1868,6 +1908,7 @@
           awayScore: isLive || isFinal ? awayScore : '',
           defaultName: defName
         };
+
         const nameInp = document.getElementById('fgGameName');
         if (nameInp) nameInp.value = defName;
       });
@@ -1923,9 +1964,12 @@
       alert('🏆 ¡Juego de Minuto del Gol creado exitosamente!');
       document.getElementById('fgGameName').value = '';
       fgSelectedMatchData = null;
-      document.querySelectorAll('#fgGamePickerList .fg-tv-scorebug').forEach(c => {
-        c.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+      document.querySelectorAll('#fgGamePickerList .fg-match-card').forEach(c => {
+        c.style.borderColor = 'rgba(255, 255, 255, 0.12)';
+        c.style.background = '#121824';
         c.style.boxShadow = 'none';
+        const ind = c.querySelector('.fg-select-indicator');
+        if (ind) ind.style.display = 'none';
       });
     } catch (err) {
       alert('Error al crear: ' + err.message);

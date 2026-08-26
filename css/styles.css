@@ -3197,6 +3197,25 @@ input:focus, select:focus, textarea:focus {
 /* ==========================================================================
    TV BROADCAST SCOREBUG & MATCH CARDS
    ========================================================================== */
+.fg-match-card, .game-pick-card {
+  background: #121824;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+.fg-match-card:hover, .game-pick-card:hover {
+  border-color: #ffd100;
+  background: rgba(255, 209, 0, 0.04);
+}
+.fg-match-card.selected, .game-pick-card.selected {
+  border-color: #ffd100;
+  background: rgba(255, 209, 0, 0.08);
+  box-shadow: 0 0 16px rgba(255, 209, 0, 0.35);
+}
+
 .fg-tv-scorebug {
   background: #0a0f18;
   border-radius: 16px;
