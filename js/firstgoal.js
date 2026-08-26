@@ -339,18 +339,14 @@
           <table class="fg-board-table">
             <thead>
               <tr>
-                <th class="away" style="width:calc(50% - 40px); background: linear-gradient(135deg, ${aStyle.color}cc 0%, rgba(10,15,24,0.95) 100%);">
-                  <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
-                    <img src="${aStyle.logo}" alt="${aStyle.abbr}" onerror="this.src='img/logo.jpg'" style="width:22px; height:22px; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"/>
-                    <span>${away}</span>
-                  </div>
+                <th class="away" style="width:calc(50% - 40px); background: linear-gradient(135deg, ${aStyle.color}88 0%, rgba(10,15,24,0.95) 100%); font-size:12px; font-weight:900; color:#ffd100; letter-spacing:1px; padding:10px;">
+                  VISITANTE
                 </th>
-                <th style="width:80px; background:rgba(0,0,0,0.4); color:#ffd100; font-weight:900;">MIN</th>
-                <th class="local" style="width:calc(50% - 40px); background: linear-gradient(225deg, ${hStyle.color}cc 0%, rgba(10,15,24,0.95) 100%);">
-                  <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
-                    <span>${home}</span>
-                    <img src="${hStyle.logo}" alt="${hStyle.abbr}" onerror="this.src='img/logo.jpg'" style="width:22px; height:22px; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"/>
-                  </div>
+                <th style="width:80px; background:rgba(0,0,0,0.5); color:#ffffff; font-weight:900; font-size:11.5px; padding:10px; letter-spacing:0.5px;">
+                  MINUTO
+                </th>
+                <th class="local" style="width:calc(50% - 40px); background: linear-gradient(225deg, ${hStyle.color}88 0%, rgba(10,15,24,0.95) 100%); font-size:12px; font-weight:900; color:#ffd100; letter-spacing:1px; padding:10px;">
+                  LOCAL
                 </th>
               </tr>
             </thead>
