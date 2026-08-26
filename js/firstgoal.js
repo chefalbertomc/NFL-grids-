@@ -161,6 +161,26 @@
 
       card.innerHTML = tvScorebugHtml;
 
+      // Winner Celebration Banner for completed games
+      if (game.status === 'completed' && (game.winnerNickname || game.winningCell)) {
+        const winNick = game.winnerNickname || game.cells?.[game.winningCell]?.nickname || 'Ganador';
+        const winnerBannerHtml = `
+          <div style="background: linear-gradient(135deg, rgba(0,230,118,0.2) 0%, rgba(10,15,24,0.95) 100%); border: 2px solid #00e676; border-radius: 14px; padding: 14px 16px; margin-top: 12px; margin-bottom: 14px; text-align: center; box-shadow: 0 0 25px rgba(0,230,118,0.3);">
+            <div style="font-size: 24px; line-height: 1; margin-bottom: 4px;">🏆 👑 🏆</div>
+            <h4 style="font-size: 16px; font-weight: 900; color: #ffffff; margin: 0 0 4px 0;">
+              ¡RESULTADO GANADOR OFICIAL!
+            </h4>
+            <div style="font-size: 19px; font-weight: 900; color: #00e676; text-transform: uppercase; letter-spacing: 0.5px;">
+              ${winNick}
+            </div>
+            <div style="font-size: 12px; color: #e0e0e0; margin-top: 6px; font-weight: 700; line-height: 1.4;">
+              ${game.winnerReason || 'Primer Gol del Partido'}
+            </div>
+          </div>
+        `;
+        card.innerHTML += winnerBannerHtml;
+      }
+
       // Conditional content based on user state
       if (!user) {
         card.innerHTML += `
@@ -169,7 +189,7 @@
             <button class="btn btn-primary" onclick="window.toggleSideDrawer(true)" style="width:auto; padding:8px 16px; font-size:12px;">🔑 Iniciar Sesión / Registrarme</button>
           </div>
         `;
-      } else if (!reg) {
+      } else if (!reg && game.active) {
         // Register form
         const userDefaultNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '';
         card.innerHTML += `

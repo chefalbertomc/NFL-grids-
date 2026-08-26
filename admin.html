@@ -504,17 +504,48 @@
           </div>
 
           <!-- Result Settler (Declare Winner) -->
-          <div style="background:rgba(255,209,0,0.05); border:1.5px solid var(--accent-color); padding:14px; border-radius:12px;">
-            <h5 style="font-size:14px; font-weight:900; color:#ffd100; margin-bottom:4px;">🏁 Declarar Resultado Ganador</h5>
-            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:12px;">Elige el bloque donde cayó el gol o el penal fallado para coronar al ganador.</p>
+          <div style="background:rgba(255,209,0,0.05); border:1.5px solid var(--accent-color); padding:16px; border-radius:14px;">
+            <h5 style="font-size:15px; font-weight:900; color:#ffd100; margin-bottom:4px; display:flex; align-items:center; gap:8px;">
+              🏆 Declarar Ganador Oficial (Regla: El Más Cercano Sin Pasarse)
+            </h5>
+            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:14px; line-height:1.4;">
+              Ingresa el equipo y el minuto exacto en que cayó el gol. El sistema corona al dueño del bloque exacto, o al jugador <strong>más cercano al minuto del gol sin pasarse</strong> (los bloques posteriores al gol quedan descalificados).
+            </p>
             
+            <div class="flex-row" style="flex-wrap:wrap; gap:10px; margin-bottom:12px; align-items:flex-end;">
+              <div class="form-group" style="flex:1; min-width:150px; margin:0;">
+                <label>¿Quién anotó el 1er Gol?</label>
+                <select id="fgGoalTeamSelect" style="font-size:13px; font-weight:700;">
+                  <option value="away">⚽ Equipo Visitante</option>
+                  <option value="local">⚽ Equipo Local</option>
+                  <option value="none">🚫 Sin Goles (Empate 0-0 / Penales)</option>
+                </select>
+              </div>
+
+              <div class="form-group" style="flex:1; min-width:120px; margin:0;">
+                <label>Minuto Exacto del Gol</label>
+                <input type="number" id="fgGoalMinuteInput" placeholder="Ej. 18 ó 32" min="0" max="120" style="font-size:14px; font-weight:900; padding:8px 10px; text-align:center; color:#ffd100;" />
+              </div>
+
+              <div style="display:flex; align-items:flex-end;">
+                <button id="btnCalculateFGWinner" class="btn btn-secondary" style="width:auto; padding:10px 14px; font-size:12.5px; font-weight:800;" onclick="if(window.calculateFGWinnerAuto){window.calculateFGWinnerAuto();}">
+                  🎯 Calcular Ganador
+                </button>
+              </div>
+            </div>
+
+            <!-- Preview calculation box -->
+            <div id="fgWinnerPreviewBox" style="display:none; margin-bottom:14px; padding:12px 14px; border-radius:10px; background:rgba(0,0,0,0.35); border:1.5px solid #00e676;">
+              <div id="fgWinnerPreviewText" style="font-size:13px; font-weight:800; color:#ffffff; line-height:1.4;"></div>
+            </div>
+
             <div class="flex-row" style="flex-wrap:wrap; gap:10px; align-items:flex-end;">
               <div class="form-group" style="flex:1; min-width:180px; margin:0;">
-                <label>Bloque o Penal Ganador</label>
+                <label>Celda o Penal Ganador</label>
                 <select id="fgWinningCellSelect" style="font-size:13px; font-weight:700;"></select>
               </div>
               <button id="btnResolveFGWinner" class="btn btn-primary" style="width:auto; padding:10px 18px; font-size:13px; font-weight:900; color:var(--bg-color);">
-                🏆 Finalizar y Declarar Ganador
+                🏆 Confirmar y Publicar Ganador
               </button>
             </div>
           </div>
@@ -610,12 +641,12 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=163.0"></script>
-  <script src="js/auth.js?v=163.0"></script>
-  <script src="js/team-logos.js?v=163.0"></script>
-  <script src="js/admin.js?v=163.0"></script>
-  <script src="js/quiniela-admin.js?v=163.0"></script>
-  <script src="js/bingo-admin.js?v=163.0"></script>
+  <script src="js/firebase-config.js?v=164.0"></script>
+  <script src="js/auth.js?v=164.0"></script>
+  <script src="js/team-logos.js?v=164.0"></script>
+  <script src="js/admin.js?v=164.0"></script>
+  <script src="js/quiniela-admin.js?v=164.0"></script>
+  <script src="js/bingo-admin.js?v=164.0"></script>
 
   <!-- Admin Tab Switching for Top Tabs -->
   <script>

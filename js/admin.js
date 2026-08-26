@@ -2341,25 +2341,175 @@
     }
   }
 
+  // Automating the "Sin Pasarse / Price is Right" Winner Rule
+  window.calculateFGWinnerAuto = async function() {
+    if (!fgSelectedGameId) {
+      alert('Selecciona y carga un juego de Minuto del Gol primero.');
+      return;
+    }
+
+    const teamSide = document.getElementById('fgGoalTeamSelect')?.value || 'away';
+    const minInput = document.getElementById('fgGoalMinuteInput');
+    const minute = parseInt(minInput?.value, 10);
+
+    const previewBox = document.getElementById('fgWinnerPreviewBox');
+    const previewText = document.getElementById('fgWinnerPreviewText');
+    const select = document.getElementById('fgWinningCellSelect');
+
+    if (teamSide === 'none') {
+      if (previewBox && previewText) {
+        previewBox.style.display = 'block';
+        previewBox.style.borderColor = '#ffd100';
+        previewText.innerHTML = `⚽ <strong>Sin Goles en Tiempo Regular:</strong><br/>Selecciona en el menú desplegable abajo el Penal Fallado ganador del sorteo de penales.`;
+      }
+      return;
+    }
+
+    if (isNaN(minute) || minute < 0) {
+      alert('Por favor ingresa el minuto exacto del gol (Ej. 18 ó 32).');
+      if (minInput) minInput.focus();
+      return;
+    }
+
+    try {
+      const snap = await db.collection('first_goal_games').doc(fgSelectedGameId).get();
+      if (!snap.exists) return;
+      const game = snap.data() || {};
+      const cells = game.cells || {};
+
+      const RANGES = [
+        { id: '0_5', name: '0 - 5', start: 0, end: 5 },
+        { id: '6_10', name: '6 - 10', start: 6, end: 10 },
+        { id: '11_15', name: '11 - 15', start: 11, end: 15 },
+        { id: '16_20', name: '16 - 20', start: 16, end: 20 },
+        { id: '21_25', name: '21 - 25', start: 21, end: 25 },
+        { id: '26_30', name: '26 - 30', start: 26, end: 30 },
+        { id: '31_35', name: '31 - 35', start: 31, end: 35 },
+        { id: '36_40', name: '36 - 40', start: 36, end: 40 },
+        { id: '41_45', name: '41 - 45 y +', start: 41, end: 45 },
+        { id: '46_50', name: '46 - 50', start: 46, end: 50 },
+        { id: '51_55', name: '51 - 55', start: 51, end: 55 },
+        { id: '56_60', name: '56 - 60', start: 56, end: 60 },
+        { id: '61_65', name: '61 - 65', start: 61, end: 65 },
+        { id: '66_70', name: '66 - 70', start: 66, end: 70 },
+        { id: '71_75', name: '71 - 75', start: 71, end: 75 },
+        { id: '76_80', name: '76 - 80', start: 76, end: 80 },
+        { id: '81_85', name: '81 - 85', start: 81, end: 85 },
+        { id: '86_90', name: '86 - 90 y +', start: 86, end: 90 },
+        { id: '91_105', name: '91 - 105', start: 91, end: 105 },
+        { id: '106_120', name: '106 - 120', start: 106, end: 120 }
+      ];
+
+      const scoringTeamName = teamSide === 'local' ? (game.homeTeam || 'Local') : (game.awayTeam || 'Visitante');
+
+      // 1. Exact match test
+      let exactRange = RANGES.find(r => minute >= r.start && minute <= r.end) || RANGES[0];
+      const exactKey = `${teamSide}_${exactRange.id}`;
+      const exactOccupant = cells[exactKey];
+
+      let winningKey = exactKey;
+      let winningNickname = exactOccupant ? exactOccupant.nickname : '';
+      let explanation = '';
+
+      if (exactOccupant && exactOccupant.nickname) {
+        // Exact block is taken!
+        explanation = `🎉 <strong>¡GANADOR DIRECTO!</strong><br/>` +
+          `Gol de <strong>${scoringTeamName}</strong> en el <strong>Minuto ${minute}</strong> (Bloque exacto: <strong>${exactRange.name}</strong>).<br/>` +
+          `🏆 Dueño del bloque: <span style="color:#00e676; font-size:14px; font-weight:900;">${exactOccupant.nickname}</span>.`;
+      } else {
+        // Exact block is empty. Find closest occupant without passing (sin pasarse)
+        const validCandidates = [];
+        RANGES.forEach(r => {
+          if (r.start <= minute) {
+            const k = `${teamSide}_${r.id}`;
+            const occ = cells[k];
+            if (occ && occ.nickname) {
+              validCandidates.push({
+                range: r,
+                key: k,
+                occupant: occ,
+                end: r.end
+              });
+            }
+          }
+        });
+
+        if (validCandidates.length > 0) {
+          // Sort descending by end minute so highest <= minute wins
+          validCandidates.sort((a, b) => b.end - a.end);
+          const winner = validCandidates[0];
+          winningKey = winner.key;
+          winningNickname = winner.occupant.nickname;
+
+          explanation = `🎯 <strong>CÁLCULO POR APROXIMACIÓN (SIN PASARSE):</strong><br/>` +
+            `El gol de <strong>${scoringTeamName}</strong> cayó en el <strong>Minuto ${minute}</strong> (Bloque exacto: ${exactRange.name} estaba vacío).<br/>` +
+            `🏆 <strong>Ganador Oficial:</strong> <span style="color:#00e676; font-size:14px; font-weight:900;">${winner.occupant.nickname}</span> con el bloque <strong>${winner.range.name}</strong> (El más cercano sin pasarse).<br/>` +
+            `<span style="color:#a0aab8; font-size:11px;">⚠️ Los bloques con minutos después del ${minute} quedaron descalificados por pasarse.</span>`;
+        } else {
+          explanation = `⚠️ <strong>SIN GANADOR POR APROXIMACIÓN:</strong><br/>` +
+            `El gol cayó en el <strong>Minuto ${minute}</strong>, pero ningún participante tenía un bloque antes o igual al minuto ${minute} (todos los participantes se pasaron).`;
+        }
+      }
+
+      if (previewBox && previewText) {
+        previewBox.style.display = 'block';
+        previewBox.style.borderColor = winningNickname ? '#00e676' : '#ff4444';
+        previewText.innerHTML = explanation;
+      }
+
+      // Pre-select winning cell in dropdown
+      if (select && winningKey) {
+        select.value = winningKey;
+      }
+
+      window.fgCalculatedWinner = {
+        key: winningKey,
+        nickname: winningNickname,
+        reason: explanation,
+        minute: minute,
+        teamName: scoringTeamName
+      };
+
+    } catch (err) {
+      console.error('[calculateFGWinnerAuto]', err);
+      alert('Error calculando ganador: ' + err.message);
+    }
+  };
+
   async function resolveFGWinner() {
-    if (!fgSelectedGameId) return;
+    if (!fgSelectedGameId) {
+      alert('Selecciona un juego primero.');
+      return;
+    }
     const select = document.getElementById('fgWinningCellSelect');
     const winnerCell = select ? select.value : '';
 
     if (!winnerCell) {
-      alert('Por favor selecciona la celda o penal ganador.');
+      alert('Por favor selecciona o calcula la celda ganadora primero.');
       return;
     }
 
-    if (!confirm('¿Estás seguro de declarar este resultado? Se cerrará el juego.')) return;
+    if (!confirm('¿Estás seguro de declarar este resultado oficial? Se notificará a todos los participantes y se cerrará el juego.')) return;
 
     try {
+      const snap = await db.collection('first_goal_games').doc(fgSelectedGameId).get();
+      const game = snap.data() || {};
+      const cells = game.cells || {};
+
+      let winNick = window.fgCalculatedWinner?.nickname || cells[winnerCell]?.nickname || '';
+      let winReason = window.fgCalculatedWinner?.reason || `Ganador con la celda ${winnerCell}`;
+
       await db.collection('first_goal_games').doc(fgSelectedGameId).update({
         winningCell: winnerCell,
+        winnerNickname: winNick,
+        winnerReason: winReason,
+        goalMinute: window.fgCalculatedWinner?.minute || '',
         active: false,
         status: 'completed'
       });
-      alert('🏆 ¡Resultado ganador registrado oficialmente y juego cerrado!');
+
+      alert(`🏆 ¡Ganador Oficial Registrado!\n\n${winNick ? 'Ganador: ' + winNick : ''}\nEl juego ha sido cerrado con éxito.`);
+      loadFGGameDetails(fgSelectedGameId);
     } catch (err) {
       alert('Error al resolver ganador: ' + err.message);
     }
