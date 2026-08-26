@@ -538,15 +538,21 @@
 
     // Attach click handlers
     grid.querySelectorAll('[data-open-q]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const qId = btn.getAttribute('data-open-q');
+        console.log('👉 [Pronosticar Marcadores clickeado] Abriendo quiniela:', qId);
         openQuiniela(qId);
       });
     });
 
     grid.querySelectorAll('[data-join-q]').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         const qId = btn.getAttribute('data-join-q');
+        console.log('👉 [Unirme a Quiniela clickeado] Abriendo formulario de unión:', qId);
         selectQuinielaToJoin(qId);
       });
     });
