@@ -10,6 +10,16 @@
 
   let activeGames = [];
   let userRegistrations = {}; // { gameId: playerDocData }
+  let gamePlayersMap = {};    // { gameId: { [playerId]: playerDocData } }
+
+  // View Mode: 'names', 'photos', or 'both'
+  let fgDisplayMode = localStorage.getItem('bww_fg_display_mode') || 'names';
+
+  window.setFGDisplayMode = function(mode) {
+    fgDisplayMode = mode;
+    localStorage.setItem('bww_fg_display_mode', mode);
+    renderGames();
+  };
 
   function getCurrentUser() {
     if (user && user.uid) return user;
@@ -98,27 +108,46 @@
         });
 
         renderGames();
+        listenToUserRegistrations();
       }, err => {
         console.error('[fg] Error listening to active games:', err);
       });
   }
 
-  let unsubRegs = null;
+  let unsubRegs = [];
   function listenToUserRegistrations() {
     const u = getCurrentUser();
-    if (!db || !u) return;
-    if (unsubRegs) unsubRegs();
+    if (!db) return;
+    
+    // Clear previous sub-listeners
+    unsubRegs.forEach(unsub => { if (typeof unsub === 'function') unsub(); });
+    unsubRegs = [];
 
     activeGames.forEach(game => {
-      db.collection('first_goal_games').doc(game.id).collection('players').doc(u.uid)
-        .onSnapshot(doc => {
-          if (doc.exists) {
-            userRegistrations[game.id] = doc.data();
-          } else {
-            delete userRegistrations[game.id];
-          }
+      // 1. Listen to all approved players in this game for photo & name rendering
+      const unsubAll = db.collection('first_goal_games').doc(game.id).collection('players')
+        .onSnapshot(snap => {
+          if (!gamePlayersMap[game.id]) gamePlayersMap[game.id] = {};
+          snap.forEach(doc => {
+            gamePlayersMap[game.id][doc.id] = doc.data();
+          });
           renderGames();
-        });
+        }, err => console.warn('[fg] Error listening to players:', err));
+      unsubRegs.push(unsubAll);
+
+      // 2. Listen to current user registration status
+      if (u && u.uid) {
+        const unsubUser = db.collection('first_goal_games').doc(game.id).collection('players').doc(u.uid)
+          .onSnapshot(doc => {
+            if (doc.exists) {
+              userRegistrations[game.id] = doc.data();
+            } else {
+              delete userRegistrations[game.id];
+            }
+            renderGames();
+          }, err => console.warn('[fg] Error listening to user reg:', err));
+        unsubRegs.push(unsubUser);
+      }
     });
   }
 
@@ -383,9 +412,13 @@
       const game = gameSnap.data() || {};
       const autoApprove = game.autoApprove !== false;
 
+      const photoURL = u.photoURL || localStorage.getItem('user_custom_avatar') || 'img/logo.jpg';
       await db.collection('first_goal_games').doc(gameId).collection('players').doc(u.uid).set({
         nickname: nickname,
         waiter: waiter,
+        photoURL: photoURL,
+        userPhoto: photoURL,
+        userEmail: u.email || '',
         status: autoApprove ? 'approved' : 'pending',
         approved: autoApprove,
         joinedAt: Date.now()
@@ -394,6 +427,8 @@
       userRegistrations[gameId] = {
         nickname: nickname,
         waiter: waiter,
+        photoURL: photoURL,
+        userPhoto: photoURL,
         status: autoApprove ? 'approved' : 'pending',
         approved: autoApprove
       };
@@ -412,6 +447,91 @@
     }
   };
 
+  // Helper: Parse match minute from clock string (e.g. '11', '11:24', '45+2', '88')
+  function parseMatchMinute(clockStr) {
+    if (!clockStr) return null;
+    if (typeof clockStr === 'number') return clockStr;
+    const s = String(clockStr).trim();
+    if (s.includes(':')) {
+      const p = s.split(':');
+      const m = parseInt(p[0], 10);
+      return isNaN(m) ? null : m;
+    }
+    if (s.includes('+')) {
+      const p = s.split('+');
+      const m = parseInt(p[0], 10) + parseInt(p[1] || 0, 10);
+      return isNaN(m) ? null : m;
+    }
+    const clean = s.replace(/[^0-9]/g, '');
+    const num = parseInt(clean, 10);
+    return isNaN(num) ? null : num;
+  }
+
+  // Helper: Determine if a match minute falls within a block range
+  function isMinuteInRange(minute, rangeId, min, max) {
+    if (minute === null || minute === undefined || isNaN(minute)) return false;
+    if (rangeId === '41_45') {
+      return minute >= 41 && minute <= 50; // includes 45+ added time
+    }
+    if (rangeId === '86_90') {
+      return minute >= 86 && minute <= 105; // includes 90+ added time
+    }
+    if (rangeId === '101_105') {
+      return minute >= 101 && minute <= 108; // includes 105+ added time
+    }
+    if (rangeId === '116_120') {
+      return minute >= 116 && minute <= 130; // includes 120+ added time
+    }
+    return minute >= min && minute <= max;
+  }
+
+  // Helper: Render cell inner content according to view mode & ownership
+  function renderCellInnerHtml(gameId, cellKey, cell, isMe, isWin, teamStyle) {
+    const u = getCurrentUser();
+    if (isWin) {
+      const name = cell ? cell.nickname : 'GANADOR';
+      const playerInfo = gamePlayersMap[gameId]?.[cell?.playerId];
+      const photoSrc = cell?.photoURL || playerInfo?.photoURL || playerInfo?.userPhoto || (isMe ? (u?.photoURL || localStorage.getItem('user_custom_avatar')) : '') || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=00e676&color=000&bold=true`;
+      return `
+        <div class="fg-cell-inner winning">
+          <span style="font-size:16px;">🏆</span>
+          ${fgDisplayMode !== 'names' ? `<img class="fg-cell-avatar large" src="${photoSrc}" onerror="this.src='img/logo.jpg'" alt="${name}"/>` : ''}
+          ${fgDisplayMode !== 'photos' ? `<span class="fg-cell-name gold-glow">${name} <span class="fg-winner-tag">¡GOL!</span></span>` : ''}
+        </div>
+      `;
+    }
+
+    if (cell) {
+      const name = cell.nickname || 'Socio';
+      const playerInfo = gamePlayersMap[gameId]?.[cell.playerId];
+      const photoSrc = cell.photoURL || playerInfo?.photoURL || playerInfo?.userPhoto || (isMe ? (u?.photoURL || localStorage.getItem('user_custom_avatar')) : '') || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=ffd100&color=000&bold=true`;
+
+      if (isMe) {
+        return `
+          <div class="fg-cell-inner me">
+            ${fgDisplayMode !== 'names' ? `<img class="fg-cell-avatar me-avatar ${fgDisplayMode === 'photos' ? 'large' : ''}" src="${photoSrc}" onerror="this.src='img/logo.jpg'" alt="${name}"/>` : ''}
+            ${fgDisplayMode !== 'photos' ? `<span class="fg-cell-name me-name"><span class="fg-you-badge">⭐ TÚ</span> ${name}</span>` : `<span class="fg-you-badge">⭐ TÚ</span>`}
+          </div>
+        `;
+      } else {
+        return `
+          <div class="fg-cell-inner other">
+            ${fgDisplayMode !== 'names' ? `<img class="fg-cell-avatar ${fgDisplayMode === 'photos' ? 'large' : ''}" src="${photoSrc}" onerror="this.src='img/logo.jpg'" alt="${name}"/>` : ''}
+            ${fgDisplayMode !== 'photos' ? `<span class="fg-cell-name other-name">${name}</span>` : ''}
+          </div>
+        `;
+      }
+    }
+
+    // Empty cell
+    return `
+      <div class="fg-cell-inner empty">
+        <span class="fg-empty-plus">+</span>
+        <span class="fg-empty-text">ELEGIR</span>
+      </div>
+    `;
+  }
+
   function buildBoardHtml(game, homeStyle, awayStyle) {
     const home = game.homeTeam || 'Local';
     const away = game.awayTeam || 'Visitante';
@@ -421,6 +541,9 @@
 
     const hStyle = homeStyle || (window.resolveTeamStyle ? window.resolveTeamStyle(home) : { name: home, logo: 'img/logo.jpg', color: '#1a1a24' });
     const aStyle = awayStyle || (window.resolveTeamStyle ? window.resolveTeamStyle(away) : { name: away, logo: 'img/logo.jpg', color: '#1a1a24' });
+
+    const isLive = game.status === 'in_progress' || game.status === 'in';
+    const currentMatchMinute = isLive ? parseMatchMinute(game.clock) : null;
 
     // Check if current user has already selected a regular cell
     const isETKey = k => ['91_95', '96_100', '101_105', '106_110', '111_115', '116_120', '91_105', '106_120'].some(id => k.includes(id));
@@ -432,24 +555,24 @@
     }
 
     const ranges = [
-      { id: '0_5', name: '0:00 - 5:59' },
-      { id: '6_10', name: '6:00 - 10:59' },
-      { id: '11_15', name: '11:00 - 15:59' },
-      { id: '16_20', name: '16:00 - 20:59' },
-      { id: '21_25', name: '21:00 - 25:59' },
-      { id: '26_30', name: '26:00 - 30:59' },
-      { id: '31_35', name: '31:00 - 35:59' },
-      { id: '36_40', name: '36:00 - 40:59' },
-      { id: '41_45', name: '41:00 - 45:59 (+)' },
-      { id: '46_50', name: '46:00 - 50:59' },
-      { id: '51_55', name: '51:00 - 55:59' },
-      { id: '56_60', name: '56:00 - 60:59' },
-      { id: '61_65', name: '61:00 - 65:59' },
-      { id: '66_70', name: '66:00 - 70:59' },
-      { id: '71_75', name: '71:00 - 75:59' },
-      { id: '76_80', name: '76:00 - 80:59' },
-      { id: '81_85', name: '81:00 - 85:59' },
-      { id: '86_90', name: '86:00 - 90:59 (+)' }
+      { id: '0_5', min: 0, max: 5, name: '0:00 - 5:59' },
+      { id: '6_10', min: 6, max: 10, name: '6:00 - 10:59' },
+      { id: '11_15', min: 11, max: 15, name: '11:00 - 15:59' },
+      { id: '16_20', min: 16, max: 20, name: '16:00 - 20:59' },
+      { id: '21_25', min: 21, max: 25, name: '21:00 - 25:59' },
+      { id: '26_30', min: 26, max: 30, name: '26:00 - 30:59' },
+      { id: '31_35', min: 31, max: 35, name: '31:00 - 35:59' },
+      { id: '36_40', min: 36, max: 40, name: '36:00 - 40:59' },
+      { id: '41_45', min: 41, max: 45, name: '41:00 - 45:59 (+)' },
+      { id: '46_50', min: 46, max: 50, name: '46:00 - 50:59' },
+      { id: '51_55', min: 51, max: 55, name: '51:00 - 55:59' },
+      { id: '56_60', min: 56, max: 60, name: '56:00 - 60:59' },
+      { id: '61_65', min: 61, max: 65, name: '61:00 - 65:59' },
+      { id: '66_70', min: 66, max: 70, name: '66:00 - 70:59' },
+      { id: '71_75', min: 71, max: 75, name: '71:00 - 75:59' },
+      { id: '76_80', min: 76, max: 80, name: '76:00 - 80:59' },
+      { id: '81_85', min: 81, max: 85, name: '81:00 - 85:59' },
+      { id: '86_90', min: 86, max: 90, name: '86:00 - 90:59 (+)' }
     ];
 
     let rowsHtml = '';
@@ -460,28 +583,86 @@
       const homeCell = cells[cellHomeKey];
       const awayCell = cells[cellAwayKey];
 
-      const homeClass = getCellClass(cellHomeKey, homeCell, userHasRegularCell, game, winCell);
-      const awayClass = getCellClass(cellAwayKey, awayCell, userHasRegularCell, game, winCell);
+      const isHomeMe = u && homeCell?.playerId === u.uid;
+      const isAwayMe = u && awayCell?.playerId === u.uid;
 
-      const homeText = getCellText(cellHomeKey, homeCell, game);
-      const awayText = getCellText(cellAwayKey, awayCell, game);
+      const isHomeWin = winCell === cellHomeKey;
+      const isAwayWin = winCell === cellAwayKey;
+
+      const isThisRangeActive = isLive && isMinuteInRange(currentMatchMinute, r.id, r.min, r.max);
+
+      let homeClass = getCellClass(cellHomeKey, homeCell, userHasRegularCell, game, winCell);
+      let awayClass = getCellClass(cellAwayKey, awayCell, userHasRegularCell, game, winCell);
+
+      if (isThisRangeActive) {
+        homeClass += ' fg-live-active-slot';
+        awayClass += ' fg-live-active-slot';
+      }
+
+      const homeContent = renderCellInnerHtml(game.id, cellHomeKey, homeCell, isHomeMe, isHomeWin, hStyle);
+      const awayContent = renderCellInnerHtml(game.id, cellAwayKey, awayCell, isAwayMe, isAwayWin, aStyle);
 
       const homeClick = homeClass.includes('empty-selectable') ? `onclick="selectFGCell('${game.id}', '${cellHomeKey}')"` : '';
       const awayClick = awayClass.includes('empty-selectable') ? `onclick="selectFGCell('${game.id}', '${cellAwayKey}')"` : '';
 
+      const awayStyleVars = `--team-tint: ${aStyle.color}44; --team-border: ${aStyle.secondaryColor || aStyle.color};`;
+      const homeStyleVars = `--team-tint: ${hStyle.color}44; --team-border: ${hStyle.secondaryColor || hStyle.color};`;
+
+      let timeColHtml = '';
+      if (isThisRangeActive) {
+        timeColHtml = `
+          <td class="fg-time-label-col fg-live-active-time">
+            <div class="fg-live-time-content">
+              <span class="fg-live-pulse-badge">🔴 EN JUEGO</span>
+              <span class="fg-live-time-range">${r.name}</span>
+              <span class="fg-live-min-label">⏱️ Minuto ${currentMatchMinute}'</span>
+            </div>
+          </td>
+        `;
+      } else {
+        timeColHtml = `<td class="fg-time-label-col">${r.name}</td>`;
+      }
+
       rowsHtml += `
-        <tr>
-          <td class="${awayClass}" ${awayClick}>${awayText}</td>
-          <td class="fg-time-label-col">${r.name}</td>
-          <td class="${homeClass}" ${homeClick}>${homeText}</td>
+        <tr class="${isThisRangeActive ? 'fg-live-active-row' : ''}">
+          <td class="${awayClass}" style="${awayStyleVars}" ${awayClick}>${awayContent}</td>
+          ${timeColHtml}
+          <td class="${homeClass}" style="${homeStyleVars}" ${homeClick}>${homeContent}</td>
         </tr>
       `;
     });
 
     let html = `
       <div style="margin-top:14px;">
+        <!-- View Mode Segmented Bar (Nombres / Fotos / Ambos) -->
+        <div class="fg-view-mode-bar">
+          <span class="fg-view-mode-label">👀 Ver casillas por:</span>
+          <div class="fg-view-toggle-pills">
+            <button type="button" class="fg-view-pill ${fgDisplayMode === 'names' ? 'active' : ''}" onclick="window.setFGDisplayMode('names')">
+              👤 Nombres
+            </button>
+            <button type="button" class="fg-view-pill ${fgDisplayMode === 'photos' ? 'active' : ''}" onclick="window.setFGDisplayMode('photos')">
+              🖼️ Fotos
+            </button>
+            <button type="button" class="fg-view-pill ${fgDisplayMode === 'both' ? 'active' : ''}" onclick="window.setFGDisplayMode('both')">
+              🔲 Ambos
+            </button>
+          </div>
+        </div>
+
         <div class="fg-board-container">
           <table class="fg-board-table">
+            <thead>
+              <tr>
+                <th class="away" style="background:linear-gradient(135deg, ${aStyle.color}55 0%, rgba(10,15,24,0.95) 100%);">
+                  ${aStyle.name} (Visitante)
+                </th>
+                <th style="width:110px; background:#080c14; color:#ffd100; font-size:11px;">MINUTO</th>
+                <th class="local" style="background:linear-gradient(225deg, ${hStyle.color}55 0%, rgba(10,15,24,0.95) 100%);">
+                  ${hStyle.name} (Local)
+                </th>
+              </tr>
+            </thead>
             <tbody>
               ${rowsHtml}
             </tbody>
@@ -502,12 +683,12 @@
         }
 
         const etRanges = [
-          { id: '91_95', name: '91:00 - 95:59' },
-          { id: '96_100', name: '96:00 - 100:59' },
-          { id: '101_105', name: '101:00 - 105:59 (+)' },
-          { id: '106_110', name: '106:00 - 110:59' },
-          { id: '111_115', name: '111:00 - 115:59' },
-          { id: '116_120', name: '116:00 - 120:59 (+)' }
+          { id: '91_95', min: 91, max: 95, name: '91:00 - 95:59' },
+          { id: '96_100', min: 96, max: 100, name: '96:00 - 100:59' },
+          { id: '101_105', min: 101, max: 105, name: '101:00 - 105:59 (+)' },
+          { id: '106_110', min: 106, max: 110, name: '106:00 - 110:59' },
+          { id: '111_115', min: 111, max: 115, name: '111:00 - 115:59' },
+          { id: '116_120', min: 116, max: 120, name: '116:00 - 120:59 (+)' }
         ];
 
         let etRowsHtml = '';
@@ -518,20 +699,51 @@
           const localCell = cells[keyLocal];
           const awayCell = cells[keyAway];
 
-          const localClass = getCellClass(keyLocal, localCell, etUserHasCell, game, winCell);
-          const awayClass = getCellClass(keyAway, awayCell, etUserHasCell, game, winCell);
+          const isLocalMe = u && localCell?.playerId === u.uid;
+          const isAwayMe = u && awayCell?.playerId === u.uid;
 
-          const localText = getCellText(keyLocal, localCell, game);
-          const awayText = getCellText(keyAway, awayCell, game);
+          const isLocalWin = winCell === keyLocal;
+          const isAwayWin = winCell === keyAway;
+
+          const isThisETActive = isLive && isMinuteInRange(currentMatchMinute, r.id, r.min, r.max);
+
+          let localClass = getCellClass(keyLocal, localCell, etUserHasCell, game, winCell);
+          let awayClass = getCellClass(keyAway, awayCell, etUserHasCell, game, winCell);
+
+          if (isThisETActive) {
+            localClass += ' fg-live-active-slot';
+            awayClass += ' fg-live-active-slot';
+          }
+
+          const localContent = renderCellInnerHtml(game.id, keyLocal, localCell, isLocalMe, isLocalWin, hStyle);
+          const awayContent = renderCellInnerHtml(game.id, keyAway, awayCell, isAwayMe, isAwayWin, aStyle);
 
           const localClick = localClass.includes('empty-selectable') ? `onclick="selectFGCell('${game.id}', '${keyLocal}')"` : '';
           const awayClick = awayClass.includes('empty-selectable') ? `onclick="selectFGCell('${game.id}', '${keyAway}')"` : '';
 
+          const awayStyleVars = `--team-tint: ${aStyle.color}44; --team-border: ${aStyle.secondaryColor || aStyle.color};`;
+          const homeStyleVars = `--team-tint: ${hStyle.color}44; --team-border: ${hStyle.secondaryColor || hStyle.color};`;
+
+          let etTimeColHtml = '';
+          if (isThisETActive) {
+            etTimeColHtml = `
+              <td class="fg-time-label-col fg-live-active-time">
+                <div class="fg-live-time-content">
+                  <span class="fg-live-pulse-badge">🔴 EN JUEGO</span>
+                  <span class="fg-live-time-range">${r.name}</span>
+                  <span class="fg-live-min-label">⏱️ Minuto ${currentMatchMinute}'</span>
+                </div>
+              </td>
+            `;
+          } else {
+            etTimeColHtml = `<td class="fg-time-label-col" style="color:#ff4444;">${r.name}</td>`;
+          }
+
           etRowsHtml += `
-            <tr>
-              <td class="${awayClass}" ${awayClick}>${awayText}</td>
-              <td class="fg-time-label-col" style="color:#ff4444;">${r.name}</td>
-              <td class="${localClass}" ${localClick}>${localText}</td>
+            <tr class="${isThisETActive ? 'fg-live-active-row' : ''}">
+              <td class="${awayClass}" style="${awayStyleVars}" ${awayClick}>${awayContent}</td>
+              ${etTimeColHtml}
+              <td class="${localClass}" style="${homeStyleVars}" ${localClick}>${localContent}</td>
             </tr>
           `;
         });
@@ -558,7 +770,7 @@
 
     // Penalties Shootout Panel
     if (game.activePenalties) {
-      const assignments = game.penaltiesAssignments || {};
+      const assignments = game.penaltiesAssignments || game.penaltyAssignments || {};
       let penaltyRowsHtml = '';
 
       for (let i = 1; i <= 5; i++) {
@@ -572,11 +784,14 @@
         if (isLocalMe) localRowClass += ' me';
         if (isLocalWin) localRowClass += ' winning-penalty';
 
+        const pLocalPhoto = assignLocal?.photoURL || gamePlayersMap[game.id]?.[assignLocal?.playerId]?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(assignLocal?.nickname || 'J')}&background=ffd100&color=000&bold=true`;
+
         penaltyRowsHtml += `
           <div class="${localRowClass}">
             <span class="fg-penalty-num">Penal #${i} — ${home}</span>
-            <span class="fg-penalty-owner ${assignLocal ? '' : 'unassigned'}">
-              ${isLocalWin ? '🏆 ' : ''}${assignLocal ? assignLocal.nickname : 'Sin Asignar'} ${isLocalMe ? '(TÚ)' : ''}
+            <span class="fg-penalty-owner ${assignLocal ? '' : 'unassigned'}" style="display:inline-flex; align-items:center; gap:6px;">
+              ${assignLocal && fgDisplayMode !== 'names' ? `<img src="${pLocalPhoto}" class="fg-cell-avatar" onerror="this.src='img/logo.jpg'" alt="${assignLocal.nickname}"/>` : ''}
+              ${isLocalWin ? '🏆 ' : ''}${assignLocal ? assignLocal.nickname : 'Sin Asignar'} ${isLocalMe ? '(⭐ TÚ)' : ''}
               ${isLocalWin ? ' — ¡FALLADO! (GANADOR)' : ''}
             </span>
           </div>
@@ -592,11 +807,14 @@
         if (isAwayMe) awayRowClass += ' me';
         if (isAwayWin) awayRowClass += ' winning-penalty';
 
+        const pAwayPhoto = assignAway?.photoURL || gamePlayersMap[game.id]?.[assignAway?.playerId]?.photoURL || `https://ui-avatars.com/api/?name=${encodeURIComponent(assignAway?.nickname || 'J')}&background=ffd100&color=000&bold=true`;
+
         penaltyRowsHtml += `
           <div class="${awayRowClass}">
             <span class="fg-penalty-num">Penal #${i} — ${away}</span>
-            <span class="fg-penalty-owner ${assignAway ? '' : 'unassigned'}">
-              ${isAwayWin ? '🏆 ' : ''}${assignAway ? assignAway.nickname : 'Sin Asignar'} ${isAwayMe ? '(TÚ)' : ''}
+            <span class="fg-penalty-owner ${assignAway ? '' : 'unassigned'}" style="display:inline-flex; align-items:center; gap:6px;">
+              ${assignAway && fgDisplayMode !== 'names' ? `<img src="${pAwayPhoto}" class="fg-cell-avatar" onerror="this.src='img/logo.jpg'" alt="${assignAway.nickname}"/>` : ''}
+              ${isAwayWin ? '🏆 ' : ''}${assignAway ? assignAway.nickname : 'Sin Asignar'} ${isAwayMe ? '(⭐ TÚ)' : ''}
               ${isAwayWin ? ' — ¡FALLADO! (GANADOR)' : ''}
             </span>
           </div>
@@ -703,10 +921,14 @@
           }
         }
 
+        const photoURL = player.photoURL || player.userPhoto || u.photoURL || localStorage.getItem('user_custom_avatar') || 'img/logo.jpg';
         const updatedCells = { ...cells };
         updatedCells[cellKey] = {
           playerId: u.uid,
-          nickname: player.nickname || u.displayName || 'Socio'
+          nickname: player.nickname || u.displayName || 'Socio',
+          photoURL: photoURL,
+          userPhoto: photoURL,
+          selectedAt: Date.now()
         };
 
         transaction.update(gameRef, { cells: updatedCells });
