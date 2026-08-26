@@ -120,15 +120,11 @@
           return;
         }
       } catch (err) {
-        console.warn('[auth] Popup sign-in note:', err);
+        console.warn('[auth] Popup sign-in error:', err);
         if (err.code === 'auth/popup-blocked' || (err.message && err.message.includes('opener'))) {
-          try {
-            console.log('[auth] Intentando fallback por redirección...');
-            await auth.signInWithRedirect(provider);
-            return;
-          } catch (redErr) {
-            console.warn('[auth] Redirect note:', redErr);
-          }
+          alert('📱 Aviso: Tu navegador bloqueó la ventana emergente de Google.\n\n👉 Puedes iniciar sesión fácilmente escribiendo tu Apodo en "O entra con tu Apodo" o permitiendo ventanas emergentes en Safari/Chrome.');
+        } else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+          handleAuthError(err);
         }
       }
     } catch (err) {
