@@ -796,6 +796,11 @@
       userBadge.addEventListener('click', window.openUserProfileModal);
     }
 
+    // Immediately reflect hydrated user state in header
+    if (window.currentUser) {
+      updateHeaderUI(window.currentUser);
+    }
+
     // Check redirect result
     if (firebase.auth && firebase.auth().getRedirectResult) {
       firebase.auth().getRedirectResult().then(result => {
