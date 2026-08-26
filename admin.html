@@ -48,7 +48,7 @@
       <button class="tab-btn active" data-target="admin-grids">🏈 Grids</button>
       <button class="tab-btn" data-target="admin-pools">📋 Quinielas & Pick'em</button>
       <button class="tab-btn" data-target="admin-survivor">🏆 Survivor</button>
-      <button class="tab-btn" data-target="admin-firstgoal">⚽ Minuto del Gol</button>
+      <button class="tab-btn" data-target="admin-firstgoal">⚽ First Striker Wins</button>
       <button class="tab-btn" data-target="admin-bingo">🎯 Bingo</button>
     </div>
 
@@ -355,12 +355,12 @@
       </section>
     </main>
 
-    <!-- 4. ADMIN MINUTO DEL GOL -->
+    <!-- 4. ADMIN FIRST GOAL (FIRST STRIKER WINS) -->
     <main id="admin-firstgoal" class="admin-tab-content hidden">
-      <!-- Create Minuto del Gol Game -->
+      <!-- Create First Striker Game -->
       <section class="card highlight">
-        <h3 class="card-title">⚽ Crear Juego de Minuto del Gol</h3>
-        <p class="card-subtitle">Crea un juego de rango de minutos para un partido en curso.</p>
+        <h3 class="card-title">Crear Sala First Striker Wins</h3>
+        <p class="card-subtitle">Busca un partido de Fútbol o Deporte en ESPN para crear la planilla de 5 minutos en tiempo real.</p>
 
         <div class="form-group">
           <label>Sucursal</label>
@@ -438,9 +438,9 @@
         <button id="btnCreateFGGame" class="btn btn-primary" style="margin-top:14px;">Crear Juego Minuto del Gol</button>
       </section>
 
-      <!-- Manage Active Minuto del Gol Games -->
+      <!-- Manage Active First Striker Wins Games -->
       <section class="card">
-        <h3 class="card-title">⚙️ Administrar Minuto del Gol</h3>
+        <h3 class="card-title">⚙️ Administrar First Striker Wins</h3>
 
         <div class="form-group">
           <label>Seleccionar Juego Activo</label>
@@ -457,6 +457,51 @@
           <div class="flex-row" style="margin-bottom:16px; gap:8px;">
             <button id="btnLockFG" class="btn btn-secondary" style="flex:1;">🔒 Bloquear Selecciones</button>
             <button id="btnUnlockFG" class="btn btn-secondary" style="flex:1;">🔓 Desbloquear Selecciones</button>
+          </div>
+
+          <!-- Asignación Manual de Bloques & Límite por Persona (Como en Grids) -->
+          <div style="background:rgba(255,209,0,0.04); border:1px solid rgba(255,209,0,0.25); padding:14px; border-radius:12px; margin-bottom:16px;">
+            <h5 style="font-size:14px; font-weight:900; color:#ffd100; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
+              👤 Asignación Manual de Bloques / Casillas (Admin)
+            </h5>
+            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:12px;">
+              Asigna bloques de tiempo manualmente a cualquier jugador o cambia el límite de bloques por persona.
+            </p>
+
+            <div class="flex-row" style="flex-wrap:wrap; gap:10px; margin-bottom:10px; align-items:flex-end;">
+              <div class="form-group" style="flex:1; min-width:140px; margin:0;">
+                <label>Jugador Aprobado</label>
+                <select id="fgManualPlayerSelect" style="font-size:13px; font-weight:700;"></select>
+              </div>
+
+              <div class="form-group" style="flex:1; min-width:160px; margin:0;">
+                <label>Bloque / Minuto</label>
+                <select id="fgManualBlockSelect" style="font-size:13px; font-weight:700;"></select>
+              </div>
+
+              <div style="display:flex; gap:6px;">
+                <button type="button" class="btn btn-primary" onclick="if(window.assignFGBlockManual){window.assignFGBlockManual();}" style="width:auto; padding:9px 14px; font-size:12.5px; font-weight:800;">
+                  ➕ Asignar Bloque
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="if(window.freeFGBlockManual){window.freeFGBlockManual();}" style="width:auto; padding:9px 12px; font-size:12px; font-weight:800; color:#ff4444;" title="Liberar Bloque">
+                  🗑️ Liberar
+                </button>
+              </div>
+            </div>
+
+            <div class="flex-row" style="align-items:center; gap:10px; margin-top:8px; border-top:1px dashed rgba(255,255,255,0.08); padding-top:10px;">
+              <label style="font-size:12px; color:var(--text-muted); margin:0;">Límite de Bloques por Jugador:</label>
+              <select id="fgMaxBlocksPerPlayer" style="width:auto; padding:6px 10px; font-size:12px; font-weight:800;">
+                <option value="1">1 Bloque (Estándar)</option>
+                <option value="2">2 Bloques</option>
+                <option value="3">3 Bloques</option>
+                <option value="5">5 Bloques</option>
+                <option value="999">Ilimitado</option>
+              </select>
+              <button type="button" class="btn btn-secondary" onclick="if(window.saveFGMaxBlocks){window.saveFGMaxBlocks();}" style="width:auto; padding:6px 12px; font-size:11.5px; font-weight:800;">
+                💾 Guardar Límite
+              </button>
+            </div>
           </div>
 
           <!-- Approvals lists -->
@@ -477,10 +522,24 @@
 
           <!-- Tiempos Extras Panel -->
           <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); padding:14px; border-radius:12px; margin-bottom:16px;">
-            <h5 style="font-size:14px; font-weight:900; color:#ffd100; margin-bottom:4px;">⏱️ Gestión de Tiempo Extra</h5>
-            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:10px;">Selecciona qué jugadores de la lista participarán en los Tiempos Extras:</p>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <h5 style="font-size:14px; font-weight:900; color:#ffd100; margin:0;">⏱️ Gestión de Tiempos Extras (91-105 y 106-120)</h5>
+              <span id="fgExtraTimeStatusBadge" class="badge" style="font-size:11px; padding:3px 8px; background:rgba(255,255,255,0.1);">Inactivo</span>
+            </div>
+            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:10px;">Selecciona qué jugadores podrán elegir bloques en los Tiempos Extras:</p>
             
-            <div id="fgExtraTimePlayersCheckboxes" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; background:rgba(0,0,0,0.2); padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:12px;">
+            <div style="display:flex; gap:12px; margin-bottom:8px; font-size:12px;">
+              <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                <input type="radio" name="fgEtMode" value="all" onchange="window.setFGEtAllMode(true)" checked/>
+                <span>Habilitar a TODOS los aprobados</span>
+              </label>
+              <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                <input type="radio" name="fgEtMode" value="custom" onchange="window.setFGEtAllMode(false)"/>
+                <span>Seleccionar uno por uno</span>
+              </label>
+            </div>
+
+            <div id="fgExtraTimePlayersCheckboxes" style="display:none; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; background:rgba(0,0,0,0.2); padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:12px;">
               <!-- Loaded dynamically -->
             </div>
 
@@ -491,15 +550,31 @@
 
           <!-- Penales Panel -->
           <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); padding:14px; border-radius:12px; margin-bottom:16px;">
-            <h5 style="font-size:14px; font-weight:900; color:#ffd100; margin-bottom:4px;">🎯 Gestión de Penales (Sorteo)</h5>
-            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:10px;">Selecciona qué jugadores de la lista participarán en la tanda de Penales (se sortearán al azar):</p>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <h5 style="font-size:14px; font-weight:900; color:#ffd100; margin:0;">🎯 Gestión de Penales (Primer Penal Fallado)</h5>
+              <span id="fgPenaltyStatusBadge" class="badge" style="font-size:11px; padding:3px 8px; background:rgba(255,255,255,0.1);">Sin Sortear</span>
+            </div>
+            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:10px;">Selecciona a los participantes para el sorteo aleatorio de tiros de penal:</p>
             
-            <div id="fgPenaltyPlayersCheckboxes" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; background:rgba(0,0,0,0.2); padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:12px;">
+            <div style="display:flex; gap:12px; margin-bottom:8px; font-size:12px;">
+              <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                <input type="radio" name="fgPenMode" value="all" onchange="window.setFGPenAllMode(true)" checked/>
+                <span>Incluir a TODOS los aprobados</span>
+              </label>
+              <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                <input type="radio" name="fgPenMode" value="custom" onchange="window.setFGPenAllMode(false)"/>
+                <span>Seleccionar uno por uno</span>
+              </label>
+            </div>
+
+            <div id="fgPenaltyPlayersCheckboxes" style="display:none; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; background:rgba(0,0,0,0.2); padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:12px;">
               <!-- Loaded dynamically -->
             </div>
 
+            <div id="fgPenaltyAssignmentsSummary" style="display:none; margin-bottom:12px; padding:10px; border-radius:8px; background:rgba(0,230,118,0.08); border:1px solid rgba(0,230,118,0.2); font-size:12px;"></div>
+
             <button id="btnDrawFGPenalties" class="btn btn-primary" style="width:auto; padding:8px 16px; font-size:12.5px;">
-              🎲 Sortear y Activar Penales
+              🎲 Sortear 10 Penales al Azar
             </button>
           </div>
 
@@ -652,12 +727,12 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=166.0"></script>
-  <script src="js/auth.js?v=166.0"></script>
-  <script src="js/team-logos.js?v=166.0"></script>
-  <script src="js/admin.js?v=166.0"></script>
-  <script src="js/quiniela-admin.js?v=166.0"></script>
-  <script src="js/bingo-admin.js?v=166.0"></script>
+  <script src="js/firebase-config.js?v=167.0"></script>
+  <script src="js/auth.js?v=167.0"></script>
+  <script src="js/team-logos.js?v=167.0"></script>
+  <script src="js/admin.js?v=167.0"></script>
+  <script src="js/quiniela-admin.js?v=167.0"></script>
+  <script src="js/bingo-admin.js?v=167.0"></script>
 
   <!-- Admin Tab Switching for Top Tabs -->
   <script>

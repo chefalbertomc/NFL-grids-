@@ -2086,11 +2086,219 @@
           if (apprCount === 0 && listAppr) {
             listAppr.innerHTML = '<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">No hay participantes aprobados.</div>';
           }
+
+          // Populate Manual Block Assign Dropdowns
+          populateManualBlockSelectors(game, approvedPlayers);
+
+          // Extra Time UI badge
+          const etBadge = document.getElementById('fgExtraTimeStatusBadge');
+          const btnEt = document.getElementById('btnToggleFGExtraTime');
+          if (etBadge) {
+            if (game.activeExtraTime) {
+              etBadge.textContent = 'Activo';
+              etBadge.style.background = '#ff4444';
+              etBadge.style.color = '#fff';
+            } else {
+              etBadge.textContent = 'Inactivo';
+              etBadge.style.background = 'rgba(255,255,255,0.1)';
+              etBadge.style.color = '#fff';
+            }
+          }
+          if (btnEt) {
+            btnEt.textContent = game.activeExtraTime ? 'Desactivar Tiempos Extras' : 'Activar Tiempos Extras';
+          }
+
+          // Penalties UI badge & summary
+          const penBadge = document.getElementById('fgPenaltyStatusBadge');
+          const penSumm = document.getElementById('fgPenaltyAssignmentsSummary');
+          if (penBadge) {
+            if (game.activePenalties) {
+              penBadge.textContent = 'Sorteado y Activo';
+              penBadge.style.background = '#00e676';
+              penBadge.style.color = '#000';
+            } else {
+              penBadge.textContent = 'Sin Sortear';
+              penBadge.style.background = 'rgba(255,255,255,0.1)';
+              penBadge.style.color = '#fff';
+            }
+          }
+          if (penSumm) {
+            if (game.activePenalties && game.penaltyAssignments) {
+              penSumm.style.display = 'block';
+              let summHtml = '<strong>🎯 Resultados del Sorteo de Penales:</strong><div style="margin-top:6px; display:grid; grid-template-columns:1fr 1fr; gap:4px;">';
+              for (let i = 1; i <= 5; i++) {
+                const l = game.penaltyAssignments[`pen_local_${i}`];
+                const a = game.penaltyAssignments[`pen_away_${i}`];
+                summHtml += `<div>Penal Local #${i}: <strong style="color:#ffd100;">${l?.nickname || 'Nadie'}</strong></div>`;
+                summHtml += `<div>Penal Visitante #${i}: <strong style="color:#00e676;">${a?.nickname || 'Nadie'}</strong></div>`;
+              }
+              summHtml += '</div>';
+              penSumm.innerHTML = summHtml;
+            } else {
+              penSumm.style.display = 'none';
+            }
+          }
+
+          // Max blocks limit
+          const maxSel = document.getElementById('fgMaxBlocksPerPlayer');
+          if (maxSel && game.maxBlocksPerPlayer) {
+            maxSel.value = String(game.maxBlocksPerPlayer);
+          }
         });
       }, err => {
         console.error('[fg] Error loading players list:', err);
       });
   }
+
+  // Populate dropdowns for manual block assignment
+  function populateManualBlockSelectors(game, approvedPlayers) {
+    const pSelect = document.getElementById('fgManualPlayerSelect');
+    const bSelect = document.getElementById('fgManualBlockSelect');
+    if (!pSelect || !bSelect) return;
+
+    // 1. Players
+    pSelect.innerHTML = '';
+    const defP = document.createElement('option');
+    defP.value = '';
+    defP.textContent = '-- Seleccionar Jugador --';
+    pSelect.appendChild(defP);
+
+    approvedPlayers.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.nickname || 'Socio';
+      pSelect.appendChild(opt);
+    });
+
+    // 2. Blocks
+    bSelect.innerHTML = '';
+    const defB = document.createElement('option');
+    defB.value = '';
+    defB.textContent = '-- Seleccionar Bloque --';
+    bSelect.appendChild(defB);
+
+    const home = game.homeTeam || 'Local';
+    const away = game.awayTeam || 'Visitante';
+    const cells = game.cells || {};
+
+    const ranges = [
+      { id: '0_5', name: '0 - 5' },
+      { id: '6_10', name: '6 - 10' },
+      { id: '11_15', name: '11 - 15' },
+      { id: '16_20', name: '16 - 20' },
+      { id: '21_25', name: '21 - 25' },
+      { id: '26_30', name: '26 - 30' },
+      { id: '31_35', name: '31 - 35' },
+      { id: '36_40', name: '36 - 40' },
+      { id: '41_45', name: '41 - 45 y +' },
+      { id: '46_50', name: '46 - 50' },
+      { id: '51_55', name: '51 - 55' },
+      { id: '56_60', name: '56 - 60' },
+      { id: '61_65', name: '61 - 65' },
+      { id: '66_70', name: '66 - 70' },
+      { id: '71_75', name: '71 - 75' },
+      { id: '76_80', name: '76 - 80' },
+      { id: '81_85', name: '81 - 85' },
+      { id: '86_90', name: '86 - 90 y +' }
+    ];
+
+    // Away blocks
+    ranges.forEach(r => {
+      const key = `away_${r.id}`;
+      const occ = cells[key];
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = `[${away}] Min ${r.name} ${occ ? '→ ' + occ.nickname : '(Vacío)'}`;
+      bSelect.appendChild(opt);
+    });
+
+    // Home blocks
+    ranges.forEach(r => {
+      const key = `local_${r.id}`;
+      const occ = cells[key];
+      const opt = document.createElement('option');
+      opt.value = key;
+      opt.textContent = `[${home}] Min ${r.name} ${occ ? '→ ' + occ.nickname : '(Vacío)'}`;
+      bSelect.appendChild(opt);
+    });
+  }
+
+  window.assignFGBlockManual = async function() {
+    if (!fgSelectedGameId) return;
+    const pSelect = document.getElementById('fgManualPlayerSelect');
+    const bSelect = document.getElementById('fgManualBlockSelect');
+    const pId = pSelect?.value;
+    const blockKey = bSelect?.value;
+
+    if (!pId || !blockKey) {
+      alert('Selecciona un jugador aprobado y el bloque que deseas asignarle.');
+      return;
+    }
+
+    const pNick = pSelect.options[pSelect.selectedIndex].text;
+
+    try {
+      const snap = await db.collection('first_goal_games').doc(fgSelectedGameId).get();
+      const game = snap.data() || {};
+      const cells = { ...(game.cells || {}) };
+
+      cells[blockKey] = {
+        playerId: pId,
+        nickname: pNick
+      };
+
+      await db.collection('first_goal_games').doc(fgSelectedGameId).update({ cells });
+      alert(`✅ Bloque asignado exitosamente a ${pNick}!`);
+    } catch (err) {
+      alert('Error asignando bloque: ' + err.message);
+    }
+  };
+
+  window.freeFGBlockManual = async function() {
+    if (!fgSelectedGameId) return;
+    const bSelect = document.getElementById('fgManualBlockSelect');
+    const blockKey = bSelect?.value;
+
+    if (!blockKey) {
+      alert('Selecciona el bloque que deseas liberar.');
+      return;
+    }
+
+    try {
+      const snap = await db.collection('first_goal_games').doc(fgSelectedGameId).get();
+      const game = snap.data() || {};
+      const cells = { ...(game.cells || {}) };
+
+      delete cells[blockKey];
+
+      await db.collection('first_goal_games').doc(fgSelectedGameId).update({ cells });
+      alert('🗑️ Bloque liberado exitosamente.');
+    } catch (err) {
+      alert('Error liberando bloque: ' + err.message);
+    }
+  };
+
+  window.saveFGMaxBlocks = async function() {
+    if (!fgSelectedGameId) return;
+    const maxSel = document.getElementById('fgMaxBlocksPerPlayer');
+    const limit = parseInt(maxSel?.value || '1', 10);
+    try {
+      await db.collection('first_goal_games').doc(fgSelectedGameId).update({ maxBlocksPerPlayer: limit });
+      alert(`💾 Límite guardado: ${limit === 999 ? 'Ilimitado' : limit + ' bloque(s) por jugador'}.`);
+    } catch (err) {
+      alert('Error guardando límite: ' + err.message);
+    }
+  };
+
+  window.setFGEtAllMode = function(isAll) {
+    const container = document.getElementById('fgExtraTimePlayersCheckboxes');
+    if (container) container.style.display = isAll ? 'none' : 'flex';
+  };
+
+  window.setFGPenAllMode = function(isAll) {
+    const container = document.getElementById('fgPenaltyPlayersCheckboxes');
+    if (container) container.style.display = isAll ? 'none' : 'flex';
+  };
 
   // Exposed globally to handle click handlers
   window.approveFGPlayer = async function(gameId, playerId) {
@@ -2148,19 +2356,30 @@
       const nextState = !game.activeExtraTime;
 
       // Read selected players
+      const isAll = document.querySelector('input[name="fgEtMode"]:checked')?.value === 'all';
       const etPlayers = {};
-      document.querySelectorAll('.fg-et-cb').forEach(cb => {
-        if (cb.checked) {
-          etPlayers[cb.getAttribute('data-player-id')] = true;
-        }
-      });
+
+      if (isAll) {
+        const playersSnap = await db.collection('first_goal_games').doc(fgSelectedGameId).collection('players').get();
+        playersSnap.forEach(d => {
+          if (d.data().status === 'approved' || d.data().approved === true) {
+            etPlayers[d.id] = true;
+          }
+        });
+      } else {
+        document.querySelectorAll('.fg-et-cb').forEach(cb => {
+          if (cb.checked) {
+            etPlayers[cb.getAttribute('data-player-id')] = true;
+          }
+        });
+      }
 
       await db.collection('first_goal_games').doc(fgSelectedGameId).update({
         activeExtraTime: nextState,
         extraTimePlayers: etPlayers
       });
 
-      alert(nextState ? 'Tiempo Extra activado exitosamente.' : 'Tiempo Extra desactivado.');
+      alert(nextState ? '⏱️ ¡Tiempos Extras Activados exitosamente!' : '⏱️ Tiempos Extras desactivados.');
     } catch (err) {
       alert('Error: ' + err.message);
     }
@@ -2174,21 +2393,31 @@
       const playersSnap = await db.collection('first_goal_games').doc(fgSelectedGameId).collection('players').get();
 
       // Read selected players
+      const isAll = document.querySelector('input[name="fgPenMode"]:checked')?.value === 'all';
       const penPlayers = {};
       const participantIds = [];
       const idToNick = {};
 
       playersSnap.forEach(doc => {
-        idToNick[doc.id] = doc.data().nickname || 'Socio';
-      });
-
-      document.querySelectorAll('.fg-pen-cb').forEach(cb => {
-        if (cb.checked) {
-          const pId = cb.getAttribute('data-player-id');
-          penPlayers[pId] = true;
-          participantIds.push(pId);
+        const p = doc.data();
+        if (p.status === 'approved' || p.approved === true) {
+          idToNick[doc.id] = p.nickname || 'Socio';
+          if (isAll) {
+            penPlayers[doc.id] = true;
+            participantIds.push(doc.id);
+          }
         }
       });
+
+      if (!isAll) {
+        document.querySelectorAll('.fg-pen-cb').forEach(cb => {
+          if (cb.checked) {
+            const pId = cb.getAttribute('data-player-id');
+            penPlayers[pId] = true;
+            participantIds.push(pId);
+          }
+        });
+      }
 
       if (participantIds.length === 0) {
         alert('Selecciona al menos un jugador participante para la tanda de penales.');

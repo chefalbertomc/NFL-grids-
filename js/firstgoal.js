@@ -113,7 +113,7 @@
       const clockText = game.clock ? `${game.clock}` : (isLive ? '1T' : '');
 
       let statusBadgeHtml = `<span class="fg-tv-status-badge scheduled">🗓️ ${game.matchDateFormatted || 'Por Iniciar'}</span>`;
-      let centerScoreHtml = `<div class="fg-tv-vs-badge">VS</div><div class="fg-tv-kickoff-time">${game.matchTime || 'Por Iniciar'}</div>`;
+      let centerScoreHtml = `<div class="fg-tv-vs-badge">VS</div><div class="fg-tv-kickoff-time">${game.matchTime ? game.matchTime + ' hrs' : 'Por Iniciar'}</div>`;
 
       if (isLive) {
         statusBadgeHtml = `<span class="fg-tv-status-badge live"><span class="pulse-dot"></span> 🔴 EN VIVO • Min ${clockText}</span>`;
@@ -130,11 +130,24 @@
       card.style.padding = '16px';
       card.style.marginBottom = '20px';
 
+      // Top Instruction Banner + WhatsApp share button (Placed strictly ABOVE the team logos card)
+      const maxLimit = game.maxBlocksPerPlayer || 1;
+      const topBannerHtml = `
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px; line-height:1.4; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            👉 Toca cualquier celda vacía con borde verde <strong style="color:#00e676;">+ ELEGIR</strong> para reclamar tu minuto. Límite: <strong style="color:#ffd100;">${maxLimit === 999 ? 'Ilimitado' : maxLimit + ' bloque(s)'}</strong> por persona.
+          </div>
+          <button type="button" class="btn btn-secondary" onclick="window.shareFirstStrikerWhatsApp('${game.id}', '${encodeURIComponent(homeStyle.name)}', '${encodeURIComponent(awayStyle.name)}', '${encodeURIComponent(game.matchDateFormatted || game.matchDate || '')}', '${encodeURIComponent(game.matchTime || '')}')" style="width:auto; padding:6px 12px; font-size:11.5px; font-weight:800; border-radius:8px; background:rgba(37,211,102,0.15); border:1px solid #25d366; color:#25d366; display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
+            <span>📲</span> Compartir en WhatsApp
+          </button>
+        </div>
+      `;
+
       // TV Broadcast Scorebug Header
       const tvScorebugHtml = `
         <div class="fg-tv-scorebug">
           <div class="fg-tv-header">
-            <span class="fg-tv-league">🏆 ${game.leagueName || 'Minuto del Gol'} • 📍 ${game.store || 'Todas'}</span>
+            <span class="fg-tv-league">🏆 ${game.leagueName || 'First Striker Wins'} • 📍 ${game.store || 'Todas'} • 🗓️ ${game.matchDateFormatted || game.matchDate || 'Hoy'}</span>
             ${statusBadgeHtml}
           </div>
           <div class="fg-tv-body">
@@ -159,7 +172,7 @@
         </div>
       `;
 
-      card.innerHTML = tvScorebugHtml;
+      card.innerHTML = topBannerHtml + tvScorebugHtml;
 
       // Winner Celebration Banner for completed games
       if (game.status === 'completed' && (game.winnerNickname || game.winningCell)) {
@@ -332,21 +345,18 @@
 
     let html = `
       <div style="margin-top:14px;">
-        <p style="font-size:12px; color:var(--text-muted); margin-bottom:8px; line-height:1.4;">
-          Toca cualquier celda vacía con borde verde <span style="color:#00e676; font-weight:800;">+ ELEGIR</span> para reclamar tu minuto. Límite: 1 bloque por persona.
-        </p>
         <div class="fg-board-container">
           <table class="fg-board-table">
             <thead>
               <tr>
-                <th class="away" style="width:calc(50% - 40px); background: linear-gradient(135deg, ${aStyle.color}88 0%, rgba(10,15,24,0.95) 100%); font-size:12px; font-weight:900; color:#ffd100; letter-spacing:1px; padding:10px;">
-                  VISITANTE
+                <th class="away" style="width:calc(50% - 40px); background: linear-gradient(135deg, ${aStyle.color}88 0%, rgba(10,15,24,0.95) 100%); font-size:12px; font-weight:900; color:#ffd100; letter-spacing:0.5px; padding:10px;">
+                  ⚽ ${away}
                 </th>
                 <th style="width:80px; background:rgba(0,0,0,0.5); color:#ffffff; font-weight:900; font-size:11.5px; padding:10px; letter-spacing:0.5px;">
                   MINUTO
                 </th>
-                <th class="local" style="width:calc(50% - 40px); background: linear-gradient(225deg, ${hStyle.color}88 0%, rgba(10,15,24,0.95) 100%); font-size:12px; font-weight:900; color:#ffd100; letter-spacing:1px; padding:10px;">
-                  LOCAL
+                <th class="local" style="width:calc(50% - 40px); background: linear-gradient(225deg, ${hStyle.color}88 0%, rgba(10,15,24,0.95) 100%); font-size:12px; font-weight:900; color:#ffd100; letter-spacing:0.5px; padding:10px;">
+                  ⚽ ${home}
                 </th>
               </tr>
             </thead>
@@ -553,13 +563,17 @@
           }
         }
 
+        const maxLimit = game.maxBlocksPerPlayer || 1;
+
         if (isExtraTimeCell) {
           if (game.extraTimePlayers?.[user.uid] !== true) {
             throw new Error('No estás autorizado para jugar en Tiempo Extra.');
           }
           if (etCount >= 1) throw new Error('Ya seleccionaste tu bloque de Tiempo Extra.');
         } else {
-          if (regularCount >= 1) throw new Error('Ya seleccionaste tu bloque de tiempo regular.');
+          if (regularCount >= maxLimit) {
+            throw new Error(`Ya alcanzaste el límite permitido (${maxLimit === 999 ? 'ilimitado' : maxLimit + ' bloque(s)'}) para este partido.`);
+          }
         }
 
         const updatedCells = { ...cells };
@@ -575,6 +589,23 @@
     } catch (err) {
       alert('Error: ' + err.message);
     }
+  };
+
+  // WhatsApp 1-Click Game Sharing
+  window.shareFirstStrikerWhatsApp = function(gameId, encHome, encAway, encDate, encTime) {
+    const home = decodeURIComponent(encHome || 'Local');
+    const away = decodeURIComponent(encAway || 'Visitante');
+    const date = decodeURIComponent(encDate || '');
+    const time = decodeURIComponent(encTime || '');
+
+    const shareUrl = `${window.location.origin}${window.location.pathname}#tab-firstgoal`;
+    const msg = `🏆 *¡ÚNETE A FIRST STRIKER WINS EN DRINK & WIN!* ⚽🔥\n\n` +
+      `🥊 *${away} vs ${home}*\n` +
+      `🗓️ *Fecha:* ${date || 'Próximo partido'} ${time ? '• ' + time + ' hrs' : ''}\n\n` +
+      `🎯 ¡Aparta tu bloque de 5 minutos del 1er gol y gana premios en tu mesa!\n\n` +
+      `📲 *Juega en vivo aquí:* ${shareUrl}`;
+
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   // Live ESPN score & minute auto-sync

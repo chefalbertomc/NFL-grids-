@@ -58,10 +58,10 @@
           </div>
         </li>
         <li class="game-btn-item" onclick="handleDrawerNav('tab-firstgoal')">
-          <img src="img/games/badge_firstgoal.png" alt="Minuto del Gol" class="drawer-game-badge" onerror="this.src='img/logo.jpg'"/>
+          <img src="img/games/badge_firststriker.png" alt="First Striker Wins" class="drawer-game-badge" onerror="this.src='img/logo.jpg'"/>
           <div>
-            <span class="game-title">Minuto del Gol</span>
-            <span class="game-subtitle">Elige el bloque de tiempo ganador</span>
+            <span class="game-title">First Striker Wins</span>
+            <span class="game-subtitle">Elige el bloque de tiempo del 1er gol</span>
           </div>
         </li>
         <li class="game-btn-item" onclick="handleDrawerNav('tab-trivia')">
@@ -134,7 +134,7 @@
       <button class="tab-btn" data-target="tab-grids">🏈 NFL Grids</button>
       <button class="tab-btn" data-target="tab-pools">📋 Quiniela / Pick'em</button>
       <button class="tab-btn" data-target="tab-survivor">🏆 Survivor</button>
-      <button class="tab-btn" data-target="tab-firstgoal">⚽ Minuto del Gol</button>
+      <button class="tab-btn" data-target="tab-firstgoal">⚽ First Striker Wins</button>
       <a href="admin.html" class="tab-btn admin-only hidden" style="text-decoration: none; display: inline-block;">⚙️ Admin</a>
     </div>
 
@@ -186,14 +186,14 @@
             <button class="btn btn-primary" onclick="activateTab('tab-survivor')" style="padding: 8px; font-size: 11px; font-weight: 800; border-radius: 8px; width: 100%; cursor:pointer;">Jugar Survivor ▶</button>
           </div>
 
-          <!-- Card Primer Gol -->
+          <!-- Card First Striker Wins -->
           <div style="background: rgba(255,255,255,0.02); border: 1.5px solid var(--border-color); border-radius: 14px; padding: 14px; display: flex; flex-direction: column; justify-content: space-between; text-align: center; transition: all 0.2s ease;" class="hover-scale">
             <div>
               <div style="font-size: 32px; margin-bottom: 6px;">🎯</div>
-              <h4 style="margin: 0 0 4px; font-size: 14px; font-weight: 900; color: #ffffff;">Primer Gol</h4>
-              <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.3;">Acierta quién anota los primeros puntos del juego en vivo.</p>
+              <h4 style="margin: 0 0 4px; font-size: 14px; font-weight: 900; color: #ffffff;">First Striker Wins</h4>
+              <p style="font-size: 11px; color: var(--text-muted); margin: 0 0 12px; line-height: 1.3;">Acierta el bloque de tiempo del primer gol del partido.</p>
             </div>
-            <button class="btn btn-primary" onclick="activateTab('tab-firstgoal')" style="padding: 8px; font-size: 11px; font-weight: 800; border-radius: 8px; width: 100%; cursor:pointer;">Jugar Primer Gol ▶</button>
+            <button class="btn btn-primary" onclick="activateTab('tab-firstgoal')" style="padding: 8px; font-size: 11px; font-weight: 800; border-radius: 8px; width: 100%; cursor:pointer;">Jugar First Striker ▶</button>
           </div>
         </div>
       </section>
@@ -252,17 +252,18 @@
             </div>
           </details>
 
-          <!-- Accordion 4: Primer Gol -->
+          <!-- Accordion 4: First Striker Wins -->
           <details style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); border-radius:12px; padding:12px;" class="q-help-details">
             <summary style="font-weight:800; font-size:13.5px; color:#ffd100; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; user-select:none;">
-              <span>🎯 Primer Gol / Touchdown</span>
+              <span>⚽ First Striker Wins</span>
               <span>▼</span>
             </summary>
             <div style="margin-top:10px; font-size:12.5px; line-height:1.4; color:var(--text-muted);">
               <ol style="padding-left:16px; margin:0 0 8px 0; display:flex; flex-direction:column; gap:6px;">
-                <li><strong>Apuestas en Vivo:</strong> Durante la previa y los primeros minutos del partido en vivo en el bar, el administrador abrirá la apuesta de Primer Gol.</li>
-                <li><strong>Elige tu Anotador:</strong> Selecciona en el listado qué jugador o situación anotará los primeros puntos del partido (primer gol en soccer, o primer touchdown en NFL).</li>
-                <li><strong>Cierre de Registro:</strong> Los pronósticos se bloquean automáticamente en cuanto cae la primera anotación del partido. ¡El primero en registrarse y acertar gana!</li>
+                <li><strong>Elige tu Minuto:</strong> Aparta tu bloque de 5 minutos (ej. 16:00 - 20:59) del equipo Local o Visitante.</li>
+                <li><strong>Ganador Oficial:</strong> Si el primer gol cae dentro de tu bloque de tiempo, ¡ganas de inmediato!</li>
+                <li><strong>Regla "Sin Pasarse":</strong> Si nadie tiene el bloque exacto, gana el participante con el bloque más cercano ANTES del gol sin pasarse.</li>
+                <li><strong>0-0:</strong> Si empatan a cero, se definen en Tiempos Extras o Sorteo de Penales.</li>
               </ol>
             </div>
           </details>
@@ -539,7 +540,10 @@
     <main id="tab-firstgoal" class="tab-content hidden">
       <section class="card highlight">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
-          <h3 class="card-title" style="margin:0;">⚽ Minuto del Gol</h3>
+          <h3 class="card-title" style="margin:0; display:flex; align-items:center; gap:8px;">
+            <img src="img/games/badge_firststriker.png" alt="First Striker Wins" style="width:28px; height:28px; object-fit:contain;" onerror="this.src='img/logo.jpg'"/>
+            <span>First Striker Wins</span>
+          </h3>
           <button type="button" class="btn btn-secondary" onclick="window.openFGHowToPlayModal()" style="width:auto; padding:6px 14px; font-size:12px; font-weight:900; border-radius:10px; background:rgba(255,209,0,0.15); border:1px solid #ffd100; color:#ffd100; display:inline-flex; align-items:center; gap:6px;">
             <span style="font-size:14px;">📖</span> Reglas & Cómo Ganar
           </button>
@@ -613,14 +617,14 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=166.0"></script>
-  <script src="js/auth.js?v=166.0"></script>
-  <script src="js/team-logos.js?v=166.0"></script>
-  <script src="js/grids.js?v=166.0"></script>
-  <script src="js/quiniela-player.js?v=166.0"></script>
-  <script src="js/survivor.js?v=166.0"></script>
-  <script src="js/firstgoal.js?v=166.0"></script>
-  <script src="js/bingo-player.js?v=166.0"></script>
+  <script src="js/firebase-config.js?v=167.0"></script>
+  <script src="js/auth.js?v=167.0"></script>
+  <script src="js/team-logos.js?v=167.0"></script>
+  <script src="js/grids.js?v=167.0"></script>
+  <script src="js/quiniela-player.js?v=167.0"></script>
+  <script src="js/survivor.js?v=167.0"></script>
+  <script src="js/firstgoal.js?v=167.0"></script>
+  <script src="js/bingo-player.js?v=167.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
