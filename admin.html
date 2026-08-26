@@ -514,30 +514,40 @@
           <div style="background:rgba(255,255,255,0.02); border:1px solid var(--border-color); padding:14px; border-radius:12px; margin-bottom:16px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
               <h5 style="font-size:14px; font-weight:900; color:#ffd100; margin:0;">🎯 Gestión de Penales (Primer Penal Fallado)</h5>
-              <span id="fgPenaltyStatusBadge" class="badge" style="font-size:11px; padding:3px 8px; background:rgba(255,255,255,0.1);">Sin Sortear</span>
+              <span id="fgPenaltyStatusBadge" class="badge" style="font-size:11px; padding:3px 8px; background:rgba(255,255,255,0.1);">Inactivo</span>
             </div>
-            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:10px;">Selecciona a los participantes para el sorteo aleatorio de tiros de penal:</p>
+            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:10px;">Activa la tanda de penales para habilitar el sorteo de los 10 tiros entre los participantes:</p>
             
-            <div style="display:flex; gap:12px; margin-bottom:8px; font-size:12px;">
-              <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
-                <input type="radio" name="fgPenMode" value="all" onchange="window.setFGPenAllMode(true)" checked/>
-                <span>Incluir a TODOS los aprobados</span>
-              </label>
-              <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
-                <input type="radio" name="fgPenMode" value="custom" onchange="window.setFGPenAllMode(false)"/>
-                <span>Seleccionar uno por uno</span>
-              </label>
+            <div id="fgPenaltyControlsWrapper" style="display:none; margin-bottom:12px;">
+              <div style="display:flex; gap:12px; margin-bottom:8px; font-size:12px;">
+                <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                  <input type="radio" name="fgPenMode" value="all" onchange="window.setFGPenAllMode(true)" checked/>
+                  <span>Incluir a TODOS los aprobados</span>
+                </label>
+                <label style="cursor:pointer; display:flex; align-items:center; gap:6px;">
+                  <input type="radio" name="fgPenMode" value="custom" onchange="window.setFGPenAllMode(false)"/>
+                  <span>Seleccionar uno por uno</span>
+                </label>
+              </div>
+
+              <div id="fgPenaltyPlayersCheckboxes" style="display:none; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; background:rgba(0,0,0,0.2); padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:12px;">
+                <!-- Loaded dynamically -->
+              </div>
+
+              <div id="fgPenaltyAssignmentsSummary" style="display:none; margin-bottom:12px; padding:10px; border-radius:8px; background:rgba(0,230,118,0.08); border:1px solid rgba(0,230,118,0.2); font-size:12px;"></div>
+
+              <div style="margin-bottom:10px;">
+                <button id="btnDrawFGPenalties" class="btn btn-secondary" style="width:auto; padding:8px 16px; font-size:12.5px; font-weight:800;">
+                  🎲 Sortear 10 Penales al Azar
+                </button>
+              </div>
             </div>
 
-            <div id="fgPenaltyPlayersCheckboxes" style="display:none; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto; background:rgba(0,0,0,0.2); padding:8px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); margin-bottom:12px;">
-              <!-- Loaded dynamically -->
+            <div style="display:flex; gap:10px; align-items:center;">
+              <button id="btnToggleFGPenalties" class="btn btn-primary" style="width:auto; padding:8px 16px; font-size:12.5px;">
+                Activar Tanda de Penales
+              </button>
             </div>
-
-            <div id="fgPenaltyAssignmentsSummary" style="display:none; margin-bottom:12px; padding:10px; border-radius:8px; background:rgba(0,230,118,0.08); border:1px solid rgba(0,230,118,0.2); font-size:12px;"></div>
-
-            <button id="btnDrawFGPenalties" class="btn btn-primary" style="width:auto; padding:8px 16px; font-size:12.5px;">
-              🎲 Sortear 10 Penales al Azar
-            </button>
           </div>
 
           <!-- Result Settler (Declare Winner) -->
@@ -689,12 +699,12 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=174.0"></script>
-  <script src="js/auth.js?v=174.0"></script>
-  <script src="js/team-logos.js?v=174.0"></script>
-  <script src="js/admin.js?v=174.0"></script>
-  <script src="js/quiniela-admin.js?v=174.0"></script>
-  <script src="js/bingo-admin.js?v=174.0"></script>
+  <script src="js/firebase-config.js?v=175.0"></script>
+  <script src="js/auth.js?v=175.0"></script>
+  <script src="js/team-logos.js?v=175.0"></script>
+  <script src="js/admin.js?v=175.0"></script>
+  <script src="js/quiniela-admin.js?v=175.0"></script>
+  <script src="js/bingo-admin.js?v=175.0"></script>
 
   <!-- Admin Tab Switching for Top Tabs -->
   <script>

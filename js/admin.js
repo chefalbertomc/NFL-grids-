@@ -1672,6 +1672,7 @@
     const btnLockFG = document.getElementById('btnLockFG');
     const btnUnlockFG = document.getElementById('btnUnlockFG');
     const btnToggleFGExtraTime = document.getElementById('btnToggleFGExtraTime');
+    const btnToggleFGPenalties = document.getElementById('btnToggleFGPenalties');
     const btnDrawFGPenalties = document.getElementById('btnDrawFGPenalties');
     const btnResolveFGWinner = document.getElementById('btnResolveFGWinner');
 
@@ -1697,6 +1698,7 @@
     if (btnLockFG) btnLockFG.addEventListener('click', () => setFGLock(true));
     if (btnUnlockFG) btnUnlockFG.addEventListener('click', () => setFGLock(false));
     if (btnToggleFGExtraTime) btnToggleFGExtraTime.addEventListener('click', toggleFGExtraTime);
+    if (btnToggleFGPenalties) btnToggleFGPenalties.addEventListener('click', toggleFGPenalties);
     if (btnDrawFGPenalties) btnDrawFGPenalties.addEventListener('click', drawFGPenalties);
     if (btnResolveFGWinner) btnResolveFGWinner.addEventListener('click', resolveFGWinner);
   }
@@ -1978,15 +1980,24 @@
       // Extra time button label
       const btnET = document.getElementById('btnToggleFGExtraTime');
       if (btnET) {
-        btnET.textContent = game.activeExtraTime ? 'Desactivar Tiempo Extra' : 'Activar Tiempo Extra';
+        btnET.textContent = game.activeExtraTime ? 'Desactivar Tiempos Extras' : 'Activar Tiempos Extras';
         btnET.className = game.activeExtraTime ? 'btn btn-danger' : 'btn btn-primary';
       }
 
-      // Penalties button label
-      const btnPen = document.getElementById('btnDrawFGPenalties');
-      if (btnPen) {
-        btnPen.textContent = game.activePenalties ? '🎲 Re-Sortear Penales' : '🎲 Sortear y Activar Penales';
-        btnPen.className = game.activePenalties ? 'btn btn-success' : 'btn btn-primary';
+      // Penalties toggle button & controls wrapper
+      const btnTogglePen = document.getElementById('btnToggleFGPenalties');
+      const btnDrawPen = document.getElementById('btnDrawFGPenalties');
+      const penWrapper = document.getElementById('fgPenaltyControlsWrapper');
+      if (btnTogglePen) {
+        btnTogglePen.textContent = game.activePenalties ? 'Desactivar Tanda de Penales' : 'Activar Tanda de Penales';
+        btnTogglePen.className = game.activePenalties ? 'btn btn-danger' : 'btn btn-primary';
+      }
+      if (penWrapper) {
+        penWrapper.style.display = game.activePenalties ? 'block' : 'none';
+      }
+      if (btnDrawPen) {
+        const hasDrawn = game.penaltyAssignments && Object.keys(game.penaltyAssignments).length > 0;
+        btnDrawPen.textContent = hasDrawn ? '🎲 Re-Sortear 10 Penales' : '🎲 Sortear 10 Penales al Azar';
       }
 
       // Populate Winner select
@@ -2078,19 +2089,26 @@
           // Penalties UI badge & summary
           const penBadge = document.getElementById('fgPenaltyStatusBadge');
           const penSumm = document.getElementById('fgPenaltyAssignmentsSummary');
+          const hasAssignments = game.penaltyAssignments && Object.keys(game.penaltyAssignments).length > 0;
           if (penBadge) {
-            if (game.activePenalties) {
-              penBadge.textContent = 'Sorteado y Activo';
-              penBadge.style.background = '#00e676';
-              penBadge.style.color = '#000';
-            } else {
-              penBadge.textContent = 'Sin Sortear';
+            if (!game.activePenalties) {
+              penBadge.textContent = 'Inactivo';
               penBadge.style.background = 'rgba(255,255,255,0.1)';
               penBadge.style.color = '#fff';
+            } else if (hasAssignments) {
+              penBadge.textContent = 'Activo (Sorteado)';
+              penBadge.style.background = '#00e676';
+              penBadge.style.color = '#000';
+              penBadge.style.fontWeight = '900';
+            } else {
+              penBadge.textContent = 'Activo (Sin Sortear)';
+              penBadge.style.background = '#ffd100';
+              penBadge.style.color = '#000';
+              penBadge.style.fontWeight = '900';
             }
           }
           if (penSumm) {
-            if (game.activePenalties && game.penaltyAssignments) {
+            if (game.activePenalties && hasAssignments) {
               penSumm.style.display = 'block';
               let summHtml = '<strong>🎯 Resultados del Sorteo de Penales:</strong><div style="margin-top:6px; display:grid; grid-template-columns:1fr 1fr; gap:4px;">';
               for (let i = 1; i <= 5; i++) {
@@ -2323,6 +2341,30 @@
     }
   }
 
+  async function toggleFGPenalties() {
+    if (!fgSelectedGameId) return;
+    try {
+      const gameSnap = await db.collection('first_goal_games').doc(fgSelectedGameId).get();
+      const game = gameSnap.data() || {};
+      const nextState = !game.activePenalties;
+
+      if (!nextState) {
+        if (!confirm('¿Deseas desactivar la Tanda de Penales?')) return;
+        await db.collection('first_goal_games').doc(fgSelectedGameId).update({
+          activePenalties: false
+        });
+        alert('🎯 Tanda de Penales desactivada.');
+      } else {
+        await db.collection('first_goal_games').doc(fgSelectedGameId).update({
+          activePenalties: true
+        });
+        alert('🎯 Tanda de Penales ACTIVADA. Ya puedes seleccionar los participantes y sortear los 10 tiros.');
+      }
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+
   async function drawFGPenalties() {
     if (!fgSelectedGameId) return;
     try {
@@ -2421,7 +2463,7 @@
     const home = game.homeTeam || 'Local';
     const away = game.awayTeam || 'Visitante';
 
-    // 18 regular ranges
+    // 18 regular ranges (5 minutes each, 45' and 90' include added time)
     const ranges = [
       { id: '0_5', name: '0 - 5' },
       { id: '6_10', name: '6 - 10' },
@@ -2461,11 +2503,15 @@
       select.appendChild(opt);
     });
 
-    // Extra Time blocks
+    // Extra Time blocks (Strict 5-minute blocks with added time at 105' and 120')
     if (game.activeExtraTime) {
       const etRanges = [
-        { id: '91_105', name: '91 - 105' },
-        { id: '106_120', name: '106 - 120' }
+        { id: '91_95', name: '91 - 95' },
+        { id: '96_100', name: '96 - 100' },
+        { id: '101_105', name: '101 - 105 y +' },
+        { id: '106_110', name: '106 - 110' },
+        { id: '111_115', name: '111 - 115' },
+        { id: '116_120', name: '116 - 120 y +' }
       ];
       etRanges.forEach(r => {
         const opt = document.createElement('option');
@@ -2671,8 +2717,12 @@
         { id: '76_80', name: '76 - 80', startSec: 4560, endSec: 4859 },
         { id: '81_85', name: '81 - 85', startSec: 4860, endSec: 5159 },
         { id: '86_90', name: '86 - 90 y +', startSec: 5160, endSec: 5459 },
-        { id: '91_105', name: '91 - 105', startSec: 5460, endSec: 6359 },
-        { id: '106_120', name: '106 - 120', startSec: 6360, endSec: 7259 }
+        { id: '91_95', name: '91 - 95', startSec: 5460, endSec: 5759 },
+        { id: '96_100', name: '96 - 100', startSec: 5760, endSec: 6059 },
+        { id: '101_105', name: '101 - 105 y +' , startSec: 6060, endSec: 6359 },
+        { id: '106_110', name: '106 - 110', startSec: 6360, endSec: 6659 },
+        { id: '111_115', name: '111 - 115', startSec: 6660, endSec: 6959 },
+        { id: '116_120', name: '116 - 120 y +', startSec: 6960, endSec: 7259 }
       ];
 
       const scoringTeamName = teamSide === 'local' ? (game.homeTeam || 'Local') : (game.awayTeam || 'Visitante');

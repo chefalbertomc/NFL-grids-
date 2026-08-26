@@ -423,9 +423,10 @@
     const aStyle = awayStyle || (window.resolveTeamStyle ? window.resolveTeamStyle(away) : { name: away, logo: 'img/logo.jpg', color: '#1a1a24' });
 
     // Check if current user has already selected a regular cell
+    const isETKey = k => ['91_95', '96_100', '101_105', '106_110', '111_115', '116_120', '91_105', '106_120'].some(id => k.includes(id));
     let userHasRegularCell = false;
     for (const key in cells) {
-      if (u && cells[key]?.playerId === u.uid && !key.includes('91_105') && !key.includes('106_120')) {
+      if (u && cells[key]?.playerId === u.uid && !isETKey(key)) {
         userHasRegularCell = true;
       }
     }
@@ -489,20 +490,24 @@
       </div>
     `;
 
-    // Extra Time Panel
+    // Extra Time Panel (5-minute blocks with added time at 105' and 120')
     if (game.activeExtraTime && u) {
       const isAllowedET = game.extraTimePlayers?.[u.uid] === true;
       if (isAllowedET) {
         let etUserHasCell = false;
         for (const k in cells) {
-          if (cells[k]?.playerId === u.uid && (k.includes('91_105') || k.includes('106_120'))) {
+          if (cells[k]?.playerId === u.uid && isETKey(k)) {
             etUserHasCell = true;
           }
         }
 
         const etRanges = [
-          { id: '91_105', name: '91 - 105' },
-          { id: '106_120', name: '106 - 120' }
+          { id: '91_95', name: '91 - 95' },
+          { id: '96_100', name: '96 - 100' },
+          { id: '101_105', name: '101 - 105 y +' },
+          { id: '106_110', name: '106 - 110' },
+          { id: '111_115', name: '111 - 115' },
+          { id: '116_120', name: '116 - 120 y +' }
         ];
 
         let etRowsHtml = '';
@@ -524,9 +529,9 @@
 
           etRowsHtml += `
             <tr>
-              <td class="${localClass}" ${localClick}>${localText}</td>
-              <td class="fg-time-label-col" style="color:#ff4444;">${r.name}</td>
               <td class="${awayClass}" ${awayClick}>${awayText}</td>
+              <td class="fg-time-label-col" style="color:#ff4444;">${r.name}</td>
+              <td class="${localClass}" ${localClick}>${localText}</td>
             </tr>
           `;
         });
@@ -537,7 +542,7 @@
               ⚡ TIEMPOS EXTRAS (0 - 0)
             </h5>
             <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:10px;">
-              El partido terminó 0-0. Los jugadores aprobados pueden elegir un bloque de 15 minutos en los Tiempos Extras.
+              El partido terminó 0-0. Los jugadores aprobados pueden elegir un bloque de 5 minutos en los Tiempos Extras.
             </p>
             <div class="fg-board-container">
               <table class="fg-board-table">
@@ -670,13 +675,14 @@
         const isApproved = player.approved === true || player.status === 'approved';
         if (!isApproved) throw new Error('Tu registro aún no ha sido aprobado por el admin.');
 
-        const isExtraTimeCell = cellKey.includes('91_105') || cellKey.includes('106_120');
+        const isETKey = k => ['91_95', '96_100', '101_105', '106_110', '111_115', '116_120', '91_105', '106_120'].some(id => k.includes(id));
+        const isExtraTimeCell = isETKey(cellKey);
         let regularCount = 0;
         let etCount = 0;
 
         for (const k in cells) {
           if (cells[k]?.playerId === u.uid) {
-            if (k.includes('91_105') || k.includes('106_120')) {
+            if (isETKey(k)) {
               etCount++;
             } else {
               regularCount++;
