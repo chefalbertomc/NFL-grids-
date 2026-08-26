@@ -2634,15 +2634,15 @@ input:focus, select:focus, textarea:focus {
 
 /* Huge Bold Centered TV Text */
 .q-scorebug-abbr {
-  font-size: 15px;
+  font-size: 13.5px;
   font-weight: 900;
   color: #ffffff;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  line-height: 1.15;
+  word-break: break-word;
   flex: 1;
   text-align: center;
   min-width: 0;
@@ -2650,7 +2650,7 @@ input:focus, select:focus, textarea:focus {
 
 @media (max-width: 480px) {
   .q-scorebug-wing {
-    padding: 6px 8px;
+    padding: 6px 6px;
     gap: 6px;
   }
   .q-scorebug-logo-frame {
@@ -2658,7 +2658,9 @@ input:focus, select:focus, textarea:focus {
     height: 26px;
   }
   .q-scorebug-abbr {
-    font-size: 13.5px;
+    font-size: 12px;
+    letter-spacing: 0.01em;
+    line-height: 1.1;
   }
   .q-scorebug-select-box {
     width: 26px;
@@ -2668,6 +2670,97 @@ input:focus, select:focus, textarea:focus {
   .q-scorebug-center {
     width: 48px;
   }
+}
+
+/* Ultra-Compact Vertical Stepper for Soccer Scorebug */
+.q-scorebug-center.q-soccer-steppers {
+  width: 84px !important;
+  min-width: 84px !important;
+  max-width: 84px !important;
+  padding: 2px 4px !important;
+  background: #090d16;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  box-sizing: border-box;
+}
+
+.q-vert-stepper {
+  width: 35px;
+  height: 33px;
+  background: #060911;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px 0 4px;
+  box-sizing: border-box;
+  position: relative;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.q-vert-stepper:hover {
+  border-color: #ffd100;
+}
+
+.q-vert-num {
+  font-size: 16px;
+  font-weight: 900;
+  color: #ffd100;
+  font-family: 'Outfit', sans-serif;
+  line-height: 1;
+  user-select: none;
+  flex: 1;
+  text-align: center;
+}
+
+.q-vert-arrows {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 13px;
+  flex-shrink: 0;
+}
+
+.q-vert-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #ffffff;
+  font-size: 7px;
+  height: 13px;
+  width: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 3px;
+  padding: 0;
+  line-height: 1;
+  user-select: none;
+  touch-action: manipulation;
+  transition: all 0.1s ease;
+}
+.q-vert-btn:hover {
+  background: #ffd100;
+  color: #000000;
+}
+.q-vert-btn:active {
+  transform: scale(0.9);
+}
+.q-vert-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.q-vert-colon {
+  font-size: 13px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.4);
+  user-select: none;
+  margin: 0 1px;
 }
 
 /* High contrast score / check box matching broadcast */

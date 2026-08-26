@@ -61,6 +61,10 @@
     'real madrid': 'rma', 'madrid': 'rma',
     'barcelona': 'bar', 'barça': 'bar',
     'atletico madrid': 'atm', 'atlético de madrid': 'atm',
+    'real sociedad': 'rso', 'sociedad': 'rso',
+    'athletic club': 'ath', 'athletic': 'ath', 'bilbao': 'ath',
+    'lille': 'lil', 'losc': 'lil', 'lille osc': 'lil',
+    'atlante': 'atlante',
     'manchester city': 'mci', 'man city': 'mci',
     'manchester united': 'mun', 'man united': 'mun',
     'liverpool': 'liv',
@@ -91,10 +95,11 @@
     'tig': '#FDB813', 'mty': '#002B49', 'tol': '#D71920', 'san': '#006847',
     'pac': '#002D62', 'leo': '#006341', 'atl_mx': '#000000', 'pue': '#002B49',
     'qro': '#002B49', 'tij': '#CC0000', 'nec': '#E31B23', 'maz': '#582C83',
-    'asl': '#D81E05', 'jua': '#00953B',
+    'asl': '#D81E05', 'jua': '#00953B', 'atlante': '#0B2265',
 
     // International Soccer
     'rma': '#00529F', 'bar': '#004D98', 'atm': '#CB3524',
+    'rso': '#0067B1', 'ath': '#EE2524', 'lil': '#E01E12',
     'mci': '#6CABDD', 'mun': '#DA291C', 'liv': '#C8102E',
     'ars': '#EF0107', 'che': '#034694', 'psg': '#004170',
     'bay': '#DC052D', 'dor': '#FDE100', 'juv': '#000000',
@@ -116,13 +121,107 @@
     'tig': '#004B87', 'mty': '#FFFFFF', 'tol': '#FFFFFF', 'san': '#FFFFFF',
     'pac': '#C0C0C0', 'leo': '#FFD100', 'atl_mx': '#D31126', 'pue': '#FFFFFF',
     'qro': '#000000', 'tij': '#000000', 'nec': '#FFFFFF', 'maz': '#00A3E0',
-    'asl': '#002855', 'jua': '#E31B23',
+    'asl': '#002855', 'jua': '#E31B23', 'atlante': '#D31126',
 
     'rma': '#FEBE10', 'bar': '#A50044', 'atm': '#1B3B6F',
+    'rso': '#FFFFFF', 'ath': '#FFFFFF', 'lil': '#0A1C2A',
     'mci': '#1C2C5B', 'mun': '#000000', 'liv': '#00B2A9',
     'ars': '#063672', 'che': '#EE242C', 'psg': '#DA291C',
     'bay': '#0066B2', 'dor': '#000000', 'juv': '#FFFFFF',
     'int': '#000000', 'acm': '#000000'
+  };
+
+  // Stadium & Venue mapping for known sports teams
+  const STADIUM_MAP = {
+    // La Liga
+    'rma': 'Santiago Bernabéu',
+    'bar': 'Camp Nou / Montjuïc',
+    'atm': 'Cívitas Metropolitano',
+    'rso': 'Reale Arena (Anoeta)',
+    'ath': 'San Mamés',
+    'sev': 'Ramón Sánchez-Pizjuán',
+    'bet': 'Benito Villamarín',
+    'val': 'Mestalla',
+    'vil': 'Estadio de la Cerámica',
+    'gir': 'Montilivi',
+    'cel': 'Abanca-Balaídos',
+    'mll': 'Son Moix',
+    'osa': 'El Sadar',
+    'get': 'Coliseum',
+    'ray': 'Vallecas',
+    'ala': 'Mendizorroza',
+    'lpa': 'Estadio Gran Canaria',
+    'esp': 'RCDE Stadium',
+    'leg': 'Butarque',
+
+    // Liga MX
+    'ame': 'Estadio Ciudad de los Deportes',
+    'gdl': 'Estadio Akron',
+    'caz': 'Estadio Ciudad de los Deportes',
+    'pum': 'Estadio Olímpico Universitario',
+    'tig': 'Estadio Universitario (El Volcán)',
+    'mty': 'Estadio BBVA (Gigante de Acero)',
+    'tol': 'Estadio Nemesio Díez (La Bombonera)',
+    'san': 'Estadio Corona (TSM)',
+    'pac': 'Estadio Hidalgo',
+    'leo': 'Estadio Nou Camp',
+    'atl_mx': 'Estadio Jalisco',
+    'pue': 'Estadio Cuauhtémoc',
+    'qro': 'Estadio Corregidora',
+    'tij': 'Estadio Caliente',
+    'nec': 'Estadio Victoria',
+    'maz': 'Estadio El Encanto',
+    'asl': 'Estadio Alfonso Lastras',
+    'jua': 'Estadio Olímpico Benito Juárez',
+    'atlante': 'Estadio Ciudad de los Deportes',
+
+    // International Soccer
+    'psg': 'Parc des Princes',
+    'lil': 'Stade Pierre-Mauroy',
+    'mci': 'Etihad Stadium',
+    'mun': 'Old Trafford',
+    'liv': 'Anfield',
+    'ars': 'Emirates Stadium',
+    'che': 'Stamford Bridge',
+    'bay': 'Allianz Arena',
+    'dor': 'Signal Iduna Park',
+    'juv': 'Allianz Stadium (Turín)',
+    'int': 'San Siro / Giuseppe Meazza',
+    'acm': 'San Siro / Giuseppe Meazza',
+
+    // NFL
+    'pit': 'Acrisure Stadium',
+    'buf': 'Highmark Stadium',
+    'kc': 'GEHA Field at Arrowhead',
+    'dal': 'AT&T Stadium',
+    'sf': "Levi's Stadium",
+    'gb': 'Lambeau Field',
+    'phi': 'Lincoln Financial Field',
+    'mia': 'Hard Rock Stadium',
+    'bal': 'M&T Bank Stadium',
+    'det': 'Ford Field',
+    'hou': 'NRG Stadium',
+    'lar': 'SoFi Stadium',
+    'lac': 'SoFi Stadium',
+    'lv': 'Allegiant Stadium',
+    'ne': 'Gillette Stadium',
+    'chi': 'Soldier Field',
+    'nyg': 'MetLife Stadium',
+    'nyj': 'MetLife Stadium',
+    'atl': 'Mercedes-Benz Stadium',
+    'no': 'Caesars Superdome',
+    'sea': 'Lumen Field',
+    'min': 'U.S. Bank Stadium',
+    'den': 'Empower Field at Mile High',
+    'tb': 'Raymond James Stadium',
+    'ari': 'State Farm Stadium',
+    'cin': 'Paycor Stadium',
+    'cle': 'Huntington Bank Field',
+    'ind': 'Lucas Oil Stadium',
+    'jax': 'EverBank Stadium',
+    'ten': 'Nissan Stadium',
+    'car': 'Bank of America Stadium',
+    'wsh': 'Commanders Field'
   };
 
   function resolve(teamName) {
@@ -138,7 +237,7 @@
   window.getTeamLogoURL = function(teamName) {
     const abbr = resolve(teamName);
     if (abbr) {
-      if (['ame','gdl','caz','pum','tig','mty','tol','san','pac','leo','atl_mx','pue','qro','tij','nec','maz','asl','jua'].includes(abbr)) {
+      if (['ame','gdl','caz','pum','tig','mty','tol','san','pac','leo','atl_mx','pue','qro','tij','nec','maz','asl','jua','atlante','rma','bar','atm','rso','ath','lil','psg'].includes(abbr)) {
         return `https://a.espncdn.com/i/teamlogos/soccer/500/${abbr.replace('_mx','')}.png`;
       }
       return 'https://a.espncdn.com/i/teamlogos/nfl/500/' + abbr + '.png';
@@ -156,6 +255,53 @@
     return abbr ? (TEAM_SECONDARY[abbr] || '#ffd100') : '#ffd100';
   };
 
+  window.getTeamStadium = function(teamName, fallbackVenue) {
+    if (fallbackVenue && typeof fallbackVenue === 'string' && fallbackVenue.trim().length > 2) {
+      return fallbackVenue.trim();
+    }
+    const abbr = resolve(teamName);
+    if (abbr && STADIUM_MAP[abbr]) {
+      return STADIUM_MAP[abbr];
+    }
+    if (teamName) {
+      const lower = teamName.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (lower.includes('madrid') && !lower.includes('atletico')) return 'Santiago Bernabéu';
+      if (lower.includes('barcelona') || lower.includes('barca')) return 'Camp Nou / Montjuïc';
+      if (lower.includes('sociedad')) return 'Reale Arena (Anoeta)';
+      if (lower.includes('athletic') || lower.includes('bilbao')) return 'San Mamés';
+      if (lower.includes('paris') || lower.includes('psg')) return 'Parc des Princes';
+      if (lower.includes('lille')) return 'Stade Pierre-Mauroy';
+      if (lower.includes('cruz azul')) return 'Estadio Ciudad de los Deportes';
+      if (lower.includes('necaxa')) return 'Estadio Victoria';
+      if (lower.includes('leon')) return 'Estadio Nou Camp';
+      if (lower.includes('atlante')) return 'Estadio Ciudad de los Deportes';
+      if (lower.includes('pumas') || lower.includes('unam')) return 'Estadio Olímpico Universitario';
+      if (lower.includes('tijuana') || lower.includes('xolos')) return 'Estadio Caliente';
+      if (lower.includes('america')) return 'Estadio Ciudad de los Deportes';
+      if (lower.includes('chivas') || lower.includes('guadalajara')) return 'Estadio Akron';
+      if (lower.includes('monterrey') || lower.includes('rayados')) return 'Estadio BBVA';
+      if (lower.includes('tigres') || lower.includes('uanl')) return 'Estadio Universitario';
+      if (lower.includes('toluca')) return 'Estadio Nemesio Díez';
+      if (lower.includes('santos')) return 'Estadio Corona';
+      if (lower.includes('pachuca')) return 'Estadio Hidalgo';
+      if (lower.includes('atlas')) return 'Estadio Jalisco';
+      if (lower.includes('puebla')) return 'Estadio Cuauhtémoc';
+      if (lower.includes('queretaro')) return 'Estadio Corregidora';
+      if (lower.includes('mazatlan')) return 'Estadio El Encanto';
+      if (lower.includes('san luis')) return 'Estadio Alfonso Lastras';
+      if (lower.includes('juarez')) return 'Estadio Olímpico Benito Juárez';
+      if (lower.includes('steelers') || lower.includes('pittsburgh')) return 'Acrisure Stadium';
+      if (lower.includes('bills') || lower.includes('buffalo')) return 'Highmark Stadium';
+      if (lower.includes('chiefs') || lower.includes('kansas')) return 'Arrowhead Stadium';
+      if (lower.includes('cowboys') || lower.includes('dallas')) return 'AT&T Stadium';
+      if (lower.includes('49ers') || lower.includes('francisco')) return "Levi's Stadium";
+      if (lower.includes('packers') || lower.includes('green bay')) return 'Lambeau Field';
+      if (lower.includes('eagles') || lower.includes('philadelphia')) return 'Lincoln Financial Field';
+      if (lower.includes('dolphins') || lower.includes('miami')) return 'Hard Rock Stadium';
+    }
+    return '';
+  };
+
   window.resolveTeamStyle = function(teamData) {
     if (!teamData) {
       return { name: 'Equipo', abbr: 'EQP', logo: 'img/logo.jpg', color: '#1a1a24', secondaryColor: '#ffd100' };
@@ -167,7 +313,8 @@
         abbr: abbr ? abbr.toUpperCase() : teamData.slice(0, 3).toUpperCase(),
         logo: window.getTeamLogoURL(teamData),
         color: window.getTeamColor(teamData),
-        secondaryColor: window.getTeamSecondaryColor(teamData)
+        secondaryColor: window.getTeamSecondaryColor(teamData),
+        stadium: window.getTeamStadium(teamData)
       };
     }
     
@@ -195,7 +342,8 @@
       abbr: cleanAbbr,
       logo: rawLogo,
       color: rawColor,
-      secondaryColor: rawSec
+      secondaryColor: rawSec,
+      stadium: window.getTeamStadium(rawName)
     };
   };
 

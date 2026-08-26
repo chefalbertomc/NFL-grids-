@@ -989,13 +989,16 @@
     }
 
     const inp = document.getElementById(`pick_${side}_${matchId}`);
-    if (!inp || inp.disabled) return;
-    let val = parseInt(inp.value, 10);
+    if (!inp) return;
+    let rawVal = inp.tagName === 'INPUT' ? inp.value : inp.textContent;
+    let val = parseInt(rawVal, 10);
     if (isNaN(val)) val = 0;
     val += delta;
     if (val < 0) val = 0;
     if (val > 99) val = 99;
-    inp.value = val;
+
+    if (inp.tagName === 'INPUT') inp.value = val;
+    inp.textContent = val;
 
     if (!picks[matchId]) picks[matchId] = {};
     if (side === 'away') picks[matchId].awayScore = val;
@@ -1004,17 +1007,17 @@
     // Dynamic points preview
     const match = (activeQuiniela.matches || []).find(m => m.id === matchId);
     if (match && match.homeScore !== null && match.awayScore !== null && match.status !== 'pre') {
-      const awayInp = document.getElementById(`pick_away_${matchId}`);
-      const homeInp = document.getElementById(`pick_home_${matchId}`);
-      const card = document.getElementById(`card_match_${matchId}`);
+      const awayEl = document.getElementById(`pick_away_${matchId}`);
+      const homeEl = document.getElementById(`pick_home_${matchId}`);
       const statusLabel = document.getElementById(`status_label_${matchId}`);
-      if (awayInp && homeInp && card) {
-        const pickA = parseInt(awayInp.value, 10);
-        const pickH = parseInt(homeInp.value, 10);
+      if (awayEl && homeEl) {
+        const rawA = awayEl.tagName === 'INPUT' ? awayEl.value : awayEl.textContent;
+        const rawH = homeEl.tagName === 'INPUT' ? homeEl.value : homeEl.textContent;
+        const pickA = parseInt(rawA, 10);
+        const pickH = parseInt(rawH, 10);
         const exact = pickH === match.homeScore && pickA === match.awayScore;
         const realWin = match.homeScore > match.awayScore ? 'home' : match.awayScore > match.homeScore ? 'away' : 'draw';
         const pickWin = pickH > pickA ? 'home' : pickA > pickH ? 'away' : 'draw';
-        card.className = 'q-match-card ' + (exact ? 'q-match-green' : realWin === pickWin ? 'q-match-yellow' : 'q-match-red');
         if (statusLabel) {
           statusLabel.textContent = exact ? '🎯 Exacto (+3 pts)' : realWin === pickWin ? '✓ Ganador (+1 pt)' : '✗ 0 pts';
         }
@@ -1279,9 +1282,10 @@
 
       const awayShort = typeof window.getTeamNickname === 'function' ? window.getTeamNickname(m.away, m.awayAbbr) : m.away;
       const homeShort = typeof window.getTeamNickname === 'function' ? window.getTeamNickname(m.home, m.homeAbbr) : m.home;
+      const stadiumName = typeof window.getTeamStadium === 'function' ? window.getTeamStadium(m.home, m.venue || m.stadium) : (m.venue || m.stadium || '');
 
       if (isSoccer && !isHybrid) {
-        // SOCCER: Exact score steppers with team colors
+        // SOCCER: Ultra-compact vertical steppers with team colors
         matchContentHtml = `
           <div class="q-scorebug-split">
             <!-- Away Team Wing (Left) -->
@@ -1293,19 +1297,21 @@
               ${hasScore ? `<span class="q-scorebug-score-box">${m.awayScore}</span>` : ''}
             </div>
 
-            <!-- Center Steppers -->
-            <div class="q-scorebug-center" style="min-width:110px; padding:4px 6px;">
-              <div style="display:flex; align-items:center; gap:4px;">
-                <div class="q-counter-box">
-                  <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">−</button>
-                  <input type="number" min="0" max="99" class="q-score-box" id="pick_away_${m.id}" value="${currentAwayVal}" readonly />
-                  <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'away', 1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Sumar">+</button>
+            <!-- Ultra-Compact Center Steppers (Takes minimal width so team names never truncate) -->
+            <div class="q-scorebug-center q-soccer-steppers">
+              <div class="q-vert-stepper" ${!isIndividualMatchLocked ? `onclick="stepScore('${m.id}', 'away', 1)"` : ''} style="${!isIndividualMatchLocked ? 'cursor:pointer;' : ''}">
+                <span class="q-vert-num" id="pick_away_${m.id}">${currentAwayVal}</span>
+                <div class="q-vert-arrows">
+                  <button type="button" class="q-vert-btn" onclick="event.stopPropagation(); stepScore('${m.id}', 'away', 1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Sumar">▲</button>
+                  <button type="button" class="q-vert-btn" onclick="event.stopPropagation(); stepScore('${m.id}', 'away', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">▼</button>
                 </div>
-                <span style="font-weight:900; color:#ffd100; font-size:14px;">:</span>
-                <div class="q-counter-box">
-                  <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'home', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">−</button>
-                  <input type="number" min="0" max="99" class="q-score-box" id="pick_home_${m.id}" value="${currentHomeVal}" readonly />
-                  <button type="button" class="q-step-btn" onclick="stepScore('${m.id}', 'home', 1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Sumar">+</button>
+              </div>
+              <span class="q-vert-colon">:</span>
+              <div class="q-vert-stepper" ${!isIndividualMatchLocked ? `onclick="stepScore('${m.id}', 'home', 1)"` : ''} style="${!isIndividualMatchLocked ? 'cursor:pointer;' : ''}">
+                <span class="q-vert-num" id="pick_home_${m.id}">${currentHomeVal}</span>
+                <div class="q-vert-arrows">
+                  <button type="button" class="q-vert-btn" onclick="event.stopPropagation(); stepScore('${m.id}', 'home', 1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Sumar">▲</button>
+                  <button type="button" class="q-vert-btn" onclick="event.stopPropagation(); stepScore('${m.id}', 'home', -1)" ${isIndividualMatchLocked ? 'disabled' : ''} title="Restar">▼</button>
                 </div>
               </div>
             </div>
@@ -1416,11 +1422,12 @@
       }
 
       card.innerHTML = `
-        <div class="q-scorebug-meta-bar">
+        <div class="q-scorebug-meta-bar" style="padding:6px 12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">
           <div>
-            <span style="color:#ffd100; font-weight:900; margin-right:4px;">${m.leagueLabel || '🏈 NFL'}</span>
-            <span>•</span>
-            <span style="margin-left:4px;">${m.date || ''}</span>
+            ${stadiumName ? `<div style="font-size:10.5px; font-weight:900; color:#ffd100; text-transform:uppercase; letter-spacing:0.04em; display:flex; align-items:center; gap:4px; margin-bottom:1px;">🏟️ ${stadiumName}</div>` : ''}
+            <div style="font-size:11px; color:#a0aec0; font-weight:700;">
+              <span style="color:#ffffff; font-weight:800;">${m.leagueLabel || 'Fútbol'}</span> • <span>${m.date || ''}</span>
+            </div>
           </div>
           <div style="display:flex; align-items:center; gap:6px;">
             ${isLive ? `<span style="font-size:10px; font-weight:900; background:#ff4444; color:#fff; padding:2px 6px; border-radius:10px; animation: tvPulse 1s infinite;">🔴 ${m.statusStr || 'EN VIVO'}</span>` : ''}
@@ -1478,10 +1485,10 @@
     matches.forEach(m => {
       const sport = detectSport(m);
       if (sport === 'soccer') {
-        const awayInp = document.getElementById(`pick_away_${m.id}`);
-        const homeInp = document.getElementById(`pick_home_${m.id}`);
-        const awayVal = awayInp ? awayInp.value.trim() : '0';
-        const homeVal = homeInp ? homeInp.value.trim() : '0';
+        const awayEl = document.getElementById(`pick_away_${m.id}`);
+        const homeEl = document.getElementById(`pick_home_${m.id}`);
+        const awayVal = awayEl ? (awayEl.value !== undefined ? awayEl.value : awayEl.textContent).trim() : '0';
+        const homeVal = homeEl ? (homeEl.value !== undefined ? homeEl.value : homeEl.textContent).trim() : '0';
         newPicks[m.id] = { awayScore: Number(awayVal || 0), homeScore: Number(homeVal || 0) };
       } else {
         const currentWinner = picks[m.id]?.winner || 'away';

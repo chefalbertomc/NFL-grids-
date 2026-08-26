@@ -378,6 +378,7 @@
           card.classList.remove('selected');
           if (chk) chk.textContent = '☐';
         } else {
+          const venueName = comp.venue?.fullName || comp.venue?.name || '';
           qSelectedMatches[ev.id] = {
             espnEventId: ev.id,
             sport: league.sport,
@@ -385,6 +386,8 @@
             leagueLabel: league.label,
             date: dateStr,
             rawDate: ev.date || '',
+            venue: venueName,
+            stadium: venueName,
             home: { name: homeName, logo: homeLogo, id: home.team?.id || '', abbr: home.team?.abbreviation || homeName.substring(0,3) },
             away: { name: awayName, logo: awayLogo, id: away.team?.id || '', abbr: away.team?.abbreviation || awayName.substring(0,3) }
           };
