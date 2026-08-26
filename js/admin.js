@@ -1824,6 +1824,10 @@
         card.style.background = 'rgba(255,209,0,0.08)';
 
         const defName = `${awayName} vs ${homeName}`;
+        const sportPathParts = (document.getElementById('fgSportSelect')?.value || 'soccer/mex.1').split('/');
+        const selSport = sportPathParts[0] || 'soccer';
+        const selSlug = sportPathParts[1] || 'mex.1';
+
         fgSelectedMatchData = {
           eventId: ev.id,
           homeTeam: homeName,
@@ -1835,6 +1839,8 @@
           homeColor: homeColor,
           awayColor: awayColor,
           leagueName: defaultLeagueName,
+          sport: selSport,
+          leagueSlug: selSlug,
           matchDate: ev.date || '',
           status: ev.status?.type?.state || 'scheduled',
           defaultName: defName
@@ -1882,6 +1888,8 @@
         homeSecondaryColor: '#ffd100',
         awaySecondaryColor: '#ffd100',
         leagueName: fgSelectedMatchData.leagueName || 'Fútbol',
+        sport: fgSelectedMatchData.sport || 'soccer',
+        leagueSlug: fgSelectedMatchData.leagueSlug || 'mex.1',
         matchDate: fgSelectedMatchData.matchDate || '',
         store: store,
         autoApprove: autoApprove,
@@ -2572,7 +2580,12 @@
         return;
       }
 
-      let res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/all/summary?event=${game.eventId}`);
+      const gSport = game.sport || 'soccer';
+      const gLeague = game.leagueSlug || 'mex.1';
+      let res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${gSport}/${gLeague}/summary?event=${game.eventId}`);
+      if (!res.ok) {
+        res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/concacaf.leagues.cup/summary?event=${game.eventId}`);
+      }
       if (!res.ok) {
         res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/mex.1/summary?event=${game.eventId}`);
       }

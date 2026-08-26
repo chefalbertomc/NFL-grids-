@@ -11,6 +11,7 @@
 
   const LEAGUES = [
     { label: '🏈 NFL (Americano)', sport: 'football', slug: 'nfl', defaultWeeks: 18 },
+    { label: '🏆 Leagues Cup (México vs USA)', sport: 'soccer', slug: 'concacaf.leagues.cup', defaultWeeks: 6 },
     { label: '🇲🇽 Liga MX (Fútbol)', sport: 'soccer', slug: 'mex.1', defaultWeeks: 17 },
     { label: '🇪🇸 La Liga (Fútbol)', sport: 'soccer', slug: 'esp.1', defaultWeeks: 38 },
     { label: '🏆 UEFA Champions League', sport: 'soccer', slug: 'uefa.champions', defaultWeeks: 8 },

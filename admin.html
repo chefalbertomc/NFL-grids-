@@ -35,7 +35,7 @@
         <img src="img/logo.jpg" alt="Drinks & Wins by Beto" class="app-brand-logo" />
         <div>
           <h1 class="header-title gradient-text">Panel de Administración</h1>
-          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v185.0</span></p>
+          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v186.0</span></p>
         </div>
       </div>
       <a href="index.html" class="btn btn-secondary" style="width: auto; padding: 8px 14px; text-decoration: none; font-size: 13px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;">
@@ -72,6 +72,8 @@
           <div class="form-group" style="flex: 1; min-width: 140px; margin: 0;">
             <label>Liga</label>
             <select id="selectLeague">
+              <option value="soccer/concacaf.leagues.cup">🏆 Leagues Cup (México vs USA)</option>
+              <option value="soccer/mex.1">⚽ 🇲🇽 Liga MX</option>
               <option value="nfl">🏈 NFL</option>
               <option value="college-football">🎓 NCAA Football</option>
             </select>
@@ -450,6 +452,7 @@
           <div class="form-group" style="margin-bottom:10px;">
             <label style="font-size:11px;">Deporte / Liga</label>
             <select id="newSurvLeague" style="font-weight:800;">
+              <option value="5">🏆 Leagues Cup (México vs USA) - 6 Semanas</option>
               <option value="0">🏈 NFL (Americano) - 18 Semanas</option>
               <option value="1">🇲🇽 Liga MX (Fútbol) - 17 Jornadas</option>
               <option value="2">🇪🇸 La Liga Española - 38 Jornadas</option>
@@ -488,7 +491,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v185.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v186.0</span>
       </footer>
     </main>
 
@@ -512,8 +515,11 @@
           <div class="form-group" style="flex:1; min-width:160px; margin:0;">
             <label>Liga / Deporte a Buscar</label>
             <select id="fgSportSelect" style="font-size:13px; font-weight:700;">
+              <optgroup label="🏆 Torneos Especiales">
+                <option value="soccer/concacaf.leagues.cup" selected>🏆 Leagues Cup (México vs USA)</option>
+              </optgroup>
               <optgroup label="🇲🇽 Fútbol Mexicano">
-                <option value="soccer/mex.1" selected>🇲🇽 Liga MX</option>
+                <option value="soccer/mex.1">🇲🇽 Liga MX</option>
                 <option value="soccer/mex.2">🇲🇽 Liga de Expansión MX</option>
                 <option value="soccer/mex.copa_mx">🇲🇽 Copa MX</option>
                 <option value="soccer/mex.1.femenil">🇲🇽 Liga MX Femenil</option>
@@ -772,7 +778,8 @@
           <div class="form-group" style="flex:1; min-width:140px; margin:0;">
             <label>Deporte / Liga</label>
             <select id="bingoLeague" style="font-size:13px; font-weight:700;">
-              <option value="soccer/mex.1">⚽ 🇲🇽 Liga MX</option>
+              <option value="soccer/concacaf.leagues.cup">🏆 Leagues Cup (México vs USA)</option>
+              <option value="soccer/mex.1" selected>⚽ 🇲🇽 Liga MX</option>
               <option value="soccer/eng.1">⚽ 🇬🇧 Premier League</option>
               <option value="soccer/esp.1">⚽ 🇪🇸 La Liga</option>
               <option value="soccer/uefa.champions">⚽ 🇪🇺 Champions League</option>
@@ -833,7 +840,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v185.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v186.0</span>
       </footer>
     </main>
   </div>

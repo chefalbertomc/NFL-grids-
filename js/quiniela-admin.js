@@ -6,6 +6,7 @@
 
   const LEAGUES = {
     // ⚽ QUINIELAS (Fútbol / Soccer)
+    'leagues-cup':      { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'concacaf.leagues.cup',  label: '🏆 Leagues Cup (México vs USA)' },
     'liga-mx':          { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'mex.1',                 label: '🇲🇽 Liga MX' },
     'liga-mx-fem':      { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'mex.w.1',               label: '🇲🇽 Liga MX Femenil' },
     'premier':          { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'eng.1',                 label: '🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League' },
@@ -17,7 +18,6 @@
     'ligue-1':          { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'fra.1',                 label: '🇫🇷 Ligue 1 Francia' },
     'mls':              { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'usa.1',                 label: '🇺🇸 MLS' },
     'libertadores':     { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'conmebol.libertadores', label: '🌎 Copa Libertadores' },
-    'leagues-cup':      { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'concacaf.leagues.cup',  label: '🏆 Leagues Cup' },
 
     // 🏈 ⚾ 🏀 PICK'EM (US Sports)
     'nfl':              { group: "🏈 ⚾ 🏀 PICK'EM (US Sports)", sport: 'football',   slug: 'nfl',                     label: '🏈 NFL' },

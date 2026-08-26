@@ -256,8 +256,15 @@
         </div>
       `;
 
-      const rawLeague = game.leagueName || game.sport || 'LIGA MX';
-      const leagueText = (rawLeague.includes('First Striker') || rawLeague.includes('Fútbol') || rawLeague === 'mex.1') ? 'LIGA MX' : rawLeague.toUpperCase();
+      const rawLeague = game.leagueName || game.leagueSlug || game.sport || 'LIGA MX';
+      let leagueText = 'LIGA MX';
+      if (rawLeague.toLowerCase().includes('leagues') || rawLeague.toLowerCase().includes('cup')) {
+        leagueText = 'LEAGUES CUP';
+      } else if (rawLeague.includes('First Striker') || rawLeague.includes('Fútbol') || rawLeague === 'mex.1') {
+        leagueText = 'LIGA MX';
+      } else {
+        leagueText = rawLeague.toUpperCase();
+      }
 
       // TV Broadcast Scorebug Header
       const tvScorebugHtml = `
@@ -966,8 +973,14 @@
       try {
         const sport = g.sport || 'soccer';
         const league = g.leagueSlug || 'mex.1';
-        const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/summary?event=${g.eventId}`;
-        const res = await fetch(url);
+        let url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/summary?event=${g.eventId}`;
+        let res = await fetch(url);
+        if (!res.ok) {
+          res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/concacaf.leagues.cup/summary?event=${g.eventId}`);
+        }
+        if (!res.ok) {
+          res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/mex.1/summary?event=${g.eventId}`);
+        }
         if (!res.ok) continue;
         const data = await res.json();
         const header = data.header || {};

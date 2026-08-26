@@ -57,6 +57,16 @@
     'san luis': 'asl', 'atlético de san luis': 'asl',
     'juarez': 'jua', 'juárez': 'jua', 'bravos': 'jua',
 
+    // MLS / Leagues Cup
+    'austin': 'atx', 'austin fc': 'atx',
+    'columbus': 'clb', 'columbus crew': 'clb',
+    'inter miami': 'mia_mls', 'miami cf': 'mia_mls',
+    'lafc': 'lafc', 'los angeles fc': 'lafc',
+    'la galaxy': 'lag', 'galaxy': 'lag',
+    'seattle sounders': 'sea_s', 'sounders': 'sea_s',
+    'philadelphia union': 'phi_u', 'union': 'phi_u',
+    'cincinnati': 'cin_fc', 'fc cincinnati': 'cin_fc',
+
     // European Soccer
     'real madrid': 'rma', 'madrid': 'rma',
     'barcelona': 'bar', 'barça': 'bar',
@@ -97,6 +107,10 @@
     'qro': '#002B49', 'tij': '#CC0000', 'nec': '#E31B23', 'maz': '#582C83',
     'asl': '#D81E05', 'jua': '#00953B', 'atlante': '#0B2265',
 
+    // MLS / Leagues Cup
+    'atx': '#00B140', 'clb': '#FEF200', 'mia_mls': '#F7B5CD', 'lafc': '#C39E5C',
+    'lag': '#00245D', 'sea_s': '#5D9741', 'phi_u': '#071B2C', 'cin_fc': '#FE5000',
+
     // International Soccer
     'rma': '#00529F', 'bar': '#004D98', 'atm': '#CB3524',
     'rso': '#0067B1', 'ath': '#EE2524', 'lil': '#E01E12',
@@ -128,7 +142,9 @@
     'mci': '#1C2C5B', 'mun': '#000000', 'liv': '#00B2A9',
     'ars': '#063672', 'che': '#EE242C', 'psg': '#DA291C',
     'bay': '#0066B2', 'dor': '#000000', 'juv': '#FFFFFF',
-    'int': '#000000', 'acm': '#000000'
+    // MLS / Leagues Cup
+    'atx': '#000000', 'clb': '#000000', 'mia_mls': '#231F20', 'lafc': '#000000',
+    'lag': '#FFD200', 'sea_s': '#005595', 'phi_u': '#B38707', 'cin_fc': '#003087',
   };
 
   // Stadium & Venue mapping for known sports teams
@@ -174,6 +190,16 @@
     'asl': 'Estadio Alfonso Lastras',
     'jua': 'Estadio Olímpico Benito Juárez',
     'atlante': 'Estadio Ciudad de los Deportes',
+
+    // MLS / Leagues Cup
+    'atx': 'Q2 Stadium (Austin, TX)',
+    'clb': 'Lower.com Field (Columbus, OH)',
+    'mia_mls': 'Chase Stadium (Fort Lauderdale, FL)',
+    'lafc': 'BMO Stadium (Los Angeles, CA)',
+    'lag': 'Dignity Health Sports Park (Carson, CA)',
+    'sea_s': 'Lumen Field (Seattle, WA)',
+    'phi_u': 'Subaru Park (Chester, PA)',
+    'cin_fc': 'TQL Stadium (Cincinnati, OH)',
 
     // International Soccer
     'psg': 'Parc des Princes',
