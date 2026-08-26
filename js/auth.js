@@ -99,11 +99,25 @@
       setLoginButtonLoading('btnModalGoogle', true, 'Conectando con Google...');
 
       try {
-        await auth.signInWithRedirect(provider);
+        const result = await auth.signInWithPopup(provider);
+        if (result && result.user) {
+          window.currentUser = result.user;
+          localStorage.setItem('bww_last_auth_user', JSON.stringify({ uid: result.user.uid, displayName: result.user.displayName, email: result.user.email }));
+          window.hideLoginModal();
+          updateHeaderUI(result.user);
+          notifyCallbacks();
+          if (pendingAuthAction) {
+            const action = pendingAuthAction;
+            pendingAuthAction = null;
+            action(result.user);
+          }
+        }
       } catch (err) {
-        console.warn('[auth] Redirect sign-in error:', err);
-        // On mobile / Safari / PWA where popups or third-party cookies are blocked by Apple ITP:
-        // Prompt user directly for their nickname so they can play instantly without being blocked in a loop
+        console.warn('[auth] Popup sign-in error:', err);
+        if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
+          return;
+        }
+        // On mobile / Safari where popups or third-party cookies might be blocked:
         const saved = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '';
         const nick = prompt('📱 Escribe tu Nombre o Apodo para ingresar a jugar:', saved);
         if (nick && nick.trim()) {
