@@ -765,7 +765,18 @@
       localStorage.setItem('bww_last_auth_user', JSON.stringify(activeUser));
     }
 
-    const qObj = allQuinielas.find(x => x.id === quinielaId);
+    let qObj = allQuinielas.find(x => x.id === quinielaId);
+    if (!qObj) {
+      try {
+        const snap = await db.collection('quinielas').doc(quinielaId).get();
+        if (snap.exists) {
+          qObj = { id: snap.id, ...snap.data() };
+          allQuinielas.push(qObj);
+        }
+      } catch (err) {
+        console.warn('[QPlayer] Error fetching quiniela directly:', err);
+      }
+    }
     if (!qObj) return;
 
     activeQuiniela = { ...qObj, matches: sortMatchesChronologically(qObj.matches || []) };

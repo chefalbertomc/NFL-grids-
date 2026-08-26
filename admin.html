@@ -372,14 +372,42 @@
         </div>
 
         <div class="flex-row" style="flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+          <div class="form-group" style="flex:1; min-width:160px; margin:0;">
+            <label>Liga / Deporte a Buscar</label>
+            <select id="fgSportSelect" style="font-size:13px; font-weight:700;">
+              <optgroup label="🇲🇽 Fútbol Mexicano">
+                <option value="soccer/mex.1" selected>🇲🇽 Liga MX</option>
+                <option value="soccer/mex.2">🇲🇽 Liga de Expansión MX</option>
+                <option value="soccer/mex.copa_mx">🇲🇽 Copa MX</option>
+                <option value="soccer/mex.1.femenil">🇲🇽 Liga MX Femenil</option>
+              </optgroup>
+              <optgroup label="🌍 Fútbol Internacional">
+                <option value="soccer/uefa.champions">🇪🇺 UEFA Champions League</option>
+                <option value="soccer/uefa.europa">🇪🇺 UEFA Europa League</option>
+                <option value="soccer/eng.1">🇬🇧 Premier League (Inglaterra)</option>
+                <option value="soccer/esp.1">🇪🇸 La Liga (España)</option>
+                <option value="soccer/ita.1">🇮🇹 Serie A (Italia)</option>
+                <option value="soccer/ger.1">🇩🇪 Bundesliga (Alemania)</option>
+                <option value="soccer/fra.1">🇫🇷 Ligue 1 (Francia)</option>
+                <option value="soccer/usa.1">🇺🇸 MLS (Estados Unidos)</option>
+                <option value="soccer/conmebol.libertadores">🏆 Copa Libertadores</option>
+                <option value="soccer/fifa.world">🌎 Selecciones (FIFA)</option>
+              </optgroup>
+              <optgroup label="🏈 Fútbol Americano & Otros">
+                <option value="football/nfl">🏈 NFL</option>
+                <option value="football/college-football">🏈 Colegial NCAA</option>
+                <option value="basketball/nba">🏀 NBA</option>
+                <option value="baseball/mlb">⚾ MLB</option>
+              </optgroup>
+            </select>
+          </div>
           <div class="form-group" style="flex:1; min-width:140px; margin:0;">
-            <label>Liga / Deporte</label>
-            <select id="fgLeague" style="font-size:13px; font-weight:700;">
-              <option value="mex.1">🇲🇽 Liga MX</option>
-              <option value="eng.1">🇬🇧 Premier League</option>
-              <option value="esp.1">🇪🇸 La Liga (España)</option>
-              <option value="uefa.champions">🇪🇺 UEFA Champions League</option>
-              <option value="fifa.world">🌎 Selecciones (Internacional)</option>
+            <label>Rango de Fecha</label>
+            <select id="fgDaysRange" style="font-size:13px; font-weight:700;">
+              <option value="7">Esta Semana (Próximos 7 días)</option>
+              <option value="14" selected>Próximas 2 Semanas (14 días)</option>
+              <option value="30">Próximo Mes (30 días)</option>
+              <option value="1">Solo Hoy</option>
             </select>
           </div>
           <div style="display:flex; align-items:flex-end;">
@@ -582,12 +610,12 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=160.0"></script>
-  <script src="js/auth.js?v=160.0"></script>
-  <script src="js/team-logos.js?v=160.0"></script>
-  <script src="js/admin.js?v=160.0"></script>
-  <script src="js/quiniela-admin.js?v=160.0"></script>
-  <script src="js/bingo-admin.js?v=160.0"></script>
+  <script src="js/firebase-config.js?v=161.0"></script>
+  <script src="js/auth.js?v=161.0"></script>
+  <script src="js/team-logos.js?v=161.0"></script>
+  <script src="js/admin.js?v=161.0"></script>
+  <script src="js/quiniela-admin.js?v=161.0"></script>
+  <script src="js/bingo-admin.js?v=161.0"></script>
 
   <!-- Admin Tab Switching for Top Tabs -->
   <script>

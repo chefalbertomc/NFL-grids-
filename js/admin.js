@@ -1702,26 +1702,39 @@
   }
 
   async function searchFGGames() {
-    const league = document.getElementById('fgLeague').value;
+    const sportPath = document.getElementById('fgSportSelect')?.value || document.getElementById('fgLeague')?.value || 'soccer/mex.1';
+    const daysRange = parseInt(document.getElementById('fgDaysRange')?.value || '14', 10);
     const btn = document.getElementById('btnSearchFGGames');
-    btn.textContent = 'Buscando...';
-    btn.disabled = true;
+    if (btn) { btn.textContent = '⏳ Buscando...'; btn.disabled = true; }
     
     try {
-      const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/scoreboard`;
+      const today = new Date();
+      const start = new Date();
+      start.setDate(today.getDate() - 1);
+      const end = new Date();
+      end.setDate(today.getDate() + daysRange);
+
+      const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+      
+      let fullSportPath = sportPath;
+      if (!fullSportPath.includes('/')) {
+        fullSportPath = `soccer/${sportPath}`;
+      }
+      
+      const url = `https://site.api.espn.com/apis/site/v2/sports/${fullSportPath}/scoreboard?dates=${fmt(start)}-${fmt(end)}&limit=100`;
       let res = await fetch(url);
-      if (!res.ok) throw new Error('Network error');
+      if (!res.ok) throw new Error('Network error ' + res.status);
       let data = await res.json();
       
       fgSearchMatches = data.events || [];
       renderFGGamesList(fgSearchMatches);
       
     } catch (err) {
+      console.error('[FirstGoal Admin]', err);
       alert('Error consultando ESPN: ' + err.message);
+    } finally {
+      if (btn) { btn.textContent = '🔍 Buscar Partidos'; btn.disabled = false; }
     }
-    
-    btn.textContent = '🔍 Buscar Partidos';
-    btn.disabled = false;
   }
 
   function renderFGGamesList(events) {
