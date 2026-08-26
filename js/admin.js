@@ -2818,8 +2818,9 @@
     }
   }
 
-  // Expose FirstGoal search directly
+  // Expose FirstGoal functions directly
   window.searchFGGames = searchFGGames;
+  window.createFirstGoalGame = createFirstGoalGame;
 
   // Start initialization
   initAdmin();
