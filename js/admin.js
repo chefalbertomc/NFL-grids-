@@ -2341,7 +2341,104 @@
     }
   }
 
-  // Automating the "Sin Pasarse / Price is Right" Winner Rule
+  // 1-Click Auto-Detection of the First Goal from ESPN Official API
+  window.detectFGFromESPN = async function() {
+    if (!fgSelectedGameId) {
+      alert('Selecciona y carga un juego de Minuto del Gol primero.');
+      return;
+    }
+    const btn = document.getElementById('btnDetectESPNGol');
+    if (btn) { btn.textContent = '⏳ Consultando ESPN...'; btn.disabled = true; }
+
+    try {
+      const snap = await db.collection('first_goal_games').doc(fgSelectedGameId).get();
+      if (!snap.exists) return;
+      const game = snap.data() || {};
+      if (!game.eventId) {
+        alert('Este juego no tiene un ID de evento de ESPN vinculado.');
+        return;
+      }
+
+      let res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/all/summary?event=${game.eventId}`);
+      if (!res.ok) {
+        res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/mex.1/summary?event=${game.eventId}`);
+      }
+      if (!res.ok) throw new Error('No se pudo conectar con ESPN.');
+      const data = await res.json();
+
+      const header = data.header || {};
+      const comp = (header.competitions || [])[0] || {};
+      const competitors = comp.competitors || [];
+      const details = comp.details || [];
+
+      let firstGoal = null;
+      if (details.length > 0) {
+        const goals = details.filter(d => d.type?.text?.toLowerCase().includes('goal') || d.type?.text?.toLowerCase().includes('gol'));
+        if (goals.length > 0) firstGoal = goals[0];
+      }
+
+      if (!firstGoal && data.keyEvents) {
+        const goals = data.keyEvents.filter(k => k.type?.text?.toLowerCase().includes('goal') || k.type?.text?.toLowerCase().includes('gol'));
+        if (goals.length > 0) firstGoal = goals[0];
+      }
+
+      if (!firstGoal) {
+        const homeScore = competitors.find(c => c.homeAway === 'home')?.score || '0';
+        const awayScore = competitors.find(c => c.homeAway === 'away')?.score || '0';
+        if (parseInt(homeScore, 10) === 0 && parseInt(awayScore, 10) === 0) {
+          alert('⚽ Marcador oficial en ESPN: 0 - 0 (Aún no cae ningún gol).');
+          return;
+        }
+        alert('Aún no hay desglose de minuto del gol en ESPN. Ingresa el minuto y segundo manualmente.');
+        return;
+      }
+
+      const teamId = firstGoal.team?.id;
+      const homeTeam = competitors.find(c => c.homeAway === 'home');
+      const isHomeScorer = homeTeam && String(homeTeam.id) === String(teamId);
+      const teamSide = isHomeScorer ? 'local' : 'away';
+
+      const clockDisplay = firstGoal.clock?.displayValue || firstGoal.clock?.value || '0';
+      let minute = 0;
+      let second = 0;
+      if (typeof clockDisplay === 'string') {
+        const clean = clockDisplay.replace("'", "").trim();
+        if (clean.includes(':')) {
+          const parts = clean.split(':');
+          minute = parseInt(parts[0], 10) || 0;
+          second = parseInt(parts[1], 10) || 0;
+        } else if (clean.includes('+')) {
+          const parts = clean.split('+');
+          minute = (parseInt(parts[0], 10) || 0) + (parseInt(parts[1], 10) || 0);
+        } else {
+          minute = parseInt(clean, 10) || 0;
+        }
+      } else if (typeof clockDisplay === 'number') {
+        minute = Math.floor(clockDisplay / 60);
+        second = clockDisplay % 60;
+      }
+
+      const teamSel = document.getElementById('fgGoalTeamSelect');
+      if (teamSel) teamSel.value = teamSide;
+      const minInp = document.getElementById('fgGoalMinuteInput');
+      if (minInp) minInp.value = minute;
+      const secInp = document.getElementById('fgGoalSecondInput');
+      if (secInp) secInp.value = second;
+
+      const scorerName = firstGoal.participants?.[0]?.athlete?.displayName || firstGoal.text || 'Gol';
+      alert(`⚡ ¡1er Gol Detectado en ESPN!\n\n⚽ Anotó: ${firstGoal.team?.displayName || (teamSide === 'local' ? 'Local' : 'Visitante')}\n⏱️ Minuto y Segundo Oficial: ${minute}:${String(second).padStart(2, '0')}\n👤 Anotador: ${scorerName}`);
+
+      window.calculateFGWinnerAuto();
+
+    } catch (err) {
+      console.error('[detectFGFromESPN]', err);
+      alert('Error consultando ESPN: ' + err.message);
+    } finally {
+      if (btn) { btn.textContent = '⚡ Detectar 1er Gol en Vivo (ESPN Oficial)'; btn.disabled = false; }
+    }
+  };
+
+  // Automating the "Sin Pasarse / Price is Right" Winner Rule with Second-Level Accuracy
   window.calculateFGWinnerAuto = async function() {
     if (!fgSelectedGameId) {
       alert('Selecciona y carga un juego de Minuto del Gol primero.');
@@ -2350,7 +2447,10 @@
 
     const teamSide = document.getElementById('fgGoalTeamSelect')?.value || 'away';
     const minInput = document.getElementById('fgGoalMinuteInput');
+    const secInput = document.getElementById('fgGoalSecondInput');
+
     const minute = parseInt(minInput?.value, 10);
+    const second = parseInt(secInput?.value || '0', 10);
 
     const previewBox = document.getElementById('fgWinnerPreviewBox');
     const previewText = document.getElementById('fgWinnerPreviewText');
@@ -2371,39 +2471,51 @@
       return;
     }
 
+    // Total seconds elapsed for absolute precision
+    const totalGoalSeconds = (minute * 60) + second;
+    const timeFormatted = `${minute}:${String(second).padStart(2, '0')}`;
+
     try {
       const snap = await db.collection('first_goal_games').doc(fgSelectedGameId).get();
       if (!snap.exists) return;
       const game = snap.data() || {};
       const cells = game.cells || {};
 
+      // Ranges in total seconds:
+      // e.g. 0-5 => start 0s (0:00), end 359s (5:59)
+      // 6-10 => start 360s (6:00), end 659s (10:59)
+      // 16-20 => start 960s (16:00), end 1259s (20:59)
       const RANGES = [
-        { id: '0_5', name: '0 - 5', start: 0, end: 5 },
-        { id: '6_10', name: '6 - 10', start: 6, end: 10 },
-        { id: '11_15', name: '11 - 15', start: 11, end: 15 },
-        { id: '16_20', name: '16 - 20', start: 16, end: 20 },
-        { id: '21_25', name: '21 - 25', start: 21, end: 25 },
-        { id: '26_30', name: '26 - 30', start: 26, end: 30 },
-        { id: '31_35', name: '31 - 35', start: 31, end: 35 },
-        { id: '36_40', name: '36 - 40', start: 36, end: 40 },
-        { id: '41_45', name: '41 - 45 y +', start: 41, end: 45 },
-        { id: '46_50', name: '46 - 50', start: 46, end: 50 },
-        { id: '51_55', name: '51 - 55', start: 51, end: 55 },
-        { id: '56_60', name: '56 - 60', start: 56, end: 60 },
-        { id: '61_65', name: '61 - 65', start: 61, end: 65 },
-        { id: '66_70', name: '66 - 70', start: 66, end: 70 },
-        { id: '71_75', name: '71 - 75', start: 71, end: 75 },
-        { id: '76_80', name: '76 - 80', start: 76, end: 80 },
-        { id: '81_85', name: '81 - 85', start: 81, end: 85 },
-        { id: '86_90', name: '86 - 90 y +', start: 86, end: 90 },
-        { id: '91_105', name: '91 - 105', start: 91, end: 105 },
-        { id: '106_120', name: '106 - 120', start: 106, end: 120 }
+        { id: '0_5', name: '0 - 5', startSec: 0, endSec: 359 },
+        { id: '6_10', name: '6 - 10', startSec: 360, endSec: 659 },
+        { id: '11_15', name: '11 - 15', startSec: 660, endSec: 959 },
+        { id: '16_20', name: '16 - 20', startSec: 960, endSec: 1259 },
+        { id: '21_25', name: '21 - 25', startSec: 1260, endSec: 1559 },
+        { id: '26_30', name: '26 - 30', startSec: 1560, endSec: 1859 },
+        { id: '31_35', name: '31 - 35', startSec: 1860, endSec: 2159 },
+        { id: '36_40', name: '36 - 40', startSec: 2160, endSec: 2459 },
+        { id: '41_45', name: '41 - 45 y +', startSec: 2460, endSec: 2759 },
+        { id: '46_50', name: '46 - 50', startSec: 2760, endSec: 3059 },
+        { id: '51_55', name: '51 - 55', startSec: 3060, endSec: 3359 },
+        { id: '56_60', name: '56 - 60', startSec: 3360, endSec: 3659 },
+        { id: '61_65', name: '61 - 65', startSec: 3660, endSec: 3959 },
+        { id: '66_70', name: '66 - 70', startSec: 3960, endSec: 4259 },
+        { id: '71_75', name: '71 - 75', startSec: 4260, endSec: 4559 },
+        { id: '76_80', name: '76 - 80', startSec: 4560, endSec: 4859 },
+        { id: '81_85', name: '81 - 85', startSec: 4860, endSec: 5159 },
+        { id: '86_90', name: '86 - 90 y +', startSec: 5160, endSec: 5459 },
+        { id: '91_105', name: '91 - 105', startSec: 5460, endSec: 6359 },
+        { id: '106_120', name: '106 - 120', startSec: 6360, endSec: 7259 }
       ];
 
       const scoringTeamName = teamSide === 'local' ? (game.homeTeam || 'Local') : (game.awayTeam || 'Visitante');
 
-      // 1. Exact match test
-      let exactRange = RANGES.find(r => minute >= r.start && minute <= r.end) || RANGES[0];
+      // 1. Exact match test: falls exactly between startSec and endSec
+      let exactRange = RANGES.find(r => totalGoalSeconds >= r.startSec && totalGoalSeconds <= r.endSec);
+      if (!exactRange) {
+        exactRange = totalGoalSeconds > 5459 ? RANGES[RANGES.length - 1] : RANGES[0];
+      }
+
       const exactKey = `${teamSide}_${exactRange.id}`;
       const exactOccupant = cells[exactKey];
 
@@ -2412,15 +2524,14 @@
       let explanation = '';
 
       if (exactOccupant && exactOccupant.nickname) {
-        // Exact block is taken!
-        explanation = `🎉 <strong>¡GANADOR DIRECTO!</strong><br/>` +
-          `Gol de <strong>${scoringTeamName}</strong> en el <strong>Minuto ${minute}</strong> (Bloque exacto: <strong>${exactRange.name}</strong>).<br/>` +
-          `🏆 Dueño del bloque: <span style="color:#00e676; font-size:14px; font-weight:900;">${exactOccupant.nickname}</span>.`;
+        explanation = `🎉 <strong>¡GANADOR DIRECTO POR ACIERTO EXACTO!</strong><br/>` +
+          `Gol de <strong>${scoringTeamName}</strong> en el <strong>Minuto ${timeFormatted}</strong> (Dentro del bloque exacto <strong>${exactRange.name}</strong>).<br/>` +
+          `🏆 Dueño del bloque: <span style="color:#00e676; font-size:15px; font-weight:900;">${exactOccupant.nickname}</span>.`;
       } else {
-        // Exact block is empty. Find closest occupant without passing (sin pasarse)
+        // Find closest occupied range whose startSec <= totalGoalSeconds (Sin pasarse)
         const validCandidates = [];
         RANGES.forEach(r => {
-          if (r.start <= minute) {
+          if (r.startSec <= totalGoalSeconds) {
             const k = `${teamSide}_${r.id}`;
             const occ = cells[k];
             if (occ && occ.nickname) {
@@ -2428,26 +2539,25 @@
                 range: r,
                 key: k,
                 occupant: occ,
-                end: r.end
+                endSec: r.endSec
               });
             }
           }
         });
 
         if (validCandidates.length > 0) {
-          // Sort descending by end minute so highest <= minute wins
-          validCandidates.sort((a, b) => b.end - a.end);
+          validCandidates.sort((a, b) => b.endSec - a.endSec);
           const winner = validCandidates[0];
           winningKey = winner.key;
           winningNickname = winner.occupant.nickname;
 
           explanation = `🎯 <strong>CÁLCULO POR APROXIMACIÓN (SIN PASARSE):</strong><br/>` +
-            `El gol de <strong>${scoringTeamName}</strong> cayó en el <strong>Minuto ${minute}</strong> (Bloque exacto: ${exactRange.name} estaba vacío).<br/>` +
-            `🏆 <strong>Ganador Oficial:</strong> <span style="color:#00e676; font-size:14px; font-weight:900;">${winner.occupant.nickname}</span> con el bloque <strong>${winner.range.name}</strong> (El más cercano sin pasarse).<br/>` +
-            `<span style="color:#a0aab8; font-size:11px;">⚠️ Los bloques con minutos después del ${minute} quedaron descalificados por pasarse.</span>`;
+            `El gol de <strong>${scoringTeamName}</strong> cayó en el <strong>Minuto ${timeFormatted}</strong> (El bloque exacto ${exactRange.name} estaba vacío).<br/>` +
+            `🏆 <strong>Ganador Oficial:</strong> <span style="color:#00e676; font-size:15px; font-weight:900;">${winner.occupant.nickname}</span> con el bloque <strong>${winner.range.name}</strong> (El más cercano antes del gol sin pasarse).<br/>` +
+            `<span style="color:#a0aab8; font-size:11px;">⚠️ Los bloques posteriores a las ${timeFormatted} quedaron descalificados por haber caído después del gol.</span>`;
         } else {
           explanation = `⚠️ <strong>SIN GANADOR POR APROXIMACIÓN:</strong><br/>` +
-            `El gol cayó en el <strong>Minuto ${minute}</strong>, pero ningún participante tenía un bloque antes o igual al minuto ${minute} (todos los participantes se pasaron).`;
+            `El gol cayó en el <strong>Minuto ${timeFormatted}</strong>, pero ningún participante tenía un bloque antes o igual a las ${timeFormatted} (todos los participantes se pasaron).`;
         }
       }
 
@@ -2457,7 +2567,6 @@
         previewText.innerHTML = explanation;
       }
 
-      // Pre-select winning cell in dropdown
       if (select && winningKey) {
         select.value = winningKey;
       }
@@ -2467,6 +2576,8 @@
         nickname: winningNickname,
         reason: explanation,
         minute: minute,
+        second: second,
+        timeFormatted: timeFormatted,
         teamName: scoringTeamName
       };
 
