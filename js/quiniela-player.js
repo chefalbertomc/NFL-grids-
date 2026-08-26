@@ -668,14 +668,6 @@
       localStorage.setItem('bww_last_auth_user', JSON.stringify(activeUser));
     }
 
-    const nick = (customNick || '').trim().toUpperCase();
-    if (!nick) {
-      alert('⚠️ Por favor escribe tu Apodo o Nombre para registrarte en la quiniela.');
-      const inp = document.getElementById(`inp_detail_nick_${qId}`) || document.getElementById(`inp_inline_nick_${qId}`);
-      if (inp) inp.focus();
-      return;
-    }
-
     const btnSubmit = document.getElementById(btnId);
     if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = '⏳ Enviando solicitud...'; }
 
