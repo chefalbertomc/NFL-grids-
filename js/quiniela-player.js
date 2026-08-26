@@ -577,14 +577,6 @@
     if (!q) return;
 
     const activeUser = getActiveUser();
-    if (!activeUser) {
-      if (typeof window.requireUserAuth === 'function') {
-        window.requireUserAuth(() => selectQuinielaToJoin(qId), 'Iniciar Sesión con Google', 'Accede con Google para unirte a esta Quiniela.');
-      } else if (typeof window.loginWithGoogle === 'function') {
-        window.loginWithGoogle();
-      }
-      return;
-    }
 
     // Close all other open join boxes
     document.querySelectorAll('.q-inline-join-container').forEach(el => el.style.display = 'none');
@@ -595,7 +587,7 @@
       return;
     }
 
-    const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || (activeUser.displayName ? activeUser.displayName.split(' ')[0] : '');
+    const savedNick = (activeUser && activeUser.displayName) || localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '';
 
     container.innerHTML = `
       <div class="q-inline-join-box animate-fade">
@@ -606,7 +598,7 @@
 
         <div class="q-inline-field">
           <label class="q-inline-label">👤 Tu Apodo o Nombre para la Quiniela (Obligatorio)*:</label>
-          <input type="text" id="inp_inline_nick_${q.id}" class="q-inline-input" value="${savedNick}" placeholder="EJ. BETO / EL TIGRE" maxlength="25" style="text-transform:uppercase; font-weight:800;" />
+          <input type="text" id="inp_inline_nick_${q.id}" class="q-inline-input" value="${savedNick.toUpperCase()}" placeholder="EJ. BETO / EL TIGRE" maxlength="25" style="text-transform:uppercase; font-weight:800;" />
         </div>
 
         <div class="q-inline-field">
@@ -651,14 +643,29 @@
   async function executeJoinQuiniela(qId, customNick, waiter, btnId) {
     if (!db || !qId) return;
 
+    const nick = (customNick || '').trim().toUpperCase();
+    if (!nick) {
+      alert('⚠️ Por favor escribe tu Apodo o Nombre para registrarte en la quiniela.');
+      const inp = document.getElementById(`inp_detail_nick_${qId}`) || document.getElementById(`inp_inline_nick_${qId}`);
+      if (inp) inp.focus();
+      return;
+    }
+
     let activeUser = getActiveUser();
     if (!activeUser) {
-      if (typeof window.requireUserAuth === 'function') {
-        window.requireUserAuth(() => executeJoinQuiniela(qId, customNick, waiter, btnId), 'Iniciar Sesión con Google', 'Accede con Google para unirte a esta Quiniela.');
-      } else if (typeof window.loginWithGoogle === 'function') {
-        window.loginWithGoogle();
+      let savedId = localStorage.getItem('bww_player_id');
+      if (!savedId) {
+        savedId = 'user_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('bww_player_id', savedId);
       }
-      return;
+      activeUser = {
+        uid: savedId,
+        displayName: nick,
+        email: '',
+        photoURL: localStorage.getItem('user_custom_avatar') || 'img/logo.jpg'
+      };
+      window.currentUser = activeUser;
+      localStorage.setItem('bww_last_auth_user', JSON.stringify(activeUser));
     }
 
     const nick = (customNick || '').trim().toUpperCase();
@@ -1177,37 +1184,21 @@
     if (isNotJoined) {
       if (btnSave) btnSave.style.display = 'none';
       const activeUser = getActiveUser();
-      if (!activeUser) {
-        formEl.innerHTML = `
-          <div class="card" style="border:2px solid var(--accent-color); background:linear-gradient(145deg, rgba(30,26,16,0.96), rgba(18,16,10,0.98)); padding:24px 18px; text-align:center; border-radius:16px; margin-bottom:14px;">
-            <div style="font-size:38px; margin-bottom:8px;">🏆</div>
-            <h3 style="color:#ffd100; margin-bottom:6px; font-weight:900;">¡Únete a "${q.name}"!</h3>
-            <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px; line-height:1.4;">
-              Para ingresar tus pronósticos, primero inicia sesión con tu cuenta de Google.
-            </p>
-            <button type="button" class="btn btn-primary" onclick="if(typeof window.requireUserAuth==='function'){window.requireUserAuth(()=>updateQuinielaView(activeQuiniela),'Iniciar Sesión con Google','Accede con Google para unirte a esta Quiniela.');}else if(typeof window.loginWithGoogle==='function'){window.loginWithGoogle();}" style="font-size:14px; font-weight:900; padding:13px 24px; border-radius:12px; display:inline-flex; align-items:center; gap:8px;">
-              🔑 Iniciar Sesión con Google para Unirme
-            </button>
-          </div>
-        `;
-        return;
-      }
-
-      const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || (activeUser.displayName ? activeUser.displayName.split(' ')[0] : '');
+      const savedNick = (activeUser && activeUser.displayName) || localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '';
 
       formEl.innerHTML = `
         <div class="card" style="border:2px solid var(--accent-color); background:linear-gradient(145deg, rgba(30,26,16,0.96), rgba(18,16,10,0.98)); padding:24px 18px; text-align:center; border-radius:16px; margin-bottom:14px;">
           <div style="font-size:38px; margin-bottom:8px;">📋</div>
           <h3 style="color:#ffd100; margin-bottom:6px; font-weight:900;">Solicita Unirte a "${q.name}"</h3>
           <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px; line-height:1.4;">
-            Escribe el apodo o nombre con el que deseas aparecer en la quiniela y tabla de posiciones:
+            Escribe el apodo o nombre con el que deseas participar y guardar tus pronósticos:
           </p>
           <div style="max-width:340px; margin:0 auto 16px auto; text-align:left;">
             <label style="font-size:12px; font-weight:900; color:#ffd100; display:block; margin-bottom:4px;">👤 Tu Apodo o Nombre para la Quiniela (Obligatorio)*:</label>
-            <input type="text" id="inp_detail_nick_${q.id}" class="q-inline-input" value="${savedNick}" placeholder="EJ. BETO / EL TIGRE" maxlength="25" style="width:100%; box-sizing:border-box; margin-bottom:12px; text-transform:uppercase; font-weight:800;" />
+            <input type="text" id="inp_detail_nick_${q.id}" class="q-inline-input" value="${savedNick.toUpperCase()}" placeholder="EJ. BETO / EL TIGRE" maxlength="25" style="width:100%; box-sizing:border-box; margin-bottom:12px; text-transform:uppercase; font-weight:800;" />
 
             <label style="font-size:12px; font-weight:800; color:#aaa; display:block; margin-bottom:4px;">🍽️ Mesero (Opcional):</label>
-            <input type="text" id="inp_detail_waiter_${q.id}" class="q-inline-input" placeholder="Ej. Carlos" maxlength="30" style="width:100%; box-sizing:border-box;" />
+            <input type="text" id="inp_detail_waiter_${q.id}" class="q-inline-input" placeholder="Ej. Mesa 4 (Opcional)" maxlength="30" style="width:100%; box-sizing:border-box;" />
           </div>
           <button type="button" id="btn_submit_detail_${q.id}" class="btn btn-primary" onclick="window.submitDetailJoin('${q.id}')" style="font-size:14px; font-weight:900; padding:13px 26px; border-radius:12px; display:inline-flex; align-items:center; gap:8px;">
             ✅ Solicitar Entrada a la Quiniela
@@ -1519,7 +1510,8 @@
       picks = newPicks;
 
       const existingDoc = myParticipations[activeQuiniela.id] || {};
-      const isAlreadyApproved = existingDoc.approved === true || existingDoc.status === 'approved';
+      const isAutoApprove = activeQuiniela.autoApprove !== false;
+      const isAlreadyApproved = existingDoc.approved === true || existingDoc.status === 'approved' || isAutoApprove;
 
       if (!isAlreadyApproved) {
         alert('🔒 Tu solicitud aún no ha sido aprobada por el mesero o administrador. En cuanto seas aprobado, podrás guardar tus pronósticos.');
@@ -1535,8 +1527,8 @@
         deviceId,
         picks: newPicks,
         tiebreaker: Number(tieVal),
-        approved: true,
-        status: 'approved',
+        approved: isAlreadyApproved,
+        status: isAlreadyApproved ? 'approved' : 'pending',
         updatedAt: firebase.firestore.FieldValue.serverTimestamp
           ? firebase.firestore.FieldValue.serverTimestamp()
           : Date.now()
