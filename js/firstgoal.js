@@ -92,34 +92,74 @@
       const reg = userRegistrations[game.id];
       const isApproved = reg && (reg.approved === true || reg.status === 'approved');
 
+      const awayStyle = window.resolveTeamStyle ? window.resolveTeamStyle({
+        name: game.awayTeam,
+        abbr: game.awayAbbr,
+        logo: game.awayLogo,
+        color: game.awayColor,
+        secondaryColor: game.awaySecondaryColor
+      }) : { name: game.awayTeam || 'Visitante', abbr: game.awayAbbr || 'AWY', logo: game.awayLogo || 'img/logo.jpg', color: game.awayColor || '#1a1a24', secondaryColor: '#ffd100' };
+
+      const homeStyle = window.resolveTeamStyle ? window.resolveTeamStyle({
+        name: game.homeTeam,
+        abbr: game.homeAbbr,
+        logo: game.homeLogo,
+        color: game.homeColor,
+        secondaryColor: game.homeSecondaryColor
+      }) : { name: game.homeTeam || 'Local', abbr: game.homeAbbr || 'HOM', logo: game.homeLogo || 'img/logo.jpg', color: game.homeColor || '#1a1a24', secondaryColor: '#ffd100' };
+
+      const isLive = game.status === 'in_progress' || game.status === 'in';
+      const isFinal = game.status === 'completed' || game.status === 'post';
+      const clockText = game.clock ? `${game.clock}` : (isLive ? '1T' : '');
+
+      let statusBadgeHtml = `<span class="fg-tv-status-badge scheduled">🗓️ ${game.matchDateFormatted || 'Por Iniciar'}</span>`;
+      let centerScoreHtml = `<div class="fg-tv-vs-badge">VS</div><div class="fg-tv-kickoff-time">${game.matchTime || 'Por Iniciar'}</div>`;
+
+      if (isLive) {
+        statusBadgeHtml = `<span class="fg-tv-status-badge live"><span class="pulse-dot"></span> 🔴 EN VIVO • Min ${clockText}</span>`;
+        centerScoreHtml = `<div class="fg-tv-score-digits">${game.awayScore ?? 0} - ${game.homeScore ?? 0}</div><div class="fg-tv-clock">${clockText}</div>`;
+      } else if (isFinal) {
+        statusBadgeHtml = `<span class="fg-tv-status-badge final">🏁 FINAL</span>`;
+        centerScoreHtml = `<div class="fg-tv-score-digits">${game.awayScore ?? 0} - ${game.homeScore ?? 0}</div><div class="fg-tv-clock" style="color:#a0aab8;">FINAL</div>`;
+      }
+
       const card = document.createElement('div');
       card.className = 'card';
       card.style.background = 'rgba(255, 255, 255, 0.02)';
       card.style.border = '1px solid var(--border-color)';
       card.style.padding = '16px';
-      card.style.marginBottom = '16px';
+      card.style.marginBottom = '20px';
 
-      // Header info
-      let statusBadge = `<span class="badge badge-pending">Cerrado</span>`;
-      if (game.active) {
-        statusBadge = game.locked 
-          ? `<span class="badge warning">🔒 Selecciones Bloqueadas</span>` 
-          : `<span class="badge success">🔓 Selecciones Abiertas</span>`;
-      } else if (game.status === 'completed') {
-        statusBadge = `<span class="badge success">🏆 Finalizado</span>`;
-      }
-
-      const headerHtml = `
-        <div class="flex-between" style="margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 8px;">
-          <div>
-            <h4 style="font-size: 16px; margin: 0; color: #ffffff;">${game.gameName}</h4>
-            <span style="font-size: 11px; color: var(--text-muted);">Sucursal: ${game.store || 'Todas'}</span>
+      // TV Broadcast Scorebug Header
+      const tvScorebugHtml = `
+        <div class="fg-tv-scorebug">
+          <div class="fg-tv-header">
+            <span class="fg-tv-league">🏆 ${game.leagueName || 'Minuto del Gol'} • 📍 ${game.store || 'Todas'}</span>
+            ${statusBadgeHtml}
           </div>
-          ${statusBadge}
+          <div class="fg-tv-body">
+            <div class="fg-tv-team-side away" style="background: linear-gradient(135deg, ${awayStyle.color}dd 0%, rgba(10,15,24,0.95) 100%);">
+              <img class="fg-tv-team-logo" src="${awayStyle.logo}" alt="${awayStyle.abbr}" onerror="this.src='img/logo.jpg'"/>
+              <div class="fg-tv-team-info">
+                <span class="fg-tv-team-name">${awayStyle.name}</span>
+                <span class="fg-tv-team-role">Visitante</span>
+              </div>
+            </div>
+            <div class="fg-tv-center-bug">
+              ${centerScoreHtml}
+            </div>
+            <div class="fg-tv-team-side home" style="background: linear-gradient(225deg, ${homeStyle.color}dd 0%, rgba(10,15,24,0.95) 100%);">
+              <div class="fg-tv-team-info">
+                <span class="fg-tv-team-name">${homeStyle.name}</span>
+                <span class="fg-tv-team-role">Local</span>
+              </div>
+              <img class="fg-tv-team-logo" src="${homeStyle.logo}" alt="${homeStyle.abbr}" onerror="this.src='img/logo.jpg'"/>
+            </div>
+          </div>
         </div>
       `;
 
-      card.innerHTML = headerHtml;
+      card.innerHTML = tvScorebugHtml;
 
       // Conditional content based on user state
       if (!user) {
@@ -138,7 +178,7 @@
             <p style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Ingresa tus datos para participar en la planilla de minuto del gol.</p>
             
             <div class="form-group" style="margin-bottom:10px;">
-              <label style="font-size:11px;">Tu Apodo / Nickname (Obligatorio)*</label>
+              <label style="font-size:11px;">👤 Tu Apodo o Nombre (Obligatorio)*</label>
               <input type="text" id="join_nick_${game.id}" value="${userDefaultNick.toUpperCase()}" placeholder="Ej. BETO / EL TIGRE" style="padding:8px 10px; font-size:13px; font-weight:900; text-transform:uppercase;"/>
             </div>
             
@@ -162,7 +202,7 @@
         `;
       } else {
         // Active and Approved player - Show game board!
-        const boardHtml = buildBoardHtml(game);
+        const boardHtml = buildBoardHtml(game, homeStyle, awayStyle);
         card.innerHTML += boardHtml;
       }
 
@@ -206,11 +246,14 @@
     }
   };
 
-  function buildBoardHtml(game) {
+  function buildBoardHtml(game, homeStyle, awayStyle) {
     const home = game.homeTeam || 'Local';
     const away = game.awayTeam || 'Visitante';
     const cells = game.cells || {};
     const winCell = game.winningCell || '';
+
+    const hStyle = homeStyle || (window.resolveTeamStyle ? window.resolveTeamStyle(home) : { name: home, logo: 'img/logo.jpg', color: '#1a1a24' });
+    const aStyle = awayStyle || (window.resolveTeamStyle ? window.resolveTeamStyle(away) : { name: away, logo: 'img/logo.jpg', color: '#1a1a24' });
 
     // Check if current user has already selected a regular cell
     let userHasRegularCell = false;
@@ -260,9 +303,9 @@
 
       rowsHtml += `
         <tr>
-          <td class="${homeClass}" ${homeClick}>${homeText}</td>
-          <td class="fg-time-label-col">${r.name}</td>
           <td class="${awayClass}" ${awayClick}>${awayText}</td>
+          <td class="fg-time-label-col">${r.name}</td>
+          <td class="${homeClass}" ${homeClick}>${homeText}</td>
         </tr>
       `;
     });
@@ -276,9 +319,19 @@
           <table class="fg-board-table">
             <thead>
               <tr>
-                <th class="local" style="width:calc(50% - 40px);">${home}</th>
-                <th style="width:80px; background:rgba(0,0,0,0.3);">MIN</th>
-                <th class="away" style="width:calc(50% - 40px);">${away}</th>
+                <th class="away" style="width:calc(50% - 40px); background: linear-gradient(135deg, ${aStyle.color}cc 0%, rgba(10,15,24,0.95) 100%);">
+                  <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <img src="${aStyle.logo}" alt="${aStyle.abbr}" onerror="this.src='img/logo.jpg'" style="width:22px; height:22px; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"/>
+                    <span>${away}</span>
+                  </div>
+                </th>
+                <th style="width:80px; background:rgba(0,0,0,0.4); color:#ffd100; font-weight:900;">MIN</th>
+                <th class="local" style="width:calc(50% - 40px); background: linear-gradient(225deg, ${hStyle.color}cc 0%, rgba(10,15,24,0.95) 100%);">
+                  <div style="display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <span>${home}</span>
+                    <img src="${hStyle.logo}" alt="${hStyle.abbr}" onerror="this.src='img/logo.jpg'" style="width:22px; height:22px; object-fit:contain; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));"/>
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -508,5 +561,55 @@
     }
   };
 
+  // Live ESPN score & minute auto-sync
+  let liveSyncInterval = null;
+  async function syncActiveGamesESPN() {
+    if (!activeGames || activeGames.length === 0) return;
+    for (const g of activeGames) {
+      if (!g.eventId) continue;
+      try {
+        const sport = g.sport || 'soccer';
+        const league = g.leagueSlug || 'mex.1';
+        const url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${league}/summary?event=${g.eventId}`;
+        const res = await fetch(url);
+        if (!res.ok) continue;
+        const data = await res.json();
+        const header = data.header || {};
+        const competitions = header.competitions || [];
+        const comp = competitions[0] || {};
+        const competitors = comp.competitors || [];
+        const status = comp.status || {};
+
+        const team1 = competitors[0] || {};
+        const team2 = competitors[1] || {};
+        const home = team1.homeAway === 'home' ? team1 : team2;
+        const away = team1.homeAway === 'away' ? team1 : team2;
+
+        const isLive = status.type?.state === 'in';
+        const isPost = status.type?.state === 'post';
+        const clock = status.displayClock ? `${status.displayClock}'` : (status.type?.detail || '');
+
+        const newStatus = isLive ? 'in_progress' : (isPost ? 'completed' : 'scheduled');
+        const newHomeScore = home.score !== undefined ? parseInt(home.score, 10) : (g.homeScore || 0);
+        const newAwayScore = away.score !== undefined ? parseInt(away.score, 10) : (g.awayScore || 0);
+
+        if (g.homeScore !== newHomeScore || g.awayScore !== newAwayScore || g.clock !== clock || g.status !== newStatus) {
+          g.homeScore = newHomeScore;
+          g.awayScore = newAwayScore;
+          g.clock = clock;
+          g.status = newStatus;
+          renderGames();
+        }
+      } catch (e) {
+        console.warn('[FirstGoal LiveSync] sync note:', e);
+      }
+    }
+  }
+
+  if (!liveSyncInterval) {
+    liveSyncInterval = setInterval(syncActiveGamesESPN, 35000);
+  }
+
   initFirstGoal();
 })();
+

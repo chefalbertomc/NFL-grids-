@@ -1749,50 +1749,103 @@
       return;
     }
 
+    const leagueSelect = document.getElementById('fgSportSelect');
+    const defaultLeagueName = leagueSelect?.options[leagueSelect.selectedIndex]?.text?.trim() || 'Fútbol';
+
     events.forEach(ev => {
       const match = ev.competitions && ev.competitions[0] ? ev.competitions[0] : {};
       const competitors = match.competitors || [];
       const team1 = competitors[0] || {};
       const team2 = competitors[1] || {};
 
-      const home = team1.homeAway === 'home' ? team1 : team2;
-      const away = team1.homeAway === 'away' ? team1 : team2;
+      const rawHome = team1.homeAway === 'home' ? team1 : team2;
+      const rawAway = team1.homeAway === 'away' ? team1 : team2;
 
-      const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-MX', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-      const statusText = ev.status?.type?.detail || dateStr;
+      const home = window.resolveTeamStyle ? window.resolveTeamStyle(rawHome.team || rawHome) : { name: rawHome.team?.shortDisplayName || 'Local', abbr: 'HOM', logo: rawHome.team?.logo || 'img/logo.jpg', color: '#1a1a24', secondaryColor: '#ffd100' };
+      const away = window.resolveTeamStyle ? window.resolveTeamStyle(rawAway.team || rawAway) : { name: rawAway.team?.shortDisplayName || 'Visitante', abbr: 'AWY', logo: rawAway.team?.logo || 'img/logo.jpg', color: '#1a1a24', secondaryColor: '#ffd100' };
+
+      const state = ev.status?.type?.state || 'pre';
+      const isLive = state === 'in';
+      const isFinal = state === 'post';
+
+      const dateObj = ev.date ? new Date(ev.date) : new Date();
+      const dateStr = dateObj.toLocaleDateString('es-MX', { weekday: 'short', month: 'short', day: 'numeric' });
+      const timeStr = dateObj.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+      const clockStr = ev.status?.displayClock ? `${ev.status.displayClock}'` : (ev.status?.type?.detail || '1T');
+
+      const awayScore = rawAway.score !== undefined ? rawAway.score : '-';
+      const homeScore = rawHome.score !== undefined ? rawHome.score : '-';
+
+      let statusBadgeHtml = `<span class="fg-tv-status-badge scheduled">🗓️ ${dateStr} • ${timeStr}</span>`;
+      let centerHtml = `<div class="fg-tv-vs-badge">VS</div><div class="fg-tv-kickoff-time">${timeStr}</div>`;
+
+      if (isLive) {
+        statusBadgeHtml = `<span class="fg-tv-status-badge live"><span class="pulse-dot"></span> 🔴 EN VIVO • Min ${clockStr}</span>`;
+        centerHtml = `<div class="fg-tv-score-digits">${awayScore} - ${homeScore}</div><div class="fg-tv-clock">${clockStr}</div>`;
+      } else if (isFinal) {
+        statusBadgeHtml = `<span class="fg-tv-status-badge final">🏁 FINAL</span>`;
+        centerHtml = `<div class="fg-tv-score-digits">${awayScore} - ${homeScore}</div><div class="fg-tv-clock" style="color:#a0aab8;">FINAL</div>`;
+      }
 
       const card = document.createElement('div');
-      card.className = 'game-pick-card';
+      card.className = 'fg-tv-scorebug';
       card.style.cursor = 'pointer';
+      card.style.transition = 'all 0.2s ease';
       card.innerHTML = `
-        <div style="font-size:10px; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; font-weight:700;">${statusText}</div>
-        <div class="flex-between" style="align-items:center;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <img src="${away.team?.logo || 'img/logo.jpg'}" alt="${away.team?.abbreviation || ''}" onerror="this.src='img/logo.jpg'" style="width:24px;height:24px;object-fit:contain;"/>
-            <span style="font-size:13.5px; font-weight:800; color:#fff;">${away.team?.shortDisplayName || away.team?.displayName || 'Visitante'}</span>
+        <div class="fg-tv-header">
+          <span class="fg-tv-league">🏆 ${defaultLeagueName}</span>
+          ${statusBadgeHtml}
+        </div>
+        <div class="fg-tv-body">
+          <div class="fg-tv-team-side away" style="background: linear-gradient(135deg, ${away.color}dd 0%, rgba(10,15,24,0.95) 100%);">
+            <img class="fg-tv-team-logo" src="${away.logo}" alt="${away.abbr}" onerror="this.src='img/logo.jpg'"/>
+            <div class="fg-tv-team-info">
+              <span class="fg-tv-team-name">${away.name}</span>
+              <span class="fg-tv-team-role">Visitante</span>
+            </div>
           </div>
-          <span style="font-size:12px; color:var(--text-muted); font-weight:900; margin:0 8px;">@</span>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <img src="${home.team?.logo || 'img/logo.jpg'}" alt="${home.team?.abbreviation || ''}" onerror="this.src='img/logo.jpg'" style="width:24px;height:24px;object-fit:contain;"/>
-            <span style="font-size:13.5px; font-weight:800; color:#fff;">${home.team?.shortDisplayName || home.team?.displayName || 'Local'}</span>
+          <div class="fg-tv-center-bug">
+            ${centerHtml}
+          </div>
+          <div class="fg-tv-team-side home" style="background: linear-gradient(225deg, ${home.color}dd 0%, rgba(10,15,24,0.95) 100%);">
+            <div class="fg-tv-team-info">
+              <span class="fg-tv-team-name">${home.name}</span>
+              <span class="fg-tv-team-role">Local</span>
+            </div>
+            <img class="fg-tv-team-logo" src="${home.logo}" alt="${home.abbr}" onerror="this.src='img/logo.jpg'"/>
           </div>
         </div>
       `;
 
       card.addEventListener('click', () => {
-        document.querySelectorAll('#fgGamePickerList .game-pick-card').forEach(c => c.classList.remove('selected'));
-        card.classList.add('selected');
-        const homeName = home.team?.shortDisplayName || home.team?.displayName || 'Local';
-        const awayName = away.team?.shortDisplayName || away.team?.displayName || 'Visitante';
-        const defName = `${awayName} vs ${homeName}`;
+        document.querySelectorAll('#fgGamePickerList .fg-tv-scorebug').forEach(c => {
+          c.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+          c.style.boxShadow = 'none';
+        });
+        card.style.border = '2px solid #ffd100';
+        card.style.boxShadow = '0 0 20px rgba(255, 209, 0, 0.4)';
+        
+        const defName = `${away.name} vs ${home.name}`;
         fgSelectedMatchData = {
           eventId: ev.id,
-          homeTeam: homeName,
-          awayTeam: awayName,
-          homeAbbr: home.team?.abbreviation || 'HOM',
-          awayAbbr: away.team?.abbreviation || 'AWY',
-          homeLogo: home.team?.logo || '',
-          awayLogo: away.team?.logo || '',
+          homeTeam: home.name,
+          awayTeam: away.name,
+          homeAbbr: home.abbr,
+          awayAbbr: away.abbr,
+          homeLogo: home.logo,
+          awayLogo: away.logo,
+          homeColor: home.color,
+          awayColor: away.color,
+          homeSecondaryColor: home.secondaryColor,
+          awaySecondaryColor: away.secondaryColor,
+          leagueName: defaultLeagueName,
+          matchDate: ev.date || '',
+          matchTime: timeStr,
+          matchDateFormatted: `${dateStr} • ${timeStr}`,
+          status: isLive ? 'in_progress' : (isFinal ? 'completed' : 'scheduled'),
+          clock: isLive ? clockStr : '',
+          homeScore: isLive || isFinal ? homeScore : '',
+          awayScore: isLive || isFinal ? awayScore : '',
           defaultName: defName
         };
         const nameInp = document.getElementById('fgGameName');
@@ -1817,7 +1870,7 @@
     try {
       const code = 'fg_' + Math.random().toString(36).substring(2, 8).toUpperCase();
       await db.collection('first_goal_games').doc(code).set({
-        eventId: fgSelectedMatchData.eventId,
+        eventId: fgSelectedMatchData.eventId || '',
         gameName: gameName,
         homeTeam: fgSelectedMatchData.homeTeam,
         awayTeam: fgSelectedMatchData.awayTeam,
@@ -1825,21 +1878,35 @@
         awayAbbr: fgSelectedMatchData.awayAbbr,
         homeLogo: fgSelectedMatchData.homeLogo,
         awayLogo: fgSelectedMatchData.awayLogo,
+        homeColor: fgSelectedMatchData.homeColor || '#1a1a24',
+        awayColor: fgSelectedMatchData.awayColor || '#1a1a24',
+        homeSecondaryColor: fgSelectedMatchData.homeSecondaryColor || '#ffd100',
+        awaySecondaryColor: fgSelectedMatchData.awaySecondaryColor || '#ffd100',
+        leagueName: fgSelectedMatchData.leagueName || 'Fútbol',
+        matchDate: fgSelectedMatchData.matchDate || '',
+        matchTime: fgSelectedMatchData.matchTime || '',
+        matchDateFormatted: fgSelectedMatchData.matchDateFormatted || '',
+        homeScore: fgSelectedMatchData.homeScore || 0,
+        awayScore: fgSelectedMatchData.awayScore || 0,
+        clock: fgSelectedMatchData.clock || '',
         store: store,
         autoApprove: autoApprove,
         active: true,
         locked: false,
-        status: 'scheduled',
+        status: fgSelectedMatchData.status || 'scheduled',
         cells: {},
         activeExtraTime: false,
         activePenalties: false,
         createdAt: Date.now()
       });
 
-      alert('Juego de Minuto del Gol creado exitosamente.');
+      alert('🏆 ¡Juego de Minuto del Gol creado exitosamente!');
       document.getElementById('fgGameName').value = '';
       fgSelectedMatchData = null;
-      document.querySelectorAll('#fgGamePickerList .game-pick-card').forEach(c => c.classList.remove('selected'));
+      document.querySelectorAll('#fgGamePickerList .fg-tv-scorebug').forEach(c => {
+        c.style.border = '1px solid rgba(255, 255, 255, 0.1)';
+        c.style.boxShadow = 'none';
+      });
     } catch (err) {
       alert('Error al crear: ' + err.message);
     }
