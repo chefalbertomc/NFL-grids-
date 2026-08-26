@@ -303,7 +303,7 @@
             
             <div class="form-group" style="margin-bottom:12px;">
               <label style="font-size:11px;">Mesa o Mesero (Opcional)</label>
-              <input type="text" id="join_waiter_${game.id}" value="${userDefaultWaiter}" placeholder="Ej. Mesa 4 / Daniel" style="padding:8px 10px; font-size:13px; font-weight:800;"/>
+              <input type="text" id="join_waiter_${game.id}" value="${userDefaultWaiter}" placeholder="Ej. Mesa 4 (Opcional)" style="padding:8px 10px; font-size:13px; font-weight:800;"/>
             </div>
 
             <button class="btn btn-primary" onclick="joinFirstGoalGame('${game.id}')" style="font-size:12.5px; padding:10px; font-weight:900;">
@@ -316,7 +316,7 @@
           <div class="text-center py-4" style="background:rgba(255,255,255,0.01); border-radius:12px; border:1px dashed var(--border-color); margin-top:8px;">
             <span style="font-size:24px;">⌛</span>
             <h5 style="color:#ffd100; font-weight:900; margin-top:8px; margin-bottom:4px;">Solicitud Enviada</h5>
-            <p class="hint-text" style="font-size:12px; max-width:280px; margin:0 auto;">Por favor pídele al mesero o administrador que apruebe tu participación en la mesa <strong>${reg.waiter || '—'}</strong>.</p>
+            <p class="hint-text" style="font-size:12px; max-width:280px; margin:0 auto;">Por favor pídele al mesero o administrador que apruebe tu participación${reg.waiter && reg.waiter !== 'Sin mesa' ? ` en la mesa <strong>${reg.waiter}</strong>` : ''}.</p>
           </div>
         `;
       } else {
@@ -351,7 +351,7 @@
     }
 
     if (!waiter) {
-      waiter = localStorage.getItem('player_waiter') || 'Mesa General';
+      waiter = localStorage.getItem('player_waiter') || 'Sin mesa';
     }
 
     localStorage.setItem('player_nick', nickname);
