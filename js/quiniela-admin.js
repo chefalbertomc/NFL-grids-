@@ -872,9 +872,7 @@
         const isSoccer = sport === 'soccer';
         const isLive = m.status === 'in';
         const isDone = m.completed || m.status === 'post';
-        const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
-
-        const isHybrid = q.isHybrid === true;
+        const isHybrid = typeof q !== 'undefined' ? (q?.isHybrid === true) : false;
         if (isSoccer && !isHybrid) {
           const pickStr = `${pick.awayScore}-${pick.homeScore}`;
           if (!hasScore) {
