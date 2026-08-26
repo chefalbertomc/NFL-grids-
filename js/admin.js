@@ -1750,26 +1750,31 @@
     }
 
     events.forEach(ev => {
-      const match = ev.competitions[0];
-      const team1 = match.competitors[0];
-      const team2 = match.competitors[1];
+      const match = ev.competitions && ev.competitions[0] ? ev.competitions[0] : {};
+      const competitors = match.competitors || [];
+      const team1 = competitors[0] || {};
+      const team2 = competitors[1] || {};
 
       const home = team1.homeAway === 'home' ? team1 : team2;
       const away = team1.homeAway === 'away' ? team1 : team2;
 
+      const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-MX', { weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      const statusText = ev.status?.type?.detail || dateStr;
+
       const card = document.createElement('div');
       card.className = 'game-pick-card';
+      card.style.cursor = 'pointer';
       card.innerHTML = `
-        <div style="font-size:10px; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase;">${ev.status.type.detail}</div>
-        <div class="flex-between">
-          <div style="display:flex; align-items:center; gap:6px;">
-            <img src="${away.team.logo}" alt="${away.team.abbreviation}" onerror="this.src='img/logo.jpg'" style="width:24px;height:24px;object-fit:contain;"/>
-            <span style="font-size:13px; font-weight:800;">${away.team.shortDisplayName}</span>
+        <div style="font-size:10px; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase; font-weight:700;">${statusText}</div>
+        <div class="flex-between" style="align-items:center;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <img src="${away.team?.logo || 'img/logo.jpg'}" alt="${away.team?.abbreviation || ''}" onerror="this.src='img/logo.jpg'" style="width:24px;height:24px;object-fit:contain;"/>
+            <span style="font-size:13.5px; font-weight:800; color:#fff;">${away.team?.shortDisplayName || away.team?.displayName || 'Visitante'}</span>
           </div>
-          <span style="font-size:12px; color:var(--text-muted); font-weight:900;">@</span>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <img src="${home.team.logo}" alt="${home.team.abbreviation}" onerror="this.src='img/logo.jpg'" style="width:24px;height:24px;object-fit:contain;"/>
-            <span style="font-size:13px; font-weight:800;">${home.team.shortDisplayName}</span>
+          <span style="font-size:12px; color:var(--text-muted); font-weight:900; margin:0 8px;">@</span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <img src="${home.team?.logo || 'img/logo.jpg'}" alt="${home.team?.abbreviation || ''}" onerror="this.src='img/logo.jpg'" style="width:24px;height:24px;object-fit:contain;"/>
+            <span style="font-size:13.5px; font-weight:800; color:#fff;">${home.team?.shortDisplayName || home.team?.displayName || 'Local'}</span>
           </div>
         </div>
       `;
@@ -1777,16 +1782,21 @@
       card.addEventListener('click', () => {
         document.querySelectorAll('#fgGamePickerList .game-pick-card').forEach(c => c.classList.remove('selected'));
         card.classList.add('selected');
+        const homeName = home.team?.shortDisplayName || home.team?.displayName || 'Local';
+        const awayName = away.team?.shortDisplayName || away.team?.displayName || 'Visitante';
+        const defName = `${awayName} vs ${homeName}`;
         fgSelectedMatchData = {
           eventId: ev.id,
-          homeTeam: home.team.shortDisplayName,
-          awayTeam: away.team.shortDisplayName,
-          homeAbbr: home.team.abbreviation,
-          awayAbbr: away.team.abbreviation,
-          homeLogo: home.team.logo,
-          awayLogo: away.team.logo,
-          defaultName: `${home.team.shortDisplayName} vs ${away.team.shortDisplayName}`
+          homeTeam: homeName,
+          awayTeam: awayName,
+          homeAbbr: home.team?.abbreviation || 'HOM',
+          awayAbbr: away.team?.abbreviation || 'AWY',
+          homeLogo: home.team?.logo || '',
+          awayLogo: away.team?.logo || '',
+          defaultName: defName
         };
+        const nameInp = document.getElementById('fgGameName');
+        if (nameInp) nameInp.value = defName;
       });
 
       list.appendChild(card);
@@ -2307,40 +2317,8 @@
     }
   }
 
-  function setupFirstGoalUI() {
-    const btnCreateFGGame = document.getElementById('btnCreateFGGame');
-    const btnLoadFGGame = document.getElementById('btnLoadFGGame');
-    const btnDeleteFGGame = document.getElementById('btnDeleteFGGame');
-    const btnLockFG = document.getElementById('btnLockFG');
-    const btnUnlockFG = document.getElementById('btnUnlockFG');
-    const btnToggleFGExtraTime = document.getElementById('btnToggleFGExtraTime');
-    const btnDrawFGPenalties = document.getElementById('btnDrawFGPenalties');
-    const btnResolveFGWinner = document.getElementById('btnResolveFGWinner');
-
-    if (btnCreateFGGame) btnCreateFGGame.addEventListener('click', createFirstGoalGame);
-    if (btnLoadFGGame) btnLoadFGGame.addEventListener('click', () => {
-      const drop = document.getElementById('fgActiveGamesDropdown');
-      if (drop && drop.value) {
-        loadFGGameDetails(drop.value);
-      } else {
-        alert('Selecciona un juego de la lista primero.');
-      }
-    });
-    if (btnDeleteFGGame) btnDeleteFGGame.addEventListener('click', () => {
-      const drop = document.getElementById('fgActiveGamesDropdown');
-      if (drop && drop.value) {
-        deleteFGGame(drop.value);
-      } else {
-        alert('Selecciona un juego de la lista primero.');
-      }
-    });
-
-    if (btnLockFG) btnLockFG.addEventListener('click', () => setFGLock(true));
-    if (btnUnlockFG) btnUnlockFG.addEventListener('click', () => setFGLock(false));
-    if (btnToggleFGExtraTime) btnToggleFGExtraTime.addEventListener('click', toggleFGExtraTime);
-    if (btnDrawFGPenalties) btnDrawFGPenalties.addEventListener('click', drawFGPenalties);
-    if (btnResolveFGWinner) btnResolveFGWinner.addEventListener('click', resolveFGWinner);
-  }
+  // Expose FirstGoal search directly
+  window.searchFGGames = searchFGGames;
 
   // Start initialization
   initAdmin();
