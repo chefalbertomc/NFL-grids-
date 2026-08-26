@@ -1767,147 +1767,83 @@
     fgSelectedMatchData = null;
 
     if (!events || events.length === 0) {
-      list.innerHTML = '<div class="hint-text text-center" style="padding:16px 0; color:var(--text-muted); text-align:center;">No hay partidos agendados o activos en ESPN para este deporte/rango.</div>';
+      list.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:8px;">No se encontraron partidos para esta liga/fecha.</div>';
       return;
     }
 
     const leagueSelect = document.getElementById('fgSportSelect');
     const defaultLeagueName = leagueSelect?.options[leagueSelect.selectedIndex]?.text?.trim() || 'Fútbol';
 
-    events.forEach(ev => {
-      const match = ev.competitions && ev.competitions[0] ? ev.competitions[0] : {};
-      const competitors = match.competitors || [];
-      const team1 = competitors[0] || {};
-      const team2 = competitors[1] || {};
+    // Filter out finished games
+    const upcomingEvents = events.filter(ev => {
+      return !(ev.status?.type?.completed === true || ev.status?.type?.state === 'post');
+    });
 
-      const rawHome = team1.homeAway === 'home' ? team1 : team2;
-      const rawAway = team1.homeAway === 'away' ? team1 : team2;
+    const eventsToRender = upcomingEvents.length ? upcomingEvents : events;
 
-      const homeObj = rawHome.team || rawHome;
-      const awayObj = rawAway.team || rawAway;
+    eventsToRender.forEach(ev => {
+      const comps = ev.competitions?.[0]?.competitors || [];
+      const homeComp = comps.find(c => c.homeAway === 'home') || comps[1] || {};
+      const awayComp = comps.find(c => c.homeAway === 'away') || comps[0] || {};
+      if (!homeComp || !awayComp) return;
 
-      const home = window.resolveTeamStyle ? window.resolveTeamStyle(homeObj) : {
-        name: homeObj.shortDisplayName || homeObj.displayName || homeObj.name || 'Local',
-        abbr: homeObj.abbreviation || 'HOM',
-        logo: homeObj.logo || 'img/logo.jpg',
-        color: '#1a1a24',
-        secondaryColor: '#ffd100'
-      };
-
-      const away = window.resolveTeamStyle ? window.resolveTeamStyle(awayObj) : {
-        name: awayObj.shortDisplayName || awayObj.displayName || awayObj.name || 'Visitante',
-        abbr: awayObj.abbreviation || 'AWY',
-        logo: awayObj.logo || 'img/logo.jpg',
-        color: '#1a1a24',
-        secondaryColor: '#ffd100'
-      };
-
-      const homeName = home.name || homeObj.shortDisplayName || homeObj.displayName || 'Local';
-      const awayName = away.name || awayObj.shortDisplayName || awayObj.displayName || 'Visitante';
-      const homeLogo = home.logo || homeObj.logo || 'img/logo.jpg';
-      const awayLogo = away.logo || awayObj.logo || 'img/logo.jpg';
-
-      const state = ev.status?.type?.state || 'pre';
-      const isLive = state === 'in';
-      const isFinal = state === 'post';
-
-      const dateObj = ev.date ? new Date(ev.date) : new Date();
-      const dateStr = dateObj.toLocaleDateString('es-MX', { weekday: 'short', month: 'short', day: 'numeric' });
-      const timeStr = dateObj.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-      const clockStr = ev.status?.displayClock ? `${ev.status.displayClock}'` : (ev.status?.type?.detail || '1T');
-
-      const awayScore = rawAway.score !== undefined ? rawAway.score : '-';
-      const homeScore = rawHome.score !== undefined ? rawHome.score : '-';
-
-      let statusBadge = `<span style="font-size:11px; color:#a0aab8; font-weight:700; background:rgba(255,255,255,0.06); padding:3px 8px; border-radius:6px;">🗓️ ${dateStr} • ${timeStr}</span>`;
-      if (isLive) {
-        statusBadge = `<span style="font-size:11px; color:#fff; font-weight:900; background:linear-gradient(135deg, #ff3b30, #c70000); padding:3px 8px; border-radius:6px; box-shadow:0 0 10px rgba(255,59,48,0.5);">🔴 EN VIVO • Min ${clockStr} (${awayScore}-${homeScore})</span>`;
-      } else if (isFinal) {
-        statusBadge = `<span style="font-size:11px; color:#ffd100; font-weight:800; background:rgba(255,209,0,0.15); border:1px solid rgba(255,209,0,0.3); padding:3px 8px; border-radius:6px;">🏁 FINAL (${awayScore}-${homeScore})</span>`;
-      }
+      const homeName = homeComp.team?.displayName || homeComp.team?.shortDisplayName || homeComp.team?.name || 'Local';
+      const awayName = awayComp.team?.displayName || awayComp.team?.shortDisplayName || awayComp.team?.name || 'Visitante';
+      const homeLogo = homeComp.team?.logo || (window.getTeamLogoURL ? window.getTeamLogoURL(homeName) : 'img/logo.jpg');
+      const awayLogo = awayComp.team?.logo || (window.getTeamLogoURL ? window.getTeamLogoURL(awayName) : 'img/logo.jpg');
+      const homeColor = '#' + (homeComp.team?.color || 'ffd100').replace('#', '');
+      const awayColor = '#' + (awayComp.team?.color || 'ffd100').replace('#', '');
+      const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-MX', { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+      const status = ev.status?.type?.shortDetail || ev.status?.type?.detail || ev.status?.type?.description || '';
 
       const card = document.createElement('div');
-      card.className = 'fg-match-card';
-      card.style.cssText = 'background:#121824; border:1.5px solid rgba(255,255,255,0.12); border-radius:14px; padding:12px 14px; cursor:pointer; transition:all 0.2s ease; display:flex; flex-direction:column; gap:10px; margin-bottom:8px; user-select:none;';
-      
+      card.className = 'fg-match-item';
+      card.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px; cursor:pointer; transition:border-color 0.2s; margin-bottom:6px;';
       card.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-          <span style="font-size:11px; font-weight:900; color:#ffd100; text-transform:uppercase; letter-spacing:0.5px;">🏆 ${defaultLeagueName}</span>
-          ${statusBadge}
-        </div>
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; background:rgba(0,0,0,0.35); padding:10px 14px; border-radius:10px;">
-          <!-- Away Team -->
-          <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:0;">
-            <img src="${awayLogo}" alt="${away.abbr || 'AWY'}" onerror="this.src='img/logo.jpg'" style="width:34px; height:34px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));" />
-            <div style="min-width:0; overflow:hidden;">
-              <div style="font-size:13.5px; font-weight:900; color:#ffffff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${awayName}</div>
-              <div style="font-size:10px; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase;">Visitante</div>
-            </div>
+        <img src="${awayLogo}" style="width:32px;height:32px;object-fit:contain;filter:drop-shadow(0 0 4px ${awayColor})" onerror="this.src='img/logo.jpg'" />
+        <div style="flex:1;">
+          <div style="font-weight:800;font-size:13px;">
+            <span style="color:${awayColor}">${awayName}</span>
+            <span style="color:var(--text-muted);margin:0 4px;">vs</span>
+            <span style="color:${homeColor}">${homeName}</span>
           </div>
-
-          <!-- VS / Score Center -->
-          <div style="text-align:center; padding:0 8px; flex-shrink:0;">
-            ${isLive || isFinal ? `
-              <div style="font-size:16px; font-weight:900; color:#ffd100; letter-spacing:1px; line-height:1;">${awayScore} - ${homeScore}</div>
-              <div style="font-size:9.5px; font-weight:800; color:#a0aab8; margin-top:2px;">${isLive ? clockStr : 'FINAL'}</div>
-            ` : `
-              <div style="font-size:11px; font-weight:900; color:#ffd100; background:rgba(255,209,0,0.15); border:1px solid rgba(255,209,0,0.3); padding:3px 8px; border-radius:6px;">VS</div>
-              <div style="font-size:9.5px; font-weight:700; color:#a0aab8; margin-top:2px;">${timeStr}</div>
-            `}
-          </div>
-
-          <!-- Home Team -->
-          <div style="display:flex; align-items:center; justify-content:flex-end; gap:10px; flex:1; min-width:0; text-align:right;">
-            <div style="min-width:0; overflow:hidden;">
-              <div style="font-size:13.5px; font-weight:900; color:#ffffff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${homeName}</div>
-              <div style="font-size:10px; font-weight:700; color:rgba(255,255,255,0.5); text-transform:uppercase;">Local</div>
-            </div>
-            <img src="${homeLogo}" alt="${home.abbr || 'HOM'}" onerror="this.src='img/logo.jpg'" style="width:34px; height:34px; object-fit:contain; flex-shrink:0; filter:drop-shadow(0 2px 4px rgba(0,0,0,0.5));" />
-          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${dateStr} &nbsp;•&nbsp; ${status}</div>
         </div>
-        <div class="fg-select-indicator" style="display:none; text-align:center; font-size:11px; font-weight:900; color:#ffd100; background:rgba(255,209,0,0.12); padding:4px; border-radius:6px; border:1px dashed #ffd100;">
-          ✓ PARTIDO SELECCIONADO PARA CREAR SALA
-        </div>
+        <img src="${homeLogo}" style="width:32px;height:32px;object-fit:contain;filter:drop-shadow(0 0 4px ${homeColor})" onerror="this.src='img/logo.jpg'" />
       `;
 
       card.addEventListener('click', () => {
-        document.querySelectorAll('#fgGamePickerList .fg-match-card').forEach(c => {
-          c.style.borderColor = 'rgba(255, 255, 255, 0.12)';
-          c.style.background = '#121824';
-          c.style.boxShadow = 'none';
-          const ind = c.querySelector('.fg-select-indicator');
-          if (ind) ind.style.display = 'none';
+        // Deselect others
+        list.querySelectorAll('.fg-match-item').forEach(c => {
+          c.style.borderColor = 'var(--border-color)';
+          c.style.background = 'rgba(255,255,255,0.03)';
         });
-
-        card.style.borderColor = '#ffd100';
-        card.style.background = 'rgba(255, 209, 0, 0.06)';
-        card.style.boxShadow = '0 0 16px rgba(255, 209, 0, 0.35)';
-        const ind = card.querySelector('.fg-select-indicator');
-        if (ind) ind.style.display = 'block';
+        card.style.borderColor = 'var(--accent-color)';
+        card.style.background = 'rgba(255,209,0,0.08)';
 
         const defName = `${awayName} vs ${homeName}`;
         fgSelectedMatchData = {
           eventId: ev.id,
           homeTeam: homeName,
           awayTeam: awayName,
-          homeAbbr: home.abbr || 'HOM',
-          awayAbbr: away.abbr || 'AWY',
+          homeAbbr: homeComp.team?.abbreviation || 'HOM',
+          awayAbbr: awayComp.team?.abbreviation || 'AWY',
           homeLogo: homeLogo,
           awayLogo: awayLogo,
-          homeColor: home.color || '#1a1a24',
-          awayColor: away.color || '#1a1a24',
-          homeSecondaryColor: home.secondaryColor || '#ffd100',
-          awaySecondaryColor: away.secondaryColor || '#ffd100',
+          homeColor: homeColor,
+          awayColor: awayColor,
           leagueName: defaultLeagueName,
           matchDate: ev.date || '',
-          matchTime: timeStr,
-          matchDateFormatted: `${dateStr} • ${timeStr}`,
-          status: isLive ? 'in_progress' : (isFinal ? 'completed' : 'scheduled'),
-          clock: isLive ? clockStr : '',
-          homeScore: isLive || isFinal ? homeScore : '',
-          awayScore: isLive || isFinal ? awayScore : '',
+          status: ev.status?.type?.state || 'scheduled',
           defaultName: defName
         };
+
+        const previewInfo = document.getElementById('fgSelectedGameInfo');
+        if (previewInfo) {
+          previewInfo.innerHTML = `<span style="color:${awayColor}">${awayName}</span> <span style="color:var(--text-muted)">vs</span> <span style="color:${homeColor}">${homeName}</span>`;
+        }
+        const preview = document.getElementById('fgSelectedGamePreview');
+        if (preview) preview.style.display = 'block';
 
         const nameInp = document.getElementById('fgGameName');
         if (nameInp) nameInp.value = defName;
@@ -1941,15 +1877,10 @@
         awayLogo: fgSelectedMatchData.awayLogo,
         homeColor: fgSelectedMatchData.homeColor || '#1a1a24',
         awayColor: fgSelectedMatchData.awayColor || '#1a1a24',
-        homeSecondaryColor: fgSelectedMatchData.homeSecondaryColor || '#ffd100',
-        awaySecondaryColor: fgSelectedMatchData.awaySecondaryColor || '#ffd100',
+        homeSecondaryColor: '#ffd100',
+        awaySecondaryColor: '#ffd100',
         leagueName: fgSelectedMatchData.leagueName || 'Fútbol',
         matchDate: fgSelectedMatchData.matchDate || '',
-        matchTime: fgSelectedMatchData.matchTime || '',
-        matchDateFormatted: fgSelectedMatchData.matchDateFormatted || '',
-        homeScore: fgSelectedMatchData.homeScore || 0,
-        awayScore: fgSelectedMatchData.awayScore || 0,
-        clock: fgSelectedMatchData.clock || '',
         store: store,
         autoApprove: autoApprove,
         active: true,
@@ -1961,15 +1892,14 @@
         createdAt: Date.now()
       });
 
-      alert('🏆 ¡Juego de Minuto del Gol creado exitosamente!');
+      alert('🏆 ¡Juego First Striker Wins creado exitosamente!');
       document.getElementById('fgGameName').value = '';
       fgSelectedMatchData = null;
-      document.querySelectorAll('#fgGamePickerList .fg-match-card').forEach(c => {
-        c.style.borderColor = 'rgba(255, 255, 255, 0.12)';
-        c.style.background = '#121824';
-        c.style.boxShadow = 'none';
-        const ind = c.querySelector('.fg-select-indicator');
-        if (ind) ind.style.display = 'none';
+      const preview = document.getElementById('fgSelectedGamePreview');
+      if (preview) preview.style.display = 'none';
+      document.querySelectorAll('#fgGamePickerList .fg-match-item').forEach(c => {
+        c.style.borderColor = 'var(--border-color)';
+        c.style.background = 'rgba(255,255,255,0.03)';
       });
     } catch (err) {
       alert('Error al crear: ' + err.message);

@@ -423,6 +423,12 @@
           <div id="fgGamePickerList" style="display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto;"></div>
         </div>
 
+        <!-- Selected game preview -->
+        <div id="fgSelectedGamePreview" style="display:none; margin-bottom: 14px; padding: 12px; background: rgba(255,209,0,0.06); border: 1px solid var(--accent-color); border-radius: 12px;">
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">Partido seleccionado:</div>
+          <div id="fgSelectedGameInfo" style="font-weight: 800; font-size: 15px;"></div>
+        </div>
+
         <div class="form-group">
           <label>Nombre del Juego (Opcional, Ej: Final Velta)</label>
           <input type="text" id="fgGameName" placeholder="Deja vacío para auto-generar" style="font-size:13px; font-weight:700;"/>
