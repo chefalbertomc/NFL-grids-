@@ -95,10 +95,35 @@
       }
 
       // Update User Status UI
-      const isAlive = userPickData.status !== 'eliminated';
+      const isAlive = userPickData.status === 'alive' || userPickData.status === 'approved';
+      const isPending = userPickData.status === 'pending';
+      const isEliminated = userPickData.status === 'eliminated';
+      
       if (survivorUserStatus) {
-        survivorUserStatus.textContent = isAlive ? 'VIVO' : 'ELIMINADO';
-        survivorUserStatus.style.color = isAlive ? 'var(--success-color)' : 'var(--danger-color)';
+        if (isPending) {
+          survivorUserStatus.textContent = 'PENDIENTE';
+          survivorUserStatus.className = 'badge';
+          survivorUserStatus.style.background = 'rgba(255,193,7,0.2)';
+          survivorUserStatus.style.color = '#ffc107';
+          survivorUserStatus.style.border = '1px solid #ffc107';
+        } else {
+          survivorUserStatus.textContent = isAlive ? 'VIVO' : 'ELIMINADO';
+          survivorUserStatus.className = `badge ${isAlive ? 'success' : 'danger'}`;
+          survivorUserStatus.style = ''; // Reset inline styles
+        }
+      }
+
+      if (survivorStatusText) {
+        if (isPending) {
+          survivorStatusText.innerHTML = '⌛ <strong>Solicitud Enviada.</strong> Por favor pide a tu mesero que apruebe tu participación para confirmar tu pick.';
+          survivorStatusText.style.color = '#ffc107';
+        } else if (isEliminated) {
+          survivorStatusText.textContent = 'Has sido eliminado del torneo. ¡Gracias por participar!';
+          survivorStatusText.style.color = 'var(--danger-color)';
+        } else {
+          survivorStatusText.textContent = `Selecciona tu equipo para la Semana ${activeWeek}. Recuerda que no puedes repetir equipo.`;
+          survivorStatusText.style.color = 'var(--text-muted)';
+        }
       }
 
       populateTeams();
@@ -112,14 +137,22 @@
     if (!selSurvivorTeam) return;
     selSurvivorTeam.innerHTML = '';
 
-    const isAlive = userPickData.status !== 'eliminated';
+    const isAlive = userPickData.status === 'alive' || userPickData.status === 'approved';
+    const isPending = userPickData.status === 'pending';
+    const isEliminated = userPickData.status === 'eliminated';
 
     if (!user) {
       selSurvivorTeam.innerHTML = '<option value="" disabled selected>Inicia sesión primero</option>';
       return;
     }
 
-    if (!isAlive) {
+    if (isPending) {
+      selSurvivorTeam.innerHTML = '<option value="" disabled selected>Esperando aprobación del administrador...</option>';
+      if (btnSaveSurvivor) btnSaveSurvivor.disabled = true;
+      return;
+    }
+
+    if (isEliminated) {
       selSurvivorTeam.innerHTML = '<option value="" disabled selected>Estás eliminado de este Survivor</option>';
       if (btnSaveSurvivor) btnSaveSurvivor.disabled = true;
       return;
@@ -154,9 +187,22 @@
 
   async function savePick() {
     if (!db) return;
-    if (!user) {
-      window.requireUserAuth(savePick, '¡Inicia Sesión para Survivor!', 'Necesitas iniciar sesión con Google, Apple o Facebook para registrar tu selección semanal.');
-      return;
+    let activeUser = user || window.currentUser;
+    if (!activeUser) {
+      const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || 'JUGADOR';
+      let savedId = localStorage.getItem('bww_player_id');
+      if (!savedId) {
+        savedId = 'user_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('bww_player_id', savedId);
+      }
+      activeUser = {
+        uid: savedId,
+        displayName: savedNick,
+        email: '',
+        photoURL: localStorage.getItem('user_custom_avatar') || 'img/logo.jpg'
+      };
+      window.currentUser = activeUser;
+      user = activeUser;
     }
     
     const selectedTeam = selSurvivorTeam.value;
@@ -174,12 +220,15 @@
     try {
       const picks = userPickData.picks || {};
       picks[activeWeek] = selectedTeam;
+      
+      const isNewPlayer = !userPickData.status || userPickData.status === 'alive' && Object.keys(userPickData.picks || {}).length === 0;
 
       await db.collection('survivor_picks').doc(user.uid).set({
         playerId: user.uid,
         nickname: user.displayName || user.email.split('@')[0],
         picks: picks,
-        status: userPickData.status || 'alive',
+        status: isNewPlayer ? 'pending' : (userPickData.status || 'alive'),
+        approved: !isNewPlayer,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp ? firebase.firestore.FieldValue.serverTimestamp() : Date.now()
       });
 

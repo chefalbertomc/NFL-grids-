@@ -540,11 +540,6 @@
     grid.querySelectorAll('[data-open-q]').forEach(btn => {
       btn.addEventListener('click', () => {
         const qId = btn.getAttribute('data-open-q');
-        const activeUser = getActiveUser();
-        if (!activeUser) {
-          window.requireUserAuth(() => openQuiniela(qId), '¡Inicia Sesión con Google!', 'Para ingresar a la quiniela, registrar tus pronósticos y competir en la tabla, inicia sesión con Google.');
-          return;
-        }
         openQuiniela(qId);
       });
     });

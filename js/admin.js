@@ -1537,59 +1537,106 @@
   }
 
   async function loadSurvivorPlayersList() {
+    const listPend = document.getElementById('survListPend');
     if (!db || !adminSurvivorPlayers) return;
 
     try {
-      // Real-time listener for survivor picks
       db.collection('survivor_picks').onSnapshot(snap => {
         adminSurvivorPlayers.innerHTML = '';
-        
-        if (snap.empty) {
-          adminSurvivorPlayers.innerHTML = '<div class="hint-text py-2">No hay participantes registrados.</div>';
-          return;
-        }
+        if (listPend) listPend.innerHTML = '';
+
+        let pendCount = 0;
+        let apprCount = 0;
 
         snap.forEach(doc => {
           const p = doc.data() || {};
-          const isAlive = p.status !== 'eliminated';
+          const isApproved = p.approved === true || p.status === 'approved' || p.status === 'alive' || p.status === 'eliminated';
           
-          const row = document.createElement('div');
-          row.className = 'flex-between';
-          row.style.padding = '8px 12px';
-          row.style.background = 'rgba(255,255,255,0.02)';
-          row.style.border = '1px solid var(--border-color)';
-          row.style.borderRadius = '10px';
-          row.style.marginBottom = '6px';
-
-          row.innerHTML = `
-            <div>
-              <span style="font-weight: 800;">${p.nickname || 'Anónimo'}</span>
-              <span class="badge ${isAlive ? 'success' : 'danger'}" style="margin-left: 6px;">
-                ${isAlive ? 'VIVO' : 'ELIMINADO'}
-              </span>
-              <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
-                Picks: ${JSON.stringify(p.picks || {})}
+          if (!isApproved) {
+            pendCount++;
+            const row = document.createElement('div');
+            row.className = 'flex-between';
+            row.style.padding = '8px 12px';
+            row.style.background = 'rgba(255,255,255,0.02)';
+            row.style.border = '1px solid var(--border-color)';
+            row.style.borderRadius = '10px';
+            row.style.marginBottom = '6px';
+            
+            row.innerHTML = `
+              <div>
+                <span style="font-weight: 800;">${p.nickname || 'Anónimo'}</span>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                  Mesa/Mesero: ${p.waiter || 'N/A'}
+                </div>
               </div>
-            </div>
-            <div>
-              ${isAlive 
-                ? `<button class="btn btn-danger" data-surv-id="${doc.id}" data-surv-act="eliminate" style="padding: 4px 8px; font-size: 11px; width: auto;">Eliminar</button>`
-                : `<button class="btn btn-primary" data-surv-id="${doc.id}" data-surv-act="revive" style="padding: 4px 8px; font-size: 11px; width: auto; color: var(--bg-color);">Revivir</button>`
+              <div style="display:flex; gap:6px;">
+                <button class="btn btn-primary" data-surv-id="${doc.id}" data-surv-act="approve" style="padding: 4px 8px; font-size: 11px; width: auto;">Aprobar</button>
+                <button class="btn btn-danger" data-surv-id="${doc.id}" data-surv-act="reject" style="padding: 4px 8px; font-size: 11px; width: auto;">Rechazar</button>
+              </div>
+            `;
+            if (listPend) listPend.appendChild(row);
+          } else {
+            apprCount++;
+            const isAlive = p.status !== 'eliminated';
+            const row = document.createElement('div');
+            row.className = 'flex-between';
+            row.style.padding = '8px 12px';
+            row.style.background = 'rgba(255,255,255,0.02)';
+            row.style.border = '1px solid var(--border-color)';
+            row.style.borderRadius = '10px';
+            row.style.marginBottom = '6px';
+
+            row.innerHTML = `
+              <div>
+                <span style="font-weight: 800;">${p.nickname || 'Anónimo'}</span>
+                <span class="badge ${isAlive ? 'success' : 'danger'}" style="margin-left: 6px;">
+                  ${isAlive ? 'VIVO' : 'ELIMINADO'}
+                </span>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                  Picks: ${JSON.stringify(p.picks || {})}
+                </div>
+              </div>
+              <div>
+                ${isAlive 
+                  ? `<button class="btn btn-danger" data-surv-id="${doc.id}" data-surv-act="eliminate" style="padding: 4px 8px; font-size: 11px; width: auto;">Eliminar</button>`
+                  : `<button class="btn btn-primary" data-surv-id="${doc.id}" data-surv-act="revive" style="padding: 4px 8px; font-size: 11px; width: auto; color: var(--bg-color);">Revivir</button>`
+                }
+              </div>
+            `;
+            adminSurvivorPlayers.appendChild(row);
+          }
+        });
+
+        if (pendCount === 0 && listPend) {
+          listPend.innerHTML = '<div class="hint-text py-2 text-center">No hay solicitudes pendientes.</div>';
+        }
+        if (apprCount === 0) {
+          adminSurvivorPlayers.innerHTML = '<div class="hint-text py-2 text-center">No hay participantes aprobados.</div>';
+        }
+
+        // Attach listeners for all buttons
+        const attachActs = (container) => {
+          if (!container) return;
+          container.querySelectorAll('[data-surv-act]').forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const id = btn.getAttribute('data-surv-id');
+              const act = btn.getAttribute('data-surv-act');
+              if (act === 'revive') {
+                toggleSurvivorPlayerStatus(id, true);
+              } else if (act === 'eliminate') {
+                toggleSurvivorPlayerStatus(id, false);
+              } else if (act === 'approve') {
+                await db.collection('survivor_picks').doc(id).update({ status: 'alive', approved: true });
+              } else if (act === 'reject') {
+                await db.collection('survivor_picks').doc(id).delete();
               }
-            </div>
-          `;
-
-          adminSurvivorPlayers.appendChild(row);
-        });
-
-        // Click actions
-        adminSurvivorPlayers.querySelectorAll('[data-surv-act]').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const id = btn.getAttribute('data-surv-id');
-            const act = btn.getAttribute('data-surv-act');
-            toggleSurvivorPlayerStatus(id, act === 'revive');
+            });
           });
-        });
+        };
+        
+        attachActs(listPend);
+        attachActs(adminSurvivorPlayers);
+
       }, err => {
         console.error('[survivor] Realtime error:', err);
       });
@@ -1613,8 +1660,12 @@
   let fgUnsubSelectedGame = null;
   let fgUnsubSelectedPlayers = null;
   let fgUnsubGamesDropdown = null;
+  
+  let fgSearchMatches = [];
+  let fgSelectedMatchData = null;
 
   function setupFirstGoalUI() {
+    const btnSearchFGGames = document.getElementById('btnSearchFGGames');
     const btnCreateFGGame = document.getElementById('btnCreateFGGame');
     const btnLoadFGGame = document.getElementById('btnLoadFGGame');
     const btnDeleteFGGame = document.getElementById('btnDeleteFGGame');
@@ -1624,6 +1675,7 @@
     const btnDrawFGPenalties = document.getElementById('btnDrawFGPenalties');
     const btnResolveFGWinner = document.getElementById('btnResolveFGWinner');
 
+    if (btnSearchFGGames) btnSearchFGGames.addEventListener('click', searchFGGames);
     if (btnCreateFGGame) btnCreateFGGame.addEventListener('click', createFirstGoalGame);
     if (btnLoadFGGame) btnLoadFGGame.addEventListener('click', () => {
       const drop = document.getElementById('fgActiveGamesDropdown');
@@ -1649,24 +1701,107 @@
     if (btnResolveFGWinner) btnResolveFGWinner.addEventListener('click', resolveFGWinner);
   }
 
-  async function createFirstGoalGame() {
-    const store = document.getElementById('fgStore').value;
-    const gameName = document.getElementById('fgGameName').value.trim();
-    const homeTeam = document.getElementById('fgHomeTeam').value.trim();
-    const awayTeam = document.getElementById('fgAwayTeam').value.trim();
-    const autoApprove = document.getElementById('fgAutoApprove').checked;
+  async function searchFGGames() {
+    const league = document.getElementById('fgLeague').value;
+    const btn = document.getElementById('btnSearchFGGames');
+    btn.textContent = 'Buscando...';
+    btn.disabled = true;
+    
+    try {
+      const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/${league}/scoreboard`;
+      let res = await fetch(url);
+      if (!res.ok) throw new Error('Network error');
+      let data = await res.json();
+      
+      fgSearchMatches = data.events || [];
+      renderFGGamesList(fgSearchMatches);
+      
+    } catch (err) {
+      alert('Error consultando ESPN: ' + err.message);
+    }
+    
+    btn.textContent = '🔍 Buscar Partidos';
+    btn.disabled = false;
+  }
 
-    if (!gameName || !homeTeam || !awayTeam) {
-      alert('Rellena el nombre del juego y los nombres de ambos equipos.');
+  function renderFGGamesList(events) {
+    const container = document.getElementById('fgGamePickerContainer');
+    const list = document.getElementById('fgGamePickerList');
+    container.style.display = 'block';
+    list.innerHTML = '';
+    fgSelectedMatchData = null;
+
+    if (!events || events.length === 0) {
+      list.innerHTML = '<div class="hint-text text-center py-2">No hay partidos agendados o activos en ESPN.</div>';
       return;
     }
+
+    events.forEach(ev => {
+      const match = ev.competitions[0];
+      const team1 = match.competitors[0];
+      const team2 = match.competitors[1];
+
+      const home = team1.homeAway === 'home' ? team1 : team2;
+      const away = team1.homeAway === 'away' ? team1 : team2;
+
+      const card = document.createElement('div');
+      card.className = 'game-pick-card';
+      card.innerHTML = `
+        <div style="font-size:10px; color:var(--text-muted); margin-bottom:4px; text-transform:uppercase;">${ev.status.type.detail}</div>
+        <div class="flex-between">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <img src="${away.team.logo}" alt="${away.team.abbreviation}" onerror="this.src='img/logo.jpg'" style="width:24px;height:24px;object-fit:contain;"/>
+            <span style="font-size:13px; font-weight:800;">${away.team.shortDisplayName}</span>
+          </div>
+          <span style="font-size:12px; color:var(--text-muted); font-weight:900;">@</span>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <img src="${home.team.logo}" alt="${home.team.abbreviation}" onerror="this.src='img/logo.jpg'" style="width:24px;height:24px;object-fit:contain;"/>
+            <span style="font-size:13px; font-weight:800;">${home.team.shortDisplayName}</span>
+          </div>
+        </div>
+      `;
+
+      card.addEventListener('click', () => {
+        document.querySelectorAll('#fgGamePickerList .game-pick-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        fgSelectedMatchData = {
+          eventId: ev.id,
+          homeTeam: home.team.shortDisplayName,
+          awayTeam: away.team.shortDisplayName,
+          homeAbbr: home.team.abbreviation,
+          awayAbbr: away.team.abbreviation,
+          homeLogo: home.team.logo,
+          awayLogo: away.team.logo,
+          defaultName: `${home.team.shortDisplayName} vs ${away.team.shortDisplayName}`
+        };
+      });
+
+      list.appendChild(card);
+    });
+  }
+
+  async function createFirstGoalGame() {
+    if (!fgSelectedMatchData) {
+      alert('Por favor selecciona un partido de la lista primero.');
+      return;
+    }
+
+    const store = document.getElementById('fgStore').value;
+    const customName = document.getElementById('fgGameName').value.trim();
+    const gameName = customName || fgSelectedMatchData.defaultName;
+    const autoApprove = document.getElementById('fgAutoApprove').checked;
 
     try {
       const code = 'fg_' + Math.random().toString(36).substring(2, 8).toUpperCase();
       await db.collection('first_goal_games').doc(code).set({
+        eventId: fgSelectedMatchData.eventId,
         gameName: gameName,
-        homeTeam: homeTeam,
-        awayTeam: awayTeam,
+        homeTeam: fgSelectedMatchData.homeTeam,
+        awayTeam: fgSelectedMatchData.awayTeam,
+        homeAbbr: fgSelectedMatchData.homeAbbr,
+        awayAbbr: fgSelectedMatchData.awayAbbr,
+        homeLogo: fgSelectedMatchData.homeLogo,
+        awayLogo: fgSelectedMatchData.awayLogo,
         store: store,
         autoApprove: autoApprove,
         active: true,
@@ -1680,8 +1815,8 @@
 
       alert('Juego de Minuto del Gol creado exitosamente.');
       document.getElementById('fgGameName').value = '';
-      document.getElementById('fgHomeTeam').value = '';
-      document.getElementById('fgAwayTeam').value = '';
+      fgSelectedMatchData = null;
+      document.querySelectorAll('#fgGamePickerList .game-pick-card').forEach(c => c.classList.remove('selected'));
     } catch (err) {
       alert('Error al crear: ' + err.message);
     }

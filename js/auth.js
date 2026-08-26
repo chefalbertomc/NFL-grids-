@@ -80,35 +80,9 @@
     alert('Error al iniciar sesión: ' + (err.message || err.code));
   }
 
-  function isInAppBrowser() {
-    const ua = navigator.userAgent || navigator.vendor || window.opera;
-    const isInstagram = ua.indexOf('Instagram') > -1;
-    const isFBAV = ua.indexOf('FBAN') > -1 || ua.indexOf('FBAV') > -1;
-    const isWhatsApp = ua.indexOf('WhatsApp') > -1;
-    const isLine = ua.indexOf('Line') > -1;
-    const isPWA = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
-    return isInstagram || isFBAV || isWhatsApp || isLine || isPWA;
-  }
-
   // 1-Click Google Sign In
   window.loginWithGoogle = async function(isSwitchAccount = false) {
     if (isGoogleAuthInProgress) return;
-
-    if (isInAppBrowser()) {
-      const inp = document.getElementById('inpGuestNick');
-      if (inp) {
-        inp.style.borderColor = '#ffd100';
-        inp.style.boxShadow = '0 0 14px rgba(255,209,0,0.6)';
-        inp.focus();
-        inp.scrollIntoView({ behavior: 'smooth' });
-        setTimeout(() => {
-          inp.style.borderColor = '';
-          inp.style.boxShadow = '';
-        }, 3000);
-      }
-      return;
-    }
-
     isGoogleAuthInProgress = true;
     console.log('[auth] loginWithGoogle triggered, isSwitchAccount:', isSwitchAccount);
     try {
@@ -125,26 +99,9 @@
       setLoginButtonLoading('btnModalGoogle', true, 'Conectando con Google...');
 
       try {
-        const result = await auth.signInWithPopup(provider);
-        if (result && result.user) {
-          window.currentUser = result.user;
-          localStorage.setItem('bww_last_auth_user', JSON.stringify({ uid: result.user.uid, displayName: result.user.displayName, email: result.user.email }));
-          window.hideLoginModal();
-          updateHeaderUI(result.user);
-          notifyCallbacks();
-          if (pendingAuthAction) {
-            const action = pendingAuthAction;
-            pendingAuthAction = null;
-            action(result.user);
-          }
-        }
+        await auth.signInWithRedirect(provider);
       } catch (err) {
-        console.warn('[auth] Popup sign-in error:', err);
-        if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-          // Closed by user, no action needed
-          return;
-        }
-
+        console.warn('[auth] Redirect sign-in error:', err);
         // On mobile / Safari / PWA where popups or third-party cookies are blocked by Apple ITP:
         // Prompt user directly for their nickname so they can play instantly without being blocked in a loop
         const saved = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '';

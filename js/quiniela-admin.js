@@ -17,7 +17,7 @@
     'ligue-1':          { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'fra.1',                 label: '🇫🇷 Ligue 1 Francia' },
     'mls':              { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'usa.1',                 label: '🇺🇸 MLS' },
     'libertadores':     { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'conmebol.libertadores', label: '🌎 Copa Libertadores' },
-    'leagues-cup':      { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'leagues.cup',           label: '🏆 Leagues Cup' },
+    'leagues-cup':      { group: '⚽ QUINIELA (Fútbol)', sport: 'soccer',     slug: 'concacaf.leagues.cup',  label: '🏆 Leagues Cup' },
 
     // 🏈 ⚾ 🏀 PICK'EM (US Sports)
     'nfl':              { group: "🏈 ⚾ 🏀 PICK'EM (US Sports)", sport: 'football',   slug: 'nfl',                     label: '🏈 NFL' },

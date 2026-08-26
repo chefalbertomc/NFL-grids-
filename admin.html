@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Admin Dashboard — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=137.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=138.0"/>
   <style>
     /* Styling overrides for admin features */
     .admin-tab-content {
@@ -49,6 +49,7 @@
       <button class="tab-btn" data-target="admin-pools">📋 Quinielas & Pick'em</button>
       <button class="tab-btn" data-target="admin-survivor">🏆 Survivor</button>
       <button class="tab-btn" data-target="admin-firstgoal">⚽ Minuto del Gol</button>
+      <button class="tab-btn" data-target="admin-bingo">🎯 Bingo</button>
     </div>
 
     <!-- ADMIN SECTIONS -->
@@ -337,9 +338,19 @@
           <button id="btnSaveSurvivorWeek" class="btn btn-primary" style="width: auto; padding: 12px 24px;">Actualizar Semana</button>
         </div>
 
-        <h4 style="margin-bottom: 8px;">Lista de Participantes en Survivor</h4>
-        <div id="adminSurvivorPlayers" class="flex-row" style="flex-direction: column; gap: 8px;">
-          <div class="text-center hint-text py-2">Cargando participantes...</div>
+        <div class="flex-row" style="flex-direction: column; gap: 12px; margin-top: 16px;">
+          <div>
+            <h5 style="font-size: 13px; color: var(--danger-color); margin-bottom: 6px; font-weight:800;">🚫 Solicitudes Pendientes</h5>
+            <div id="survListPend" class="hint-text py-2" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 12px; border: 1px solid var(--border-color);">
+              Cargando participantes pendientes...
+            </div>
+          </div>
+          <div>
+            <h5 style="font-size: 13px; color: var(--success-color); margin-bottom: 6px; font-weight:800;">✅ Jugadores Aprobados y Calificación</h5>
+            <div id="adminSurvivorPlayers" class="flex-row" style="flex-direction: column; gap: 8px;">
+              <div class="text-center hint-text py-2">Cargando participantes aprobados...</div>
+            </div>
+          </div>
         </div>
       </section>
     </main>
@@ -360,20 +371,33 @@
           </select>
         </div>
 
-        <div class="form-group">
-          <label>Nombre del Juego / Título</label>
-          <input type="text" id="fgGameName" placeholder="Ej. Tigres vs Chivas — Gran Final" style="font-size:14px; font-weight:700;"/>
-        </div>
-
         <div class="flex-row" style="flex-wrap:wrap; gap:10px; margin-bottom:12px;">
           <div class="form-group" style="flex:1; min-width:140px; margin:0;">
-            <label>Equipo Local</label>
-            <input type="text" id="fgHomeTeam" placeholder="Ej. Tigres" style="font-size:13px; font-weight:700;"/>
+            <label>Liga / Deporte</label>
+            <select id="fgLeague" style="font-size:13px; font-weight:700;">
+              <option value="mex.1">🇲🇽 Liga MX</option>
+              <option value="eng.1">🇬🇧 Premier League</option>
+              <option value="esp.1">🇪🇸 La Liga (España)</option>
+              <option value="uefa.champions">🇪🇺 UEFA Champions League</option>
+              <option value="fifa.world">🌎 Selecciones (Internacional)</option>
+            </select>
           </div>
-          <div class="form-group" style="flex:1; min-width:140px; margin:0;">
-            <label>Equipo Visitante</label>
-            <input type="text" id="fgAwayTeam" placeholder="Ej. Chivas" style="font-size:13px; font-weight:700;"/>
+          <div style="display:flex; align-items:flex-end;">
+            <button id="btnSearchFGGames" class="btn btn-primary" style="width:auto; padding:10px 18px; font-size:13px;">
+              🔍 Buscar Partidos
+            </button>
           </div>
+        </div>
+
+        <!-- Game picker cards -->
+        <div id="fgGamePickerContainer" style="display:none; margin-bottom:14px;">
+          <p style="font-size:12px; color: var(--text-muted); margin-bottom: 8px;">Selecciona el partido para abrir el Minuto del Gol:</p>
+          <div id="fgGamePickerList" style="display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto;"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Nombre del Juego (Opcional, Ej: Final Velta)</label>
+          <input type="text" id="fgGameName" placeholder="Deja vacío para auto-generar" style="font-size:13px; font-weight:700;"/>
         </div>
 
         <div class="form-group" style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
@@ -469,6 +493,85 @@
         </div>
       </section>
     </main>
+
+    <!-- 5. ADMIN BINGO -->
+    <main id="admin-bingo" class="admin-tab-content hidden">
+      <section class="card highlight">
+        <h3 class="card-title">Crear Sala de GameDay Bingo</h3>
+        <p class="card-subtitle">Busca un partido de ESPN para vincular el VAR automático.</p>
+
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label>Sucursal Principal</label>
+          <select id="bingoStore" style="font-size:14px;">
+            <option value="matriz">Sucursal Matriz (La Paz)</option>
+            <option value="centro">Sucursal Centro</option>
+            <option value="sur">Sucursal Sur</option>
+          </select>
+        </div>
+
+        <div class="flex-row" style="flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+          <div class="form-group" style="flex:1; min-width:140px; margin:0;">
+            <label>Deporte / Liga</label>
+            <select id="bingoLeague" style="font-size:13px; font-weight:700;">
+              <option value="soccer/mex.1">⚽ 🇲🇽 Liga MX</option>
+              <option value="soccer/eng.1">⚽ 🇬🇧 Premier League</option>
+              <option value="soccer/esp.1">⚽ 🇪🇸 La Liga</option>
+              <option value="soccer/uefa.champions">⚽ 🇪🇺 Champions League</option>
+              <option value="football/nfl">🏈 🇺🇸 NFL</option>
+            </select>
+          </div>
+          <div style="display:flex; align-items:flex-end;">
+            <button id="btnSearchBingoGames" class="btn btn-primary" style="width:auto; padding:10px 18px; font-size:13px;">
+              🔍 Buscar Partidos
+            </button>
+          </div>
+        </div>
+
+        <div id="bingoGamePickerContainer" style="display:none; margin-bottom:14px;">
+          <p style="font-size:12px; color: var(--text-muted); margin-bottom: 8px;">Selecciona el partido para la sala de Bingo:</p>
+          <div id="bingoGamePickerList" style="display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto;"></div>
+        </div>
+
+        <div class="form-group">
+          <label>Nombre de la Sala (Ej: Final Champions)</label>
+          <input type="text" id="bingoGameName" placeholder="Deja vacío para auto-generar" style="font-size:13px; font-weight:700;"/>
+        </div>
+
+        <button id="btnCreateBingoRoom" class="btn btn-primary" style="margin-top: 10px; padding: 14px; font-size: 15px;">Crear Sala de Bingo</button>
+      </section>
+
+      <section class="card">
+        <h3 class="card-title">Gestión de la Sala Activa</h3>
+        <p class="card-subtitle">Administra los eventos del bingo y a los jugadores.</p>
+
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label>Seleccionar Sala de Bingo Activa</label>
+          <select id="bingoActiveRoomsDropdown" style="font-size:14px; margin-bottom:10px;">
+            <option value="" disabled selected>Cargando salas...</option>
+          </select>
+          <button id="btnDeleteBingoRoom" class="btn btn-danger" style="padding: 10px; font-size: 13px;">🗑️ Eliminar Sala</button>
+        </div>
+
+        <div id="bingoActiveRoomDetails" style="display:none;">
+          <h4 style="margin: 16px 0 8px; font-size:15px; font-weight:900; color:#ffd100;">📻 VAR Automático / Eventos Marcados</h4>
+          <p class="hint-text" style="font-size: 12px; margin-bottom: 12px;">Si el VAR automático falla, puedes inyectar eventos manualmente aquí. Los jugadores verán cómo se tacha en sus celulares al instante.</p>
+          
+          <div class="flex-row" style="gap: 10px; margin-bottom: 15px;">
+            <input type="text" id="bingoManualEventInput" placeholder="Ej. Tarjeta Amarilla Visitante" style="flex:1; padding:10px; font-size:13px; font-weight:700;" />
+            <button id="btnAddManualEvent" class="btn btn-success" style="width:auto; padding:10px 18px; font-size:13px;">Inyectar Evento</button>
+          </div>
+
+          <div id="bingoMarkedEventsList" class="flex-row" style="flex-wrap:wrap; gap:8px; margin-bottom: 20px;">
+            <div class="hint-text" style="font-size: 12px; padding: 6px 0;">No hay eventos marcados aún.</div>
+          </div>
+
+          <h4 style="margin: 16px 0 8px; font-size:15px; font-weight:900; color:#00e676;">👥 Jugadores Activos</h4>
+          <div id="bingoPlayersList" style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="hint-text" style="font-size: 12px; padding: 6px 0;">Nadie ha entrado a la sala.</div>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
 
 
@@ -479,11 +582,12 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Firebase Logic -->
-  <script src="js/firebase-config.js?v=145.0"></script>
-  <script src="js/auth.js?v=145.0"></script>
-  <script src="js/team-logos.js?v=145.0"></script>
-  <script src="js/admin.js?v=145.0"></script>
-  <script src="js/quiniela-admin.js?v=145.0"></script>
+  <script src="js/firebase-config.js?v=138.0"></script>
+  <script src="js/auth.js?v=138.0"></script>
+  <script src="js/team-logos.js?v=138.0"></script>
+  <script src="js/admin.js?v=138.0"></script>
+  <script src="js/quiniela-admin.js?v=138.0"></script>
+  <script src="js/bingo-admin.js?v=138.0"></script>
 
   <!-- Admin Tab Switching for Top Tabs -->
   <script>
@@ -523,7 +627,7 @@
   <!-- Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=145.0', { updateViaCache: 'none' }).then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=138.0', { updateViaCache: 'none' }).then(reg => {
         reg.update().catch(() => {});
       }).catch(() => {});
       navigator.serviceWorker.addEventListener('message', event => {

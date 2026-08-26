@@ -569,11 +569,22 @@
   async function joinGrid() {
     if (!SELECTED_GRID_CODE || !db) return;
 
-    // MANDATORY AUTH CHECK: User must be signed in with Google
-    const activeUser = getActiveUser();
+    let activeUser = getActiveUser();
     if (!activeUser) {
-      window.requireUserAuth(joinGrid, '¡Inicia Sesión para Registrarte!', 'Para unirte a un Grid y asegurar tus casillas, necesitas iniciar sesión con Google.');
-      return;
+      const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || 'JUGADOR';
+      let savedId = localStorage.getItem('bww_player_id');
+      if (!savedId) {
+        savedId = 'user_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('bww_player_id', savedId);
+      }
+      activeUser = {
+        uid: savedId,
+        displayName: savedNick,
+        email: '',
+        photoURL: localStorage.getItem('user_custom_avatar') || 'img/logo.jpg'
+      };
+      window.currentUser = activeUser;
+      localStorage.setItem('bww_last_auth_user', JSON.stringify(activeUser));
     }
 
     const nick = (inpNick ? inpNick.value : '').trim().toUpperCase();

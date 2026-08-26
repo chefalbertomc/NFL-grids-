@@ -16,7 +16,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=137.0"/>
+  <link rel="stylesheet" href="css/styles.css?v=138.0"/>
 </head>
 <body>
   <!-- Slide-out Sidebar Drawer Menu -->
@@ -568,14 +568,34 @@
 
     <!-- 6. TAB BINGO (PRÓXIMAMENTE) -->
     <main id="tab-bingo" class="tab-content hidden">
-      <section class="card highlight text-center" style="padding: 30px 20px;">
-        <img src="img/games/badge_bingo.png" alt="Game Day Bingo" style="max-width: 220px; border-radius: 12px; margin: 0 auto 16px auto; display: block; box-shadow: 0 0 20px rgba(255, 209, 0, 0.3);" />
-        <h2 style="color: #ffd100; font-size: 22px; margin-bottom: 8px;">🎱 Game Day Bingo</h2>
-        <p style="color: var(--text-muted); font-size: 14px; max-width: 400px; margin: 0 auto 16px auto;">
-          Llena tu cartón con jugadas reales durante la transmisión del partido y gana bebidas. Próximamente disponible.
+      <div id="bingoListContainer">
+        <h2 style="color: #ffd100; font-size: 20px; margin-bottom: 8px;">🎱 GameDay Bingo</h2>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 16px;">
+          Selecciona una sala activa para jugar al bingo en vivo con las jugadas del partido.
         </p>
-        <span class="badge badge-pending" style="font-size: 12px; padding: 6px 14px;">🚀 Próximamente</span>
-      </section>
+        <div id="bingoActiveRoomsList" style="display:flex; flex-direction:column; gap:10px;">
+          <!-- Loaded via JS -->
+        </div>
+      </div>
+
+      <div id="bingoGameContainer" class="hidden">
+        <button class="btn btn-secondary" onclick="document.getElementById('bingoGameContainer').classList.add('hidden'); document.getElementById('bingoListContainer').classList.remove('hidden');" style="margin-bottom: 15px; width:auto; font-size:12px;">🔙 Volver a Salas</button>
+        
+        <div class="card highlight text-center" style="padding: 15px; margin-bottom: 20px;">
+          <h3 id="bingoRoomTitle" style="color: #ffd100; font-size: 18px; margin-bottom: 4px;">Sala de Bingo</h3>
+          <p id="bingoPlayerStatus" class="hint-text" style="font-size:12px; margin-bottom:0;">Conectando...</p>
+        </div>
+
+        <div id="bingoBoardWrapper" style="display:none; flex-direction:column; gap:10px; max-width: 400px; margin: 0 auto;">
+          <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px;" id="bingoGrid">
+            <!-- 16 cells injected via JS -->
+          </div>
+          
+          <button id="btnShoutBingo" class="btn btn-primary" style="margin-top:20px; padding: 16px; font-size: 18px; font-weight: 900; letter-spacing: 1px; background: linear-gradient(135deg, #00e676, #00c853); border:none; box-shadow: 0 0 15px rgba(0,230,118,0.4);" disabled>
+            ¡BINGO!
+          </button>
+        </div>
+      </div>
     </main>
   </div>
 
@@ -587,13 +607,14 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=145.0"></script>
-  <script src="js/auth.js?v=145.0"></script>
-  <script src="js/team-logos.js?v=145.0"></script>
-  <script src="js/grids.js?v=145.0"></script>
-  <script src="js/quiniela-player.js?v=145.0"></script>
-  <script src="js/survivor.js?v=145.0"></script>
-  <script src="js/firstgoal.js?v=145.0"></script>
+  <script src="js/firebase-config.js?v=150.0"></script>
+  <script src="js/auth.js?v=150.0"></script>
+  <script src="js/team-logos.js?v=150.0"></script>
+  <script src="js/grids.js?v=150.0"></script>
+  <script src="js/quiniela-player.js?v=150.0"></script>
+  <script src="js/survivor.js?v=150.0"></script>
+  <script src="js/firstgoal.js?v=150.0"></script>
+  <script src="js/bingo-player.js?v=150.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -818,7 +839,7 @@
   <!-- Service Worker: Auto Silent Update -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=145.0', { updateViaCache: 'none' }).then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=138.0', { updateViaCache: 'none' }).then(reg => {
         reg.update().catch(() => {});
       }).catch(() => {});
 
