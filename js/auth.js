@@ -722,44 +722,34 @@
     }
   };
 
-  // Global Auth Guard
+  // Global Auth Guard (Never interrupts or forces modal on game actions)
   window.requireUserAuth = function(actionCallback, customTitle, customSubtitle) {
-    const active = window.currentUser || (window.firebase && firebase.auth && firebase.auth() ? firebase.auth().currentUser : null);
-    if (active) {
-      if (!window.currentUser) window.currentUser = active;
-      if (typeof actionCallback === 'function') actionCallback(active);
-      return true;
+    let active = window.currentUser || (window.firebase && firebase.auth && firebase.auth() ? firebase.auth().currentUser : null);
+    if (!active) {
+      try {
+        const cached = localStorage.getItem('bww_last_auth_user');
+        if (cached) active = JSON.parse(cached);
+      } catch (e) {}
     }
-    // Check if we can hydrate from local storage
-    try {
-      const cached = localStorage.getItem('bww_last_auth_user');
-      if (cached) {
-        window.currentUser = JSON.parse(cached);
-        if (typeof actionCallback === 'function') actionCallback(window.currentUser);
-        return true;
-      }
-    } catch (e) {}
-
-    const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name');
-    let savedId = localStorage.getItem('bww_player_id');
-    if (savedNick) {
+    if (!active) {
+      const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || 'Socio';
+      let savedId = localStorage.getItem('bww_player_id');
       if (!savedId) {
         savedId = 'user_' + Math.random().toString(36).substring(2, 11);
         localStorage.setItem('bww_player_id', savedId);
       }
-      window.currentUser = {
+      active = {
         uid: savedId,
         displayName: savedNick,
         email: '',
         photoURL: localStorage.getItem('user_custom_avatar') || 'img/logo.jpg'
       };
-      if (typeof actionCallback === 'function') actionCallback(window.currentUser);
-      return true;
+      localStorage.setItem('bww_last_auth_user', JSON.stringify(active));
     }
 
-    pendingAuthAction = actionCallback;
-    window.showLoginModal(customTitle, customSubtitle);
-    return false;
+    window.currentUser = active;
+    if (typeof actionCallback === 'function') actionCallback(active);
+    return true;
   };
 
   function isInAppBrowser() {
