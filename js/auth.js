@@ -240,6 +240,8 @@
     const userBadge = document.getElementById('userBadge');
     const userAvatar = document.getElementById('userAvatar');
     const userName = document.getElementById('userName');
+    const drawerLoginItem = document.getElementById('drawerLoginItem');
+    const drawerLogoutItem = document.getElementById('drawerLogoutItem');
 
     if (user) {
       const activePhoto = getUserActivePhoto(user);
@@ -249,11 +251,15 @@
       if (userBadge) userBadge.classList.remove('hidden');
       if (userAvatar) userAvatar.src = activePhoto;
       if (userName) userName.textContent = user.displayName || user.email;
+      if (drawerLoginItem) drawerLoginItem.classList.add('hidden');
+      if (drawerLogoutItem) drawerLogoutItem.classList.remove('hidden');
     } else {
       if (btnHeaderLogin) btnHeaderLogin.classList.remove('hidden');
       if (btnGoogle) btnGoogle.classList.remove('hidden');
       if (btnSignOut) btnSignOut.classList.add('hidden');
       if (userBadge) userBadge.classList.add('hidden');
+      if (drawerLoginItem) drawerLoginItem.classList.remove('hidden');
+      if (drawerLogoutItem) drawerLogoutItem.classList.add('hidden');
     }
   }
 
@@ -403,6 +409,9 @@
         window._explicitSignOut = true;
         localStorage.removeItem('bww_last_auth_user');
         localStorage.removeItem('user_custom_avatar');
+        localStorage.removeItem('player_nick');
+        localStorage.removeItem('bww_q_name');
+        localStorage.removeItem('bww_player_id');
         window.currentUser = null;
         if (firebase.auth && firebase.auth()) {
           await firebase.auth().signOut();
@@ -410,7 +419,30 @@
         window.location.reload();
       } catch (err) {
         console.error('Logout error:', err);
+        window.location.reload();
       }
+    }
+  };
+  window.logoutUser = window.logoutFromModal;
+
+  // Force App Update & Cache Purge for PWA / Mobile
+  window.forceAppUpdate = async function() {
+    if (confirm('¿Deseas forzar la actualización de la App y descargar la última versión?')) {
+      try {
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const reg of regs) {
+            await reg.unregister();
+          }
+        }
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      } catch (e) {
+        console.warn('Error purging cache:', e);
+      }
+      window.location.href = window.location.pathname + '?v=' + Date.now();
     }
   };
 

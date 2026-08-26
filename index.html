@@ -87,6 +87,7 @@
         <li id="drawerAdminItem" class="admin-only hidden" onclick="window.location.href='admin.html'">⚙️ <span style="color:#ffd100; font-weight:800;">Panel Admin</span></li>
         <li onclick="window.toggleSideDrawer(false); if(window.openUserProfileModal) window.openUserProfileModal(event)">👤 <span>Mi Perfil / Avatar</span></li>
         <li onclick="window.toggleSideDrawer(false); if(window.openHowToPlayModal) window.openHowToPlayModal()">❓ <span>¿Cómo Jugar? (Instructivos)</span></li>
+        <li onclick="window.forceAppUpdate();">🔄 <span>Actualizar App / Limpiar Caché</span></li>
         <li onclick="window.toggleSideDrawer(false); document.querySelector('#tab-home').scrollIntoView({behavior:'smooth'});">📲 <span>Instalar App</span></li>
         <li id="drawerLoginItem" onclick="window.toggleSideDrawer(false); const btnL = document.getElementById('btnHeaderLogin'); if(btnL) btnL.click();">🔑 <span>Iniciar Sesión</span></li>
         <li id="drawerLogoutItem" class="hidden" onclick="handleDrawerLogout()">🚪 <span>Cerrar Sesión</span></li>
@@ -119,7 +120,7 @@
           <button id="btnHeaderLogin" class="btn btn-primary" style="width: auto; padding: 6px 12px; font-weight: 800; font-size: 12px; border-radius: 8px;">
             🔑 Login
           </button>
-          <div id="userBadge" class="user-badge hidden" onclick="window.toggleSideDrawer(true)" style="cursor:pointer;" title="Toca para ver menú de perfil">
+          <div id="userBadge" class="user-badge hidden" onclick="if(window.openUserProfileModal) window.openUserProfileModal(event)" style="cursor:pointer;" title="Toca para ver tu perfil">
             <img id="userAvatar" src="" alt="Avatar"/>
             <span id="userName">Socio</span>
           </div>
@@ -607,14 +608,14 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=153.0"></script>
-  <script src="js/auth.js?v=153.0"></script>
-  <script src="js/team-logos.js?v=153.0"></script>
-  <script src="js/grids.js?v=153.0"></script>
-  <script src="js/quiniela-player.js?v=153.0"></script>
-  <script src="js/survivor.js?v=153.0"></script>
-  <script src="js/firstgoal.js?v=153.0"></script>
-  <script src="js/bingo-player.js?v=153.0"></script>
+  <script src="js/firebase-config.js?v=154.0"></script>
+  <script src="js/auth.js?v=154.0"></script>
+  <script src="js/team-logos.js?v=154.0"></script>
+  <script src="js/grids.js?v=154.0"></script>
+  <script src="js/quiniela-player.js?v=154.0"></script>
+  <script src="js/survivor.js?v=154.0"></script>
+  <script src="js/firstgoal.js?v=154.0"></script>
+  <script src="js/bingo-player.js?v=154.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -758,6 +759,11 @@
           Google
         </button>
       </div>
+
+      <!-- Switch Google Account Button -->
+      <button type="button" class="btn btn-secondary" onclick="window.switchGoogleAccount()" style="width:100%; padding:10px; font-size:12px; font-weight:800; border-radius:10px; margin-bottom:8px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.15);">
+        🔄 Cambiar Cuenta de Google
+      </button>
 
       <!-- Sign Out Button -->
       <button type="button" class="btn btn-secondary" onclick="window.logoutFromModal()" style="width:100%; padding:10px; font-size:12px; font-weight:800; border-radius:10px; color:#ff4444; border:1px solid rgba(255,68,68,0.3); background:rgba(255,68,68,0.08);">
