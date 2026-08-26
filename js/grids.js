@@ -44,8 +44,9 @@
 
     if (window.onAuthChange) {
       window.onAuthChange((user) => {
-        if (user && user.displayName && inpNick && !inpNick.value) {
-          inpNick.value = user.displayName.toUpperCase();
+        if (inpNick && !inpNick.value) {
+          const savedNick = localStorage.getItem('player_nick') || '';
+          if (savedNick) inpNick.value = savedNick;
         }
         loadMyRegistrations().then(renderGrids);
       });
@@ -560,7 +561,7 @@
       selectedGridLabel.textContent = `Registrarse en: ${g.away} @ ${g.home} (${g.code})`;
       if (gridJoinStatus) gridJoinStatus.textContent = '';
       if (inpNick) {
-        inpNick.value = '';
+        inpNick.value = localStorage.getItem('player_nick') || '';
         inpNick.focus();
       }
     }

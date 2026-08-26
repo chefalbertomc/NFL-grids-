@@ -131,15 +131,15 @@
         `;
       } else if (!reg) {
         // Register form
-        const userDefaultNick = user.displayName ? user.displayName.split(' ')[0] : 'Socio';
+        const userDefaultNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '';
         card.innerHTML += `
           <div style="background:rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:14px; margin-top:8px;">
             <h5 style="color:#ffd100; font-weight:800; font-size:13.5px; margin-bottom:4px;">📋 Registrarse en el Juego</h5>
             <p style="font-size:11px; color:var(--text-muted); margin-bottom:12px;">Ingresa tus datos para participar en la planilla de minuto del gol.</p>
             
             <div class="form-group" style="margin-bottom:10px;">
-              <label style="font-size:11px;">Tu Apodo / Nickname</label>
-              <input type="text" id="join_nick_${game.id}" value="${userDefaultNick.toUpperCase()}" placeholder="Ej. BETO" style="padding:8px 10px; font-size:13px; font-weight:900;"/>
+              <label style="font-size:11px;">Tu Apodo / Nickname (Obligatorio)*</label>
+              <input type="text" id="join_nick_${game.id}" value="${userDefaultNick.toUpperCase()}" placeholder="Ej. BETO / EL TIGRE" style="padding:8px 10px; font-size:13px; font-weight:900; text-transform:uppercase;"/>
             </div>
             
             <div class="form-group" style="margin-bottom:12px;">

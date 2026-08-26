@@ -107,7 +107,7 @@
         }));
 
         await pRef.set({
-          nickname: user.displayName || user.email.split('@')[0],
+          nickname: localStorage.getItem('player_nick') || user.displayName || user.email.split('@')[0],
           board: myGeneratedBoard,
           joinedAt: firebase.firestore.FieldValue.serverTimestamp()
         });

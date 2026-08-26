@@ -109,10 +109,6 @@
             photoURL: result.user.photoURL || 'img/logo.jpg'
           };
           localStorage.setItem('bww_last_auth_user', JSON.stringify(userPayload));
-          if (result.user.displayName) {
-            localStorage.setItem('player_nick', result.user.displayName.toUpperCase());
-            localStorage.setItem('bww_q_name', result.user.displayName.toUpperCase());
-          }
           window.hideLoginModal();
           updateHeaderUI(result.user);
           notifyCallbacks();
@@ -261,7 +257,7 @@
       if (btnSignOut) btnSignOut.classList.remove('hidden');
       if (userBadge) userBadge.classList.remove('hidden');
       if (userAvatar) userAvatar.src = activePhoto;
-      if (userName) userName.textContent = user.displayName || user.email;
+      if (userName) userName.textContent = localStorage.getItem('player_nick') || user.displayName || user.email;
       if (drawerLoginItem) drawerLoginItem.classList.add('hidden');
       if (drawerLogoutItem) drawerLogoutItem.classList.remove('hidden');
     } else {
@@ -856,10 +852,6 @@
             photoURL: result.user.photoURL || 'img/logo.jpg'
           };
           localStorage.setItem('bww_last_auth_user', JSON.stringify(userPayload));
-          if (result.user.displayName) {
-            localStorage.setItem('player_nick', result.user.displayName.toUpperCase());
-            localStorage.setItem('bww_q_name', result.user.displayName.toUpperCase());
-          }
           window.hideLoginModal();
           updateHeaderUI(result.user);
           notifyCallbacks();
@@ -892,11 +884,6 @@
           } catch (err) {
             console.error('[auth] Error checking admin status:', err);
             window.isAdmin = false;
-          }
-
-          if (user.displayName) {
-            localStorage.setItem('player_nick', user.displayName.toUpperCase());
-            localStorage.setItem('bww_q_name', user.displayName.toUpperCase());
           }
 
           // Request Web Push Notification Permission so players get instant alerts

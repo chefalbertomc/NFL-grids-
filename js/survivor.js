@@ -225,7 +225,7 @@
 
       await db.collection('survivor_picks').doc(user.uid).set({
         playerId: user.uid,
-        nickname: user.displayName || user.email.split('@')[0],
+        nickname: localStorage.getItem('player_nick') || user.displayName || user.email.split('@')[0],
         picks: picks,
         status: isNewPlayer ? 'pending' : (userPickData.status || 'alive'),
         approved: !isNewPlayer,

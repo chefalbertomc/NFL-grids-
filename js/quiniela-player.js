@@ -595,6 +595,8 @@
       return;
     }
 
+    const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || (activeUser.displayName ? activeUser.displayName.split(' ')[0] : '');
+
     container.innerHTML = `
       <div class="q-inline-join-box animate-fade">
         <div class="q-inline-join-header">
@@ -603,8 +605,8 @@
         </div>
 
         <div class="q-inline-field">
-          <label class="q-inline-label">👤 Jugador:</label>
-          <div style="font-weight:900; color:#ffd100; font-size:13.5px; padding:4px 0;">${activeUser.displayName || 'Socio'}</div>
+          <label class="q-inline-label">👤 Tu Apodo o Nombre para la Quiniela (Obligatorio)*:</label>
+          <input type="text" id="inp_inline_nick_${q.id}" class="q-inline-input" value="${savedNick}" placeholder="EJ. BETO / EL TIGRE" maxlength="25" style="text-transform:uppercase; font-weight:800;" />
         </div>
 
         <div class="q-inline-field">
@@ -622,9 +624,19 @@
 
     container.style.display = 'block';
 
+    const inpN = document.getElementById(`inp_inline_nick_${q.id}`);
+    if (inpN) {
+      inpN.focus();
+      inpN.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          window.submitInlineJoin(q.id);
+        }
+      });
+    }
+
     const inpW = document.getElementById(`inp_inline_waiter_${q.id}`);
     if (inpW) {
-      inpW.focus();
       inpW.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
@@ -636,16 +648,24 @@
 
   window.selectQuinielaToJoin = selectQuinielaToJoin;
 
-  async function executeJoinQuiniela(qId, waiter, btnId) {
+  async function executeJoinQuiniela(qId, customNick, waiter, btnId) {
     if (!db || !qId) return;
 
     let activeUser = getActiveUser();
     if (!activeUser) {
       if (typeof window.requireUserAuth === 'function') {
-        window.requireUserAuth(() => executeJoinQuiniela(qId, waiter, btnId), 'Iniciar Sesión con Google', 'Accede con Google para unirte a esta Quiniela.');
+        window.requireUserAuth(() => executeJoinQuiniela(qId, customNick, waiter, btnId), 'Iniciar Sesión con Google', 'Accede con Google para unirte a esta Quiniela.');
       } else if (typeof window.loginWithGoogle === 'function') {
         window.loginWithGoogle();
       }
+      return;
+    }
+
+    const nick = (customNick || '').trim().toUpperCase();
+    if (!nick) {
+      alert('⚠️ Por favor escribe tu Apodo o Nombre para registrarte en la quiniela.');
+      const inp = document.getElementById(`inp_detail_nick_${qId}`) || document.getElementById(`inp_inline_nick_${qId}`);
+      if (inp) inp.focus();
       return;
     }
 
@@ -657,14 +677,15 @@
       const isAutoApprove = q && q.autoApprove === true;
       const playerRef = db.collection('quinielas').doc(qId).collection('picks').doc(activeUser.uid);
 
-      const nick = activeUser.displayName || 'JUGADOR';
+      localStorage.setItem('player_nick', nick);
+      localStorage.setItem('bww_q_name', nick);
 
       const playerData = {
         id: activeUser.uid,
         playerId: activeUser.uid,
         userUid: activeUser.uid,
         userEmail: activeUser.email || '',
-        userName: activeUser.displayName || nick,
+        userName: nick,
         playerName: nick,
         nickname: nick,
         photoURL: activeUser.photoURL || '',
@@ -682,7 +703,7 @@
       myParticipations[qId] = playerData;
 
       if (isAutoApprove) {
-        showToast(`🎉 ¡Bienvenido a "${q?.name || 'la quiniela'}"! Tu entrada fue aprobada automáticamente.`);
+        showToast(`🎉 ¡Bienvenido "${nick}" a "${q?.name || 'la quiniela'}"! Tu entrada fue aprobada automáticamente.`);
       } else {
         showToast(`✅ ¡Solicitud enviada para "${nick}"! Esperando aprobación.`);
       }
@@ -701,15 +722,19 @@
   }
 
   window.submitInlineJoin = async function(qId) {
+    const inpNick = document.getElementById(`inp_inline_nick_${qId}`);
     const inpWaiter = document.getElementById(`inp_inline_waiter_${qId}`);
+    const nick = inpNick ? inpNick.value : '';
     const waiter = (inpWaiter ? inpWaiter.value : '').trim();
-    return executeJoinQuiniela(qId, waiter, `btn_submit_inline_${qId}`);
+    return executeJoinQuiniela(qId, nick, waiter, `btn_submit_inline_${qId}`);
   };
 
   window.submitDetailJoin = async function(qId) {
+    const inpNick = document.getElementById(`inp_detail_nick_${qId}`);
     const inpWaiter = document.getElementById(`inp_detail_waiter_${qId}`);
+    const nick = inpNick ? inpNick.value : '';
     const waiter = (inpWaiter ? inpWaiter.value : '').trim();
-    return executeJoinQuiniela(qId, waiter, `btn_submit_detail_${qId}`);
+    return executeJoinQuiniela(qId, nick, waiter, `btn_submit_detail_${qId}`);
   };
 
   let isEditingPicks = false;
@@ -1157,19 +1182,24 @@
         return;
       }
 
+      const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || (activeUser.displayName ? activeUser.displayName.split(' ')[0] : '');
+
       formEl.innerHTML = `
         <div class="card" style="border:2px solid var(--accent-color); background:linear-gradient(145deg, rgba(30,26,16,0.96), rgba(18,16,10,0.98)); padding:24px 18px; text-align:center; border-radius:16px; margin-bottom:14px;">
           <div style="font-size:38px; margin-bottom:8px;">📋</div>
           <h3 style="color:#ffd100; margin-bottom:6px; font-weight:900;">Solicita Unirte a "${q.name}"</h3>
-          <p style="font-size:13.5px; color:#ffffff; margin-bottom:14px; line-height:1.4;">
-            Jugador: <strong>${activeUser.displayName || 'Socio'}</strong>
+          <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px; line-height:1.4;">
+            Escribe el apodo o nombre con el que deseas aparecer en la quiniela y tabla de posiciones:
           </p>
-          <div style="max-width:320px; margin:0 auto 16px auto; text-align:left;">
+          <div style="max-width:340px; margin:0 auto 16px auto; text-align:left;">
+            <label style="font-size:12px; font-weight:900; color:#ffd100; display:block; margin-bottom:4px;">👤 Tu Apodo o Nombre para la Quiniela (Obligatorio)*:</label>
+            <input type="text" id="inp_detail_nick_${q.id}" class="q-inline-input" value="${savedNick}" placeholder="EJ. BETO / EL TIGRE" maxlength="25" style="width:100%; box-sizing:border-box; margin-bottom:12px; text-transform:uppercase; font-weight:800;" />
+
             <label style="font-size:12px; font-weight:800; color:#aaa; display:block; margin-bottom:4px;">🍽️ Mesero (Opcional):</label>
             <input type="text" id="inp_detail_waiter_${q.id}" class="q-inline-input" placeholder="Ej. Carlos" maxlength="30" style="width:100%; box-sizing:border-box;" />
           </div>
           <button type="button" id="btn_submit_detail_${q.id}" class="btn btn-primary" onclick="window.submitDetailJoin('${q.id}')" style="font-size:14px; font-weight:900; padding:13px 26px; border-radius:12px; display:inline-flex; align-items:center; gap:8px;">
-            ✅ Solicitar Entrada
+            ✅ Solicitar Entrada a la Quiniela
           </button>
         </div>
       `;
@@ -1435,7 +1465,7 @@
     }
 
     const nameInp = document.getElementById('qPlayerName');
-    const name = (nameInp ? nameInp.value : '').trim() || activeUser.displayName || 'Jugador';
+    const name = (nameInp ? nameInp.value : '').trim().toUpperCase() || localStorage.getItem('player_nick') || activeUser.displayName || 'Jugador';
 
     const tieInp = document.getElementById('qTiebreakerInput');
     const tieVal = tieInp ? tieInp.value.trim() : '';
