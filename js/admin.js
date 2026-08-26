@@ -1721,12 +1721,32 @@
         fullSportPath = `soccer/${sportPath}`;
       }
       
-      const url = `https://site.api.espn.com/apis/site/v2/sports/${fullSportPath}/scoreboard?dates=${fmt(start)}-${fmt(end)}&limit=100`;
+      let url = `https://site.api.espn.com/apis/site/v2/sports/${fullSportPath}/scoreboard?dates=${fmt(start)}-${fmt(end)}&limit=100`;
       let res = await fetch(url);
-      if (!res.ok) throw new Error('Network error ' + res.status);
       let data = await res.json();
+      let events = data.events || [];
+
+      // Fallback 1: Si no trajo eventos con rango de fechas, consultar el scoreboard estándar
+      if (!events.length) {
+        const url2 = `https://site.api.espn.com/apis/site/v2/sports/${fullSportPath}/scoreboard?limit=100`;
+        const res2 = await fetch(url2);
+        if (res2.ok) {
+          const data2 = await res2.json();
+          events = data2.events || [];
+        }
+      }
+
+      // Fallback 2: Consultar sin filtro de fechas por día actual si aún no hay
+      if (!events.length) {
+        const url3 = `https://site.api.espn.com/apis/site/v2/sports/${fullSportPath}/scoreboard?dates=${fmt(today)}&limit=100`;
+        const res3 = await fetch(url3);
+        if (res3.ok) {
+          const data3 = await res3.json();
+          events = data3.events || [];
+        }
+      }
       
-      fgSearchMatches = data.events || [];
+      fgSearchMatches = events;
       renderFGGamesList(fgSearchMatches);
       
     } catch (err) {
