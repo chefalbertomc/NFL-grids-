@@ -11,19 +11,61 @@
   let activeGames = [];
   let userRegistrations = {}; // { gameId: playerDocData }
 
+  function getCurrentUser() {
+    if (user && user.uid) return user;
+    if (window.currentUser && window.currentUser.uid) {
+      user = window.currentUser;
+      return user;
+    }
+    if (window.firebase && firebase.auth && firebase.auth().currentUser) {
+      user = firebase.auth().currentUser;
+      window.currentUser = user;
+      return user;
+    }
+    try {
+      const cached = localStorage.getItem('bww_last_auth_user');
+      if (cached) {
+        user = JSON.parse(cached);
+        window.currentUser = user;
+        return user;
+      }
+    } catch(e) {}
+    const savedNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name');
+    let savedId = localStorage.getItem('bww_player_id');
+    if (savedNick) {
+      if (!savedId) {
+        savedId = 'user_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('bww_player_id', savedId);
+      }
+      user = {
+        uid: savedId,
+        displayName: savedNick,
+        email: '',
+        photoURL: localStorage.getItem('user_custom_avatar') || 'img/logo.jpg'
+      };
+      window.currentUser = user;
+      return user;
+    }
+    return null;
+  }
+
   function initFirstGoal() {
     if (window.db) {
       db = window.db;
+      user = getCurrentUser();
       setupListeners();
       loadActiveGames();
+      if (user) {
+        listenToUserRegistrations();
+      }
     } else {
       setTimeout(initFirstGoal, 100);
     }
   }
 
   function setupListeners() {
-    window.onAuthChange((currentUser, isAdmin) => {
-      user = currentUser;
+    window.onAuthChange((currentUser) => {
+      user = currentUser || getCurrentUser();
       if (user) {
         listenToUserRegistrations();
       } else {
@@ -63,11 +105,12 @@
 
   let unsubRegs = null;
   function listenToUserRegistrations() {
-    if (!db || !user) return;
+    const u = getCurrentUser();
+    if (!db || !u) return;
     if (unsubRegs) unsubRegs();
 
     activeGames.forEach(game => {
-      db.collection('first_goal_games').doc(game.id).collection('players').doc(user.uid)
+      db.collection('first_goal_games').doc(game.id).collection('players').doc(u.uid)
         .onSnapshot(doc => {
           if (doc.exists) {
             userRegistrations[game.id] = doc.data();
@@ -89,7 +132,8 @@
     }
 
     activeGames.forEach(game => {
-      const reg = userRegistrations[game.id];
+      const u = getCurrentUser();
+      const reg = u ? userRegistrations[game.id] : null;
       const isApproved = reg && (reg.approved === true || reg.status === 'approved');
 
       const awayStyle = window.resolveTeamStyle ? window.resolveTeamStyle({
@@ -243,16 +287,10 @@
       }
 
       // Conditional content based on user state
-      if (!user) {
-        card.innerHTML += `
-          <div class="text-center py-3">
-            <p class="hint-text" style="font-size:12.5px; margin-bottom:12px;">Inicia sesión con tu cuenta para unirte a este juego y elegir tu bloque de tiempo.</p>
-            <button class="btn btn-primary" onclick="window.toggleSideDrawer(true)" style="width:auto; padding:8px 16px; font-size:12px;">🔑 Iniciar Sesión / Registrarme</button>
-          </div>
-        `;
-      } else if (!reg && game.active) {
-        // Register form
-        const userDefaultNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '';
+      if (!reg && game.active) {
+        // Direct Registration Form (Seamless, no popup or login required)
+        const userDefaultNick = localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || u?.displayName || '';
+        const userDefaultWaiter = localStorage.getItem('player_waiter') || '';
         card.innerHTML += `
           <div style="background:rgba(255,255,255,0.01); border:1px solid rgba(255,255,255,0.05); border-radius:12px; padding:14px; margin-top:8px;">
             <h5 style="color:#ffd100; font-weight:800; font-size:13.5px; margin-bottom:4px;">📋 Registrarse en el Juego</h5>
@@ -264,8 +302,8 @@
             </div>
             
             <div class="form-group" style="margin-bottom:12px;">
-              <label style="font-size:11px;">Mesero / Número de Mesa</label>
-              <input type="text" id="join_waiter_${game.id}" placeholder="Ej. Mesa 4 / Daniel" style="padding:8px 10px; font-size:13px; font-weight:800;"/>
+              <label style="font-size:11px;">Mesa o Mesero (Opcional)</label>
+              <input type="text" id="join_waiter_${game.id}" value="${userDefaultWaiter}" placeholder="Ej. Mesa 4 / Daniel" style="padding:8px 10px; font-size:13px; font-weight:800;"/>
             </div>
 
             <button class="btn btn-primary" onclick="joinFirstGoalGame('${game.id}')" style="font-size:12.5px; padding:10px; font-weight:900;">
@@ -292,37 +330,84 @@
   }
 
   window.joinFirstGoalGame = async function(gameId) {
-    if (!db || !user) return;
+    if (!db) db = window.db;
+    if (!db) return;
+
+    let u = getCurrentUser();
     const nickInput = document.getElementById(`join_nick_${gameId}`);
     const waiterInput = document.getElementById(`join_waiter_${gameId}`);
 
-    const nickname = nickInput ? nickInput.value.trim().toUpperCase() : '';
-    const waiter = waiterInput ? waiterInput.value.trim() : '';
+    let nickname = nickInput ? nickInput.value.trim().toUpperCase() : '';
+    let waiter = waiterInput ? waiterInput.value.trim() : '';
 
-    if (!nickname || !waiter) {
-      alert('Por favor ingresa tu Apodo y el número de Mesa.');
+    if (!nickname) {
+      nickname = (u?.displayName || localStorage.getItem('player_nick') || localStorage.getItem('bww_q_name') || '').trim().toUpperCase();
+    }
+
+    if (!nickname) {
+      alert('Por favor escribe tu Apodo o Nombre.');
+      if (nickInput) nickInput.focus();
       return;
     }
 
+    if (!waiter) {
+      waiter = localStorage.getItem('player_waiter') || 'Mesa General';
+    }
+
+    localStorage.setItem('player_nick', nickname);
+    localStorage.setItem('bww_q_name', nickname);
+    localStorage.setItem('player_waiter', waiter);
+
+    if (!u) {
+      let savedId = localStorage.getItem('bww_player_id');
+      if (!savedId) {
+        savedId = 'user_' + Math.random().toString(36).substring(2, 11);
+        localStorage.setItem('bww_player_id', savedId);
+      }
+      u = {
+        uid: savedId,
+        displayName: nickname,
+        email: '',
+        photoURL: localStorage.getItem('user_custom_avatar') || 'img/logo.jpg'
+      };
+      window.currentUser = u;
+      user = u;
+      localStorage.setItem('bww_last_auth_user', JSON.stringify(u));
+    }
+
     try {
+      const btn = document.querySelector(`button[onclick*="${gameId}"]`);
+      if (btn) { btn.disabled = true; btn.textContent = '⏳ Uniéndote...'; }
+
       const gameSnap = await db.collection('first_goal_games').doc(gameId).get();
       const game = gameSnap.data() || {};
-      const autoApprove = game.autoApprove === true;
+      const autoApprove = game.autoApprove !== false;
 
-      await db.collection('first_goal_games').doc(gameId).collection('players').doc(user.uid).set({
+      await db.collection('first_goal_games').doc(gameId).collection('players').doc(u.uid).set({
         nickname: nickname,
         waiter: waiter,
         status: autoApprove ? 'approved' : 'pending',
         approved: autoApprove,
         joinedAt: Date.now()
-      });
+      }, { merge: true });
+
+      userRegistrations[gameId] = {
+        nickname: nickname,
+        waiter: waiter,
+        status: autoApprove ? 'approved' : 'pending',
+        approved: autoApprove
+      };
+
+      listenToUserRegistrations();
+      renderGames();
 
       if (autoApprove) {
-        alert('🎉 ¡Te has unido exitosamente al juego! Ya puedes seleccionar tu bloque.');
+        alert('🎉 ¡Listo ' + nickname + '! Ya estás dentro del juego. Elige tu casilla de 5 minutos.');
       } else {
         alert('✉️ Solicitud enviada. Pídele al mesero que te apruebe.');
       }
     } catch (err) {
+      console.error('[FirstStriker Join Error]', err);
       alert('Error al unirse: ' + err.message);
     }
   };
@@ -332,6 +417,7 @@
     const away = game.awayTeam || 'Visitante';
     const cells = game.cells || {};
     const winCell = game.winningCell || '';
+    const u = getCurrentUser();
 
     const hStyle = homeStyle || (window.resolveTeamStyle ? window.resolveTeamStyle(home) : { name: home, logo: 'img/logo.jpg', color: '#1a1a24' });
     const aStyle = awayStyle || (window.resolveTeamStyle ? window.resolveTeamStyle(away) : { name: away, logo: 'img/logo.jpg', color: '#1a1a24' });
@@ -339,7 +425,7 @@
     // Check if current user has already selected a regular cell
     let userHasRegularCell = false;
     for (const key in cells) {
-      if (cells[key]?.playerId === user.uid && !key.includes('91_105') && !key.includes('106_120')) {
+      if (u && cells[key]?.playerId === u.uid && !key.includes('91_105') && !key.includes('106_120')) {
         userHasRegularCell = true;
       }
     }
@@ -404,12 +490,12 @@
     `;
 
     // Extra Time Panel
-    if (game.activeExtraTime) {
-      const isAllowedET = game.extraTimePlayers?.[user.uid] === true;
+    if (game.activeExtraTime && u) {
+      const isAllowedET = game.extraTimePlayers?.[u.uid] === true;
       if (isAllowedET) {
         let etUserHasCell = false;
         for (const k in cells) {
-          if (cells[k]?.playerId === user.uid && (k.includes('91_105') || k.includes('106_120'))) {
+          if (cells[k]?.playerId === u.uid && (k.includes('91_105') || k.includes('106_120'))) {
             etUserHasCell = true;
           }
         }
@@ -448,12 +534,12 @@
         html += `
           <div style="margin-top:16px; border-top:1.5px dashed rgba(255,255,255,0.1); padding-top:14px;">
             <h5 style="color:#ff4444; font-weight:900; font-size:13.5px; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
-              ⏱️ TIEMPOS EXTRAS ACTIVO
+              ⚡ TIEMPOS EXTRAS (0 - 0)
             </h5>
-            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:8px;">
-              ¡Felicidades, participas en los Tiempos Extras! Reclama tu bloque adicional para los minutos de alargue:
+            <p style="font-size:11.5px; color:var(--text-muted); margin-bottom:10px;">
+              El partido terminó 0-0. Los jugadores aprobados pueden elegir un bloque de 15 minutos en los Tiempos Extras.
             </p>
-            <div class="fg-board-container" style="border-color:#ff4444; box-shadow:0 0 15px rgba(255,68,68,0.15);">
+            <div class="fg-board-container">
               <table class="fg-board-table">
                 <tbody>
                   ${etRowsHtml}
@@ -462,25 +548,19 @@
             </div>
           </div>
         `;
-      } else {
-        html += `
-          <div class="text-center py-3" style="background:rgba(255,255,255,0.01); border-radius:10px; border:1px solid rgba(255,255,255,0.05); margin-top:16px;">
-            <p class="hint-text" style="font-size:11.5px; color:var(--text-muted);">Tiempos Extras activos. Solo los jugadores autorizados por el admin pueden elegir bloques de alargue.</p>
-          </div>
-        `;
       }
     }
 
-    // Penalty Shootout Panel
+    // Penalties Shootout Panel
     if (game.activePenalties) {
-      const assignments = game.penaltyAssignments || {};
-
+      const assignments = game.penaltiesAssignments || {};
       let penaltyRowsHtml = '';
+
       for (let i = 1; i <= 5; i++) {
-        // Local
+        // Home
         const keyLocal = `pen_local_${i}`;
         const assignLocal = assignments[keyLocal];
-        const isLocalMe = assignLocal?.playerId === user.uid;
+        const isLocalMe = u && assignLocal?.playerId === u.uid;
         const isLocalWin = winCell === `${keyLocal}_missed`;
 
         let localRowClass = 'fg-penalty-row';
@@ -500,7 +580,7 @@
         // Away
         const keyAway = `pen_away_${i}`;
         const assignAway = assignments[keyAway];
-        const isAwayMe = assignAway?.playerId === user.uid;
+        const isAwayMe = u && assignAway?.playerId === u.uid;
         const isAwayWin = winCell === `${keyAway}_missed`;
 
         let awayRowClass = 'fg-penalty-row';
@@ -537,9 +617,10 @@
   }
 
   function getCellClass(key, cell, userHasCell, game, winCell) {
+    const u = getCurrentUser();
     if (winCell === key) return 'fg-slot-cell winning-slot';
     if (cell) {
-      return cell.playerId === user.uid ? 'fg-slot-cell occupied-me' : 'fg-slot-cell occupied-other';
+      return (u && cell.playerId === u.uid) ? 'fg-slot-cell occupied-me' : 'fg-slot-cell occupied-other';
     }
     if (game.locked || !game.active) return 'fg-slot-cell occupied-other';
     if (userHasCell) return 'fg-slot-cell occupied-other';
@@ -556,7 +637,12 @@
   }
 
   window.selectFGCell = async function(gameId, cellKey) {
-    if (!db || !user) return;
+    if (!db) db = window.db;
+    const u = getCurrentUser();
+    if (!db || !u) {
+      alert('Por favor regístrate en el juego primero.');
+      return;
+    }
 
     if (!confirm(`¿Deseas elegir este bloque de tiempo? Una vez seleccionado no se puede cambiar.`)) {
       return;
@@ -575,7 +661,7 @@
         const cells = game.cells || {};
         if (cells[cellKey]) throw new Error('Este bloque ya fue seleccionado por otro jugador.');
 
-        const pRef = gameRef.collection('players').doc(user.uid);
+        const pRef = gameRef.collection('players').doc(u.uid);
         const pDoc = await transaction.get(pRef);
 
         if (!pDoc.exists) throw new Error('No estás registrado en este juego.');
@@ -589,7 +675,7 @@
         let etCount = 0;
 
         for (const k in cells) {
-          if (cells[k]?.playerId === user.uid) {
+          if (cells[k]?.playerId === u.uid) {
             if (k.includes('91_105') || k.includes('106_120')) {
               etCount++;
             } else {
@@ -601,7 +687,7 @@
         const maxLimit = player.quota || player.maxBlocks || game.maxBlocksPerPlayer || 1;
 
         if (isExtraTimeCell) {
-          if (game.extraTimePlayers?.[user.uid] !== true) {
+          if (game.extraTimePlayers?.[u.uid] !== true) {
             throw new Error('No estás autorizado para jugar en Tiempo Extra.');
           }
           if (etCount >= 1) throw new Error('Ya seleccionaste tu bloque de Tiempo Extra.');
@@ -613,8 +699,8 @@
 
         const updatedCells = { ...cells };
         updatedCells[cellKey] = {
-          playerId: user.uid,
-          nickname: player.nickname || 'Socio'
+          playerId: u.uid,
+          nickname: player.nickname || u.displayName || 'Socio'
         };
 
         transaction.update(gameRef, { cells: updatedCells });
