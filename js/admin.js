@@ -2007,13 +2007,11 @@
         const etContainer = document.getElementById('fgExtraTimePlayersCheckboxes');
         const penContainer = document.getElementById('fgPenaltyPlayersCheckboxes');
 
-        if (listPend) listPend.innerHTML = '';
-        if (listAppr) listAppr.innerHTML = '';
         if (etContainer) etContainer.innerHTML = '';
         if (penContainer) penContainer.innerHTML = '';
 
-        let pendCount = 0;
-        let apprCount = 0;
+        const pendingDocs = [];
+        const approvedDocs = [];
 
         // Get game doc snapshot to read existing selections
         db.collection('first_goal_games').doc(gameId).get().then(gameSnap => {
@@ -2022,33 +2020,14 @@
           const penPlayers = game.penaltyPlayers || {};
 
           snap.forEach(pDoc => {
-            const p = pDoc.data();
+            const p = pDoc.data() || {};
             const pId = pDoc.id;
             const isApproved = p.approved === true || p.status === 'approved';
 
             if (!isApproved) {
-              pendCount++;
-              const div = document.createElement('div');
-              div.className = 'flex-between';
-              div.style.padding = '8px; border-bottom: 1px solid rgba(255,255,255,0.05);';
-              div.innerHTML = `
-                <span><strong>${p.nickname || 'Socio'}</strong> (Mesa: ${p.waiter || '—'})</span>
-                <div style="display:flex; gap:6px;">
-                  <button class="btn btn-primary" onclick="approveFGPlayer('${gameId}', '${pId}')" style="padding:4px 8px; font-size:11px; width:auto;">Aprobar</button>
-                  <button class="btn btn-danger" onclick="rejectFGPlayer('${gameId}', '${pId}')" style="padding:4px 8px; font-size:11px; width:auto;">Rechazar</button>
-                </div>
-              `;
-              if (listPend) listPend.appendChild(div);
+              pendingDocs.push(pDoc);
             } else {
-              apprCount++;
-              const div = document.createElement('div');
-              div.className = 'flex-between';
-              div.style.padding = '8px; border-bottom: 1px solid rgba(255,255,255,0.05);';
-              div.innerHTML = `
-                <span><strong>${p.nickname || 'Socio'}</strong> (Mesa: ${p.waiter || '—'})</span>
-                <button class="btn btn-danger" onclick="rejectFGPlayer('${gameId}', '${pId}')" style="padding:4px 8px; font-size:11px; width:auto;">Remover</button>
-              `;
-              if (listAppr) listAppr.appendChild(div);
+              approvedDocs.push(pDoc);
 
               // Checkbox inside ET list
               const etLabel = document.createElement('label');
@@ -2060,7 +2039,7 @@
               const isEtChecked = etPlayers[pId] === true;
               etLabel.innerHTML = `
                 <input type="checkbox" class="fg-et-cb" data-player-id="${pId}" ${isEtChecked ? 'checked' : ''} style="width:16px; height:16px;"/>
-                <span>${p.nickname}</span>
+                <span>${p.nickname || p.name || 'Socio'}</span>
               `;
               if (etContainer) etContainer.appendChild(etLabel);
 
@@ -2074,21 +2053,15 @@
               const isPenChecked = penPlayers[pId] === true;
               penLabel.innerHTML = `
                 <input type="checkbox" class="fg-pen-cb" data-player-id="${pId}" ${isPenChecked ? 'checked' : ''} style="width:16px; height:16px;"/>
-                <span>${p.nickname}</span>
+                <span>${p.nickname || p.name || 'Socio'}</span>
               `;
               if (penContainer) penContainer.appendChild(penLabel);
             }
           });
 
-          if (pendCount === 0 && listPend) {
-            listPend.innerHTML = '<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">No hay solicitudes pendientes.</div>';
-          }
-          if (apprCount === 0 && listAppr) {
-            listAppr.innerHTML = '<div style="color:var(--text-muted); font-size:12px; padding:6px 0;">No hay participantes aprobados.</div>';
-          }
-
-          // Populate Manual Block Assign Dropdowns
-          populateManualBlockSelectors(game, approvedPlayers);
+          // Render players using rich Grids-style cards (Foto 3)
+          renderFGPlayersArray(listPend, pendingDocs, false, gameId, game);
+          renderFGPlayersArray(listAppr, approvedDocs, true, gameId, game);
 
           // Extra Time UI badge
           const etBadge = document.getElementById('fgExtraTimeStatusBadge');
@@ -2138,157 +2111,128 @@
               penSumm.style.display = 'none';
             }
           }
-
-          // Max blocks limit
-          const maxSel = document.getElementById('fgMaxBlocksPerPlayer');
-          if (maxSel && game.maxBlocksPerPlayer) {
-            maxSel.value = String(game.maxBlocksPerPlayer);
-          }
         });
       }, err => {
         console.error('[fg] Error loading players list:', err);
       });
   }
 
-  // Populate dropdowns for manual block assignment
-  function populateManualBlockSelectors(game, approvedPlayers) {
-    const pSelect = document.getElementById('fgManualPlayerSelect');
-    const bSelect = document.getElementById('fgManualBlockSelect');
-    if (!pSelect || !bSelect) return;
+  // Render player cards identical to Grids (Foto 3)
+  function renderFGPlayersArray(container, docsArray, isApproved, gameId, game) {
+    if (!container) return;
+    container.innerHTML = '';
 
-    // 1. Players
-    pSelect.innerHTML = '';
-    const defP = document.createElement('option');
-    defP.value = '';
-    defP.textContent = '-- Seleccionar Jugador --';
-    pSelect.appendChild(defP);
+    if (!docsArray || !docsArray.length) {
+      container.innerHTML = '<div class="hint-text py-2">— Sin solicitudes en esta categoría —</div>';
+      return;
+    }
 
-    approvedPlayers.forEach(p => {
-      const opt = document.createElement('option');
-      opt.value = p.id;
-      opt.textContent = p.nickname || 'Socio';
-      pSelect.appendChild(opt);
-    });
-
-    // 2. Blocks
-    bSelect.innerHTML = '';
-    const defB = document.createElement('option');
-    defB.value = '';
-    defB.textContent = '-- Seleccionar Bloque --';
-    bSelect.appendChild(defB);
-
-    const home = game.homeTeam || 'Local';
-    const away = game.awayTeam || 'Visitante';
     const cells = game.cells || {};
 
-    const ranges = [
-      { id: '0_5', name: '0 - 5' },
-      { id: '6_10', name: '6 - 10' },
-      { id: '11_15', name: '11 - 15' },
-      { id: '16_20', name: '16 - 20' },
-      { id: '21_25', name: '21 - 25' },
-      { id: '26_30', name: '26 - 30' },
-      { id: '31_35', name: '31 - 35' },
-      { id: '36_40', name: '36 - 40' },
-      { id: '41_45', name: '41 - 45 y +' },
-      { id: '46_50', name: '46 - 50' },
-      { id: '51_55', name: '51 - 55' },
-      { id: '56_60', name: '56 - 60' },
-      { id: '61_65', name: '61 - 65' },
-      { id: '66_70', name: '66 - 70' },
-      { id: '71_75', name: '71 - 75' },
-      { id: '76_80', name: '76 - 80' },
-      { id: '81_85', name: '81 - 85' },
-      { id: '86_90', name: '86 - 90 y +' }
-    ];
+    docsArray.forEach(doc => {
+      const p = doc.data() || {};
+      const id = doc.id;
+      const currentQuota = p.quota ?? p.maxBlocks ?? 1;
+      const userPhoto = p.userPhoto || 'img/logo.jpg';
+      const realName = p.userName || p.name || 'Usuario de Google';
+      const email = p.userEmail || '';
+      const apodo = (p.nickname || p.name || 'JUGADOR').toUpperCase();
+      const waiter = p.waiter || 'Sin mesero';
 
-    // Away blocks
-    ranges.forEach(r => {
-      const key = `away_${r.id}`;
-      const occ = cells[key];
-      const opt = document.createElement('option');
-      opt.value = key;
-      opt.textContent = `[${away}] Min ${r.name} ${occ ? '→ ' + occ.nickname : '(Vacío)'}`;
-      bSelect.appendChild(opt);
-    });
+      // Count used blocks by this user in game.cells
+      let takenCount = 0;
+      for (const k in cells) {
+        if (cells[k]?.playerId === id) takenCount++;
+      }
 
-    // Home blocks
-    ranges.forEach(r => {
-      const key = `local_${r.id}`;
-      const occ = cells[key];
-      const opt = document.createElement('option');
-      opt.value = key;
-      opt.textContent = `[${home}] Min ${r.name} ${occ ? '→ ' + occ.nickname : '(Vacío)'}`;
-      bSelect.appendChild(opt);
+      const initialLetter = apodo ? apodo.charAt(0).toUpperCase() : 'J';
+
+      const card = document.createElement('div');
+      card.className = 'flex-between';
+      card.style.padding = '10px 12px';
+      card.style.background = isApproved ? 'rgba(255,255,255,0.02)' : 'rgba(255,209,0,0.05)';
+      card.style.border = isApproved ? '1px solid var(--border-color)' : '1.5px solid rgba(255,209,0,0.4)';
+      card.style.borderRadius = '12px';
+      card.style.marginBottom = '8px';
+      card.style.gap = '10px';
+      card.style.flexWrap = 'wrap';
+
+      card.innerHTML = `
+        <div style="display:flex; align-items:center; gap:10px; min-width:220px; flex:1;">
+          <div style="width:42px; height:42px; border-radius:50%; background:linear-gradient(135deg, #2b3a4a 0%, #1a222d 100%); border:2px solid ${isApproved ? '#ffd100' : '#ffc107'}; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:16px; color:#ffd100; flex-shrink:0;">
+            ${initialLetter}
+          </div>
+          <div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-weight:900; font-size:14px; color:#ffd100;">${apodo}</span>
+              ${!isApproved ? `<span class="badge" style="background:rgba(255,193,7,0.2); color:#ffc107; border:1px solid #ffc107; font-size:9.5px; padding:1px 5px; font-weight:800;">PENDIENTE</span>` : ''}
+            </div>
+            <div style="font-size:11.5px; color:#ffffff; font-weight:700; margin-top:2px;">
+              👤 ${realName} ${email ? `<span style="font-size:10.5px; color:var(--text-muted);">(${email})</span>` : ''}
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); margin-top:3px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span>👨‍🍳 <strong>Mesero:</strong> ${waiter}</span>
+              <label style="margin:0; display:inline-flex; align-items:center; gap:4px; font-weight:700;">
+                🎟️ Cuadros: 
+                <input type="number" id="fg_quota_${id}" value="${currentQuota}" min="1" max="100" style="width:46px; padding:2px 4px; background:var(--bg-color); border:1px solid var(--border-color); color:#ffd100; font-weight:900; border-radius:6px; text-align:center; margin:0; display:inline-block;">
+              </label>
+              <span>📌 Usados: <strong>${takenCount}</strong></span>
+            </div>
+          </div>
+        </div>
+        <div class="flex-row" style="gap: 6px; align-items:center;">
+          ${isApproved 
+            ? `<button class="btn btn-primary" onclick="saveFGPlayerQuota('${gameId}', '${id}')" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; color: var(--bg-color); border-radius:8px;">💾 Guardar Cuota</button>
+               <button class="btn btn-secondary" onclick="resetFGPlayer('${gameId}', '${id}')" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; border-radius:8px;">🔄 Reset</button>
+               <button class="btn btn-danger" onclick="rejectFGPlayer('${gameId}', '${id}')" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; border-radius:8px;">🗑️</button>`
+            : `<button class="btn btn-primary" onclick="approveFGPlayer('${gameId}', '${id}')" style="padding: 7px 14px; font-size: 12px; font-weight:900; width: auto; color: var(--bg-color); border-radius:8px; background:#00e676; border-color:#00e676;">✅ Aprobar</button>
+               <button class="btn btn-secondary" onclick="rejectFGPlayer('${gameId}', '${id}')" style="padding: 7px 10px; font-size: 12px; font-weight:800; width: auto; border-radius:8px; color:#ff4444;">✕ Rechazar</button>
+               <button class="btn btn-danger" onclick="rejectFGPlayer('${gameId}', '${id}')" style="padding: 7px 10px; font-size: 12px; font-weight:800; width: auto; border-radius:8px;">🗑️</button>`
+          }
+        </div>
+      `;
+
+      container.appendChild(card);
     });
   }
 
-  window.assignFGBlockManual = async function() {
-    if (!fgSelectedGameId) return;
-    const pSelect = document.getElementById('fgManualPlayerSelect');
-    const bSelect = document.getElementById('fgManualBlockSelect');
-    const pId = pSelect?.value;
-    const blockKey = bSelect?.value;
-
-    if (!pId || !blockKey) {
-      alert('Selecciona un jugador aprobado y el bloque que deseas asignarle.');
-      return;
-    }
-
-    const pNick = pSelect.options[pSelect.selectedIndex].text;
-
+  window.saveFGPlayerQuota = async function(gameId, playerId) {
+    const quotaInput = document.getElementById('fg_quota_' + playerId);
+    const quota = quotaInput ? (Number(quotaInput.value) || 1) : 1;
     try {
-      const snap = await db.collection('first_goal_games').doc(fgSelectedGameId).get();
+      await db.collection('first_goal_games').doc(gameId).collection('players').doc(playerId).update({
+        quota: quota,
+        maxBlocks: quota
+      });
+      alert('💾 Cuota actualizada a ' + quota + ' bloque(s).');
+    } catch(err) {
+      alert('Error: ' + err.message);
+    }
+  };
+
+  window.resetFGPlayer = async function(gameId, playerId) {
+    if (!confirm('¿Deseas liberar todos los bloques seleccionados por este jugador?')) return;
+    try {
+      const snap = await db.collection('first_goal_games').doc(gameId).get();
       const game = snap.data() || {};
       const cells = { ...(game.cells || {}) };
-
-      cells[blockKey] = {
-        playerId: pId,
-        nickname: pNick
-      };
-
-      await db.collection('first_goal_games').doc(fgSelectedGameId).update({ cells });
-      alert(`✅ Bloque asignado exitosamente a ${pNick}!`);
-    } catch (err) {
-      alert('Error asignando bloque: ' + err.message);
+      let changed = false;
+      for (const k in cells) {
+        if (cells[k]?.playerId === playerId) {
+          delete cells[k];
+          changed = true;
+        }
+      }
+      if (changed) {
+        await db.collection('first_goal_games').doc(gameId).update({ cells });
+      }
+      alert('🔄 Bloques del jugador liberados.');
+    } catch(err) {
+      alert('Error: ' + err.message);
     }
   };
 
-  window.freeFGBlockManual = async function() {
-    if (!fgSelectedGameId) return;
-    const bSelect = document.getElementById('fgManualBlockSelect');
-    const blockKey = bSelect?.value;
 
-    if (!blockKey) {
-      alert('Selecciona el bloque que deseas liberar.');
-      return;
-    }
-
-    try {
-      const snap = await db.collection('first_goal_games').doc(fgSelectedGameId).get();
-      const game = snap.data() || {};
-      const cells = { ...(game.cells || {}) };
-
-      delete cells[blockKey];
-
-      await db.collection('first_goal_games').doc(fgSelectedGameId).update({ cells });
-      alert('🗑️ Bloque liberado exitosamente.');
-    } catch (err) {
-      alert('Error liberando bloque: ' + err.message);
-    }
-  };
-
-  window.saveFGMaxBlocks = async function() {
-    if (!fgSelectedGameId) return;
-    const maxSel = document.getElementById('fgMaxBlocksPerPlayer');
-    const limit = parseInt(maxSel?.value || '1', 10);
-    try {
-      await db.collection('first_goal_games').doc(fgSelectedGameId).update({ maxBlocksPerPlayer: limit });
-      alert(`💾 Límite guardado: ${limit === 999 ? 'Ilimitado' : limit + ' bloque(s) por jugador'}.`);
-    } catch (err) {
-      alert('Error guardando límite: ' + err.message);
-    }
-  };
 
   window.setFGEtAllMode = function(isAll) {
     const container = document.getElementById('fgExtraTimePlayersCheckboxes');

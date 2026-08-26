@@ -112,30 +112,55 @@
       const isFinal = game.status === 'completed' || game.status === 'post';
       const clockText = game.clock ? `${game.clock}` : (isLive ? '1T' : '');
 
-      let scheduleText = '';
-      if (game.matchDateFormatted && game.matchDateFormatted !== 'HOY' && game.matchDateFormatted !== 'Por Iniciar') {
-        scheduleText = game.matchDateFormatted;
-      } else if (game.matchDate) {
+      let dateOnlyText = 'HOY';
+      let timeOnlyText = game.matchTime ? `${game.matchTime} hrs` : 'POR INICIAR';
+
+      if (game.matchDate) {
         try {
           const d = new Date(game.matchDate);
           if (!isNaN(d.getTime())) {
-            const dStr = d.toLocaleDateString('es-MX', { weekday: 'short', month: 'short', day: 'numeric' });
-            const tStr = game.matchTime || d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) + ' hrs';
-            scheduleText = `${dStr} • ${tStr}`;
+            dateOnlyText = d.toLocaleDateString('es-MX', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
+            if (!game.matchTime) {
+              timeOnlyText = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }) + ' hrs';
+            }
           }
         } catch (e) {}
+      } else if (game.matchDateFormatted && game.matchDateFormatted.includes('•')) {
+        const parts = game.matchDateFormatted.split('•');
+        dateOnlyText = parts[0].trim().toUpperCase();
+        timeOnlyText = parts[1].trim();
       }
-      if (!scheduleText) scheduleText = game.matchTime ? `${game.matchTime} hrs` : 'Próximo Partido';
 
-      let statusBadgeHtml = `<span class="fg-tv-status-badge scheduled">🗓️ ${scheduleText}</span>`;
-      let centerScoreHtml = `<div class="fg-tv-vs-badge">VS</div><div class="fg-tv-kickoff-time">${game.matchTime ? game.matchTime + ' hrs' : 'Próximo'}</div>`;
+      let centerScoreHtml = `
+        <div style="font-size:11.5px; font-weight:800; color:#e0e0e0; text-transform:uppercase; margin-bottom:4px; letter-spacing:0.5px;">${dateOnlyText}</div>
+        <div class="fg-tv-vs-badge">VS</div>
+        <div style="font-size:12px; font-weight:900; color:#ffd100; margin-top:4px;">${timeOnlyText}</div>
+      `;
 
       if (isLive) {
-        statusBadgeHtml = `<span class="fg-tv-status-badge live"><span class="pulse-dot"></span> 🔴 EN VIVO • Min ${clockText}</span>`;
-        centerScoreHtml = `<div class="fg-tv-score-digits">${game.awayScore ?? 0} - ${game.homeScore ?? 0}</div><div class="fg-tv-clock">${clockText}</div>`;
+        centerScoreHtml = `
+          <div style="background:#ff0033; color:#fff; font-size:10px; font-weight:900; padding:2px 8px; border-radius:10px; text-transform:uppercase; margin-bottom:4px; display:inline-flex; align-items:center; gap:4px;">
+            <span class="pulse-dot"></span> EN VIVO
+          </div>
+          <div class="fg-tv-score-digits" style="font-size:26px; font-weight:950; color:#ffffff; letter-spacing:3px;">
+            ${game.awayScore ?? 0} - ${game.homeScore ?? 0}
+          </div>
+          <div class="fg-tv-clock" style="font-size:12px; font-weight:800; color:#ffd100; margin-top:2px;">
+            Min ${clockText}
+          </div>
+        `;
       } else if (isFinal) {
-        statusBadgeHtml = `<span class="fg-tv-status-badge final">🏁 FINAL</span>`;
-        centerScoreHtml = `<div class="fg-tv-score-digits">${game.awayScore ?? 0} - ${game.homeScore ?? 0}</div><div class="fg-tv-clock" style="color:#a0aab8;">FINAL</div>`;
+        centerScoreHtml = `
+          <div style="background:rgba(255,255,255,0.15); color:#a0aab8; font-size:10px; font-weight:900; padding:2px 8px; border-radius:10px; text-transform:uppercase; margin-bottom:4px;">
+            🏁 FINAL
+          </div>
+          <div class="fg-tv-score-digits" style="font-size:26px; font-weight:950; color:#ffffff; letter-spacing:3px;">
+            ${game.awayScore ?? 0} - ${game.homeScore ?? 0}
+          </div>
+          <div class="fg-tv-clock" style="font-size:11px; font-weight:800; color:#a0aab8; margin-top:2px;">
+            FINAL
+          </div>
+        `;
       }
 
       const card = document.createElement('div');
@@ -152,32 +177,42 @@
           <div>
             👉 Toca cualquier celda vacía con borde verde <strong style="color:#00e676;">+ ELEGIR</strong> para reclamar tu minuto. Límite: <strong style="color:#ffd100;">${maxLimit === 999 ? 'Ilimitado' : maxLimit + ' bloque(s)'}</strong> por persona.
           </div>
-          <button type="button" class="btn btn-secondary" onclick="window.shareFirstStrikerWhatsApp('${game.id}', '${encodeURIComponent(homeStyle.name)}', '${encodeURIComponent(awayStyle.name)}', '${encodeURIComponent(scheduleText)}', '${encodeURIComponent(game.matchTime || '')}')" style="width:auto; padding:6px 12px; font-size:11.5px; font-weight:800; border-radius:8px; background:rgba(37,211,102,0.15); border:1px solid #25d366; color:#25d366; display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
+          <button type="button" class="btn btn-secondary" onclick="window.shareFirstStrikerWhatsApp('${game.id}', '${encodeURIComponent(homeStyle.name)}', '${encodeURIComponent(awayStyle.name)}', '${encodeURIComponent(dateOnlyText)}', '${encodeURIComponent(timeOnlyText)}')" style="width:auto; padding:6px 12px; font-size:11.5px; font-weight:800; border-radius:8px; background:rgba(37,211,102,0.15); border:1px solid #25d366; color:#25d366; display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
             <span>📲</span> Compartir en WhatsApp
           </button>
         </div>
       `;
 
+      const rawLeague = game.leagueName || game.sport || 'LIGA MX';
+      const leagueText = (rawLeague.includes('First Striker') || rawLeague.includes('Fútbol') || rawLeague === 'mex.1') ? 'LIGA MX' : rawLeague.toUpperCase();
+
       // TV Broadcast Scorebug Header
       const tvScorebugHtml = `
         <div class="fg-tv-scorebug">
-          <div class="fg-tv-header">
-            <span class="fg-tv-league">🏆 ${game.leagueName && game.leagueName !== 'First Striker Wins' ? game.leagueName : 'Fútbol'} • 📍 ${game.store || 'Todas'}</span>
-            ${statusBadgeHtml}
+          <div class="fg-tv-header" style="justify-content: flex-start;">
+            <span class="fg-tv-league" style="font-size:13.5px; font-weight:900; color:#ffffff; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <span>📍 ${game.store ? game.store.toUpperCase() : 'JURIQUILLA'}</span>
+              <span style="color:var(--text-muted);">•</span>
+              <span style="color:#ffd100; font-size:14px; font-weight:950; text-transform:uppercase; letter-spacing:0.5px;">🏆 ${leagueText}</span>
+            </span>
           </div>
           <div class="fg-tv-body">
             <div class="fg-tv-team-side away" style="background: linear-gradient(135deg, ${awayStyle.color}dd 0%, rgba(10,15,24,0.95) 100%);">
               <img class="fg-tv-team-logo" src="${awayStyle.logo}" alt="${awayStyle.abbr}" onerror="this.src='img/logo.jpg'"/>
               <div class="fg-tv-team-info">
                 <span class="fg-tv-team-name">${awayStyle.name}</span>
+                <span class="fg-tv-team-role" style="font-size:10px; font-weight:800; color:#ffd100; text-transform:uppercase; letter-spacing:1px; display:block; margin-top:2px;">VISITANTE</span>
               </div>
+              ${isLive || isFinal ? `<span style="font-size:22px; font-weight:950; color:#ffffff; margin-left:auto; padding:2px 8px; background:rgba(0,0,0,0.3); border-radius:6px;">${game.awayScore ?? 0}</span>` : ''}
             </div>
             <div class="fg-tv-center-bug">
               ${centerScoreHtml}
             </div>
             <div class="fg-tv-team-side home" style="background: linear-gradient(225deg, ${homeStyle.color}dd 0%, rgba(10,15,24,0.95) 100%);">
+              ${isLive || isFinal ? `<span style="font-size:22px; font-weight:950; color:#ffffff; margin-right:auto; padding:2px 8px; background:rgba(0,0,0,0.3); border-radius:6px;">${game.homeScore ?? 0}</span>` : ''}
               <div class="fg-tv-team-info">
                 <span class="fg-tv-team-name">${homeStyle.name}</span>
+                <span class="fg-tv-team-role" style="font-size:10px; font-weight:800; color:#ffd100; text-transform:uppercase; letter-spacing:1px; display:block; margin-top:2px;">LOCAL</span>
               </div>
               <img class="fg-tv-team-logo" src="${homeStyle.logo}" alt="${homeStyle.abbr}" onerror="this.src='img/logo.jpg'"/>
             </div>
@@ -360,19 +395,6 @@
       <div style="margin-top:14px;">
         <div class="fg-board-container">
           <table class="fg-board-table">
-            <thead>
-              <tr>
-                <th class="away" style="width:calc(50% - 40px); background: linear-gradient(135deg, ${aStyle.color}88 0%, rgba(10,15,24,0.95) 100%); font-size:12px; font-weight:900; color:#ffd100; letter-spacing:1px; padding:10px;">
-                  VISITANTE
-                </th>
-                <th style="width:80px; background:rgba(0,0,0,0.5); color:#ffffff; font-weight:900; font-size:11.5px; padding:10px; letter-spacing:0.5px;">
-                  MINUTO
-                </th>
-                <th class="local" style="width:calc(50% - 40px); background: linear-gradient(225deg, ${hStyle.color}88 0%, rgba(10,15,24,0.95) 100%); font-size:12px; font-weight:900; color:#ffd100; letter-spacing:1px; padding:10px;">
-                  LOCAL
-                </th>
-              </tr>
-            </thead>
             <tbody>
               ${rowsHtml}
             </tbody>
@@ -576,7 +598,7 @@
           }
         }
 
-        const maxLimit = game.maxBlocksPerPlayer || 1;
+        const maxLimit = player.quota || player.maxBlocks || game.maxBlocksPerPlayer || 1;
 
         if (isExtraTimeCell) {
           if (game.extraTimePlayers?.[user.uid] !== true) {
@@ -585,7 +607,7 @@
           if (etCount >= 1) throw new Error('Ya seleccionaste tu bloque de Tiempo Extra.');
         } else {
           if (regularCount >= maxLimit) {
-            throw new Error(`Ya alcanzaste el límite permitido (${maxLimit === 999 ? 'ilimitado' : maxLimit + ' bloque(s)'}) para este partido.`);
+            throw new Error(`Ya alcanzaste tu límite permitido (${maxLimit === 999 ? 'ilimitado' : maxLimit + ' bloque(s)'}) para este partido.`);
           }
         }
 
