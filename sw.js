@@ -1,5 +1,5 @@
-// Service Worker: Network-First + Auto Silent Update (v184.0)
-const CACHE_NAME = 'dw-v184';
+// Service Worker: Network-First + Auto Silent Update (v185.0)
+const CACHE_NAME = 'dw-v185';
 
 // Install: skip waiting immediately
 self.addEventListener('install', event => {

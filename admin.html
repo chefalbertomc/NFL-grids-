@@ -35,7 +35,7 @@
         <img src="img/logo.jpg" alt="Drinks & Wins by Beto" class="app-brand-logo" />
         <div>
           <h1 class="header-title gradient-text">Panel de Administración</h1>
-          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v184.0</span></p>
+          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v185.0</span></p>
         </div>
       </div>
       <a href="index.html" class="btn btn-secondary" style="width: auto; padding: 8px 14px; text-decoration: none; font-size: 13px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;">
@@ -333,38 +333,162 @@
       </footer>
     </main>
 
-    <!-- 3. ADMIN SURVIVOR -->
+    <!-- 3. ADMIN SURVIVOR (MULTI-TOURNAMENT ARCHITECTURE) -->
     <main id="admin-survivor" class="admin-tab-content hidden">
-      <section class="card highlight">
-        <h3 class="card-title">Configuración de Survivor</h3>
-        <p class="card-subtitle">Cambia la semana activa y califica a los participantes.</p>
-        
-        <div class="flex-row" style="align-items: flex-end; margin-bottom: 20px;">
-          <div class="form-group" style="flex: 1; margin: 0;">
-            <label>Semana Activa del Torneo</label>
-            <input type="number" id="adminSurvivorWeek" value="1" min="1" max="18"/>
+      <!-- Top Tournament Selector Bar -->
+      <section class="card highlight" style="margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+          <div>
+            <h3 class="card-title" style="margin:0;">🏆 Gestión de Torneos Survivor</h3>
+            <p class="card-subtitle" style="margin:0;">Crea torneos de NFL, Liga MX o Multi-Deporte y administra a los sobrevivientes.</p>
           </div>
-          <button id="btnSaveSurvivorWeek" class="btn btn-primary" style="width: auto; padding: 12px 24px;">Actualizar Semana</button>
+          <button type="button" class="btn btn-primary" onclick="window.openCreateSurvivorModal()" style="width:auto; padding:8px 16px; font-size:12.5px; font-weight:900; border-radius:10px; display:inline-flex; align-items:center; gap:6px;">
+            <span>➕</span> Crear Nuevo Survivor
+          </button>
         </div>
 
-        <div class="flex-row" style="flex-direction: column; gap: 12px; margin-top: 16px;">
-          <div>
-            <h5 style="font-size: 13px; color: var(--danger-color); margin-bottom: 6px; font-weight:800;">🚫 Solicitudes Pendientes</h5>
-            <div id="survListPend" class="hint-text py-2" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 12px; border: 1px solid var(--border-color);">
-              Cargando participantes pendientes...
-            </div>
-          </div>
-          <div>
-            <h5 style="font-size: 13px; color: var(--success-color); margin-bottom: 6px; font-weight:800;">✅ Jugadores Aprobados y Calificación</h5>
-            <div id="adminSurvivorPlayers" class="flex-row" style="flex-direction: column; gap: 8px;">
-              <div class="text-center hint-text py-2">Cargando participantes aprobados...</div>
-            </div>
-          </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:12px; font-weight:800; color:#ffd100;">Seleccionar Torneo a Administrar:</label>
+          <select id="survAdminTournamentSelect" onchange="window.onSurvivorTournamentChange(this.value)" style="font-size:13.5px; font-weight:800;">
+            <option value="">Cargando torneos Survivor...</option>
+          </select>
         </div>
       </section>
+
+      <!-- No Tournaments State -->
+      <div id="survAdminNoTournaments" style="display:none;" class="card text-center py-5">
+        <span style="font-size:36px;">🏆</span>
+        <h4 style="color:#ffd100; margin-top:8px;">No hay torneos de Survivor creados</h4>
+        <p class="hint-text">Crea tu primer torneo Survivor para la NFL o Liga MX para comenzar.</p>
+        <button class="btn btn-primary" onclick="window.openCreateSurvivorModal()" style="width:auto; margin:10px auto; padding:10px 20px;">➕ Crear Torneo Survivor</button>
+      </div>
+
+      <!-- Management Panel for Selected Tournament -->
+      <div id="survAdminManagementPanel" style="display:none;">
+        <section class="card" style="border:1.5px solid rgba(255,209,0,0.3); background:linear-gradient(135deg, rgba(18,24,38,0.9) 0%, rgba(10,14,22,0.95) 100%); margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+            <div>
+              <h3 id="survAdminSelectedTitle" style="margin:0; font-size:17px; font-weight:950; color:#ffffff;">Torneo Survivor</h3>
+              <span id="survAdminStatusBadge" class="badge success" style="font-size:10px; margin-top:4px;">🟢 EN CURSO</span>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button type="button" id="btnEvaluateSurvivorESPN" class="btn btn-primary" onclick="window.evaluateSurvivorESPN()" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; background:#00e676; color:#000; border-color:#00e676; display:inline-flex; align-items:center; gap:5px;">
+                <span>⚡</span> Calificar Semana con ESPN (1-Click)
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="window.shareSurvivorWhatsApp()" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; background:rgba(37,211,102,0.15); border-color:#25d366; color:#25d366; display:inline-flex; align-items:center; gap:5px;">
+                <span>📲</span> Compartir WhatsApp
+              </button>
+            </div>
+          </div>
+
+          <!-- Week and Configuration Bar -->
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; background:rgba(0,0,0,0.4); padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,0.08);">
+            <div>
+              <label style="font-size:11px; font-weight:800; color:#ffd100; display:block; margin-bottom:4px;">Semana Activa del Torneo:</label>
+              <div style="display:flex; gap:6px;">
+                <input type="number" id="survAdminActiveWeek" min="1" max="18" value="1" style="font-size:15px; font-weight:900; text-align:center; padding:6px;"/>
+                <button type="button" class="btn btn-primary" onclick="window.saveSurvivorWeekSettings()" style="width:auto; padding:6px 12px; font-size:11.5px; font-weight:900;">Guardar</button>
+              </div>
+            </div>
+
+            <div style="display:flex; flex-direction:column; justify-content:center;">
+              <label style="font-size:11px; font-weight:800; color:#e0e0e0; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" id="survAdminAutoApprove" onchange="window.saveSurvivorWeekSettings()" style="width:18px; height:18px;"/>
+                <span>Auto-Aprobar solicitudes de participantes</span>
+              </label>
+              <span class="hint-text" style="font-size:10.5px; margin-top:2px;">Si está activo, los jugadores entran directo sin esperar mesero.</span>
+            </div>
+
+            <div style="display:flex; align-items:center; justify-content:space-around; background:rgba(255,255,255,0.03); border-radius:8px; padding:6px;">
+              <div style="text-align:center;">
+                <div style="font-size:10px; color:var(--text-muted);">Sobrevivientes</div>
+                <strong id="survAdminTotalAlive" style="color:#00e676; font-size:16px;">0 Vivos</strong>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:10px; color:var(--text-muted);">Eliminados</div>
+                <strong id="survAdminTotalElim" style="color:#ff0033; font-size:16px;">0 Eliminados</strong>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Player Management: Pending & Approved -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:14px;">
+          <!-- Pending Requests -->
+          <section class="card">
+            <h4 style="font-size:13.5px; font-weight:900; color:#ff9800; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+              <span>⏳</span> Solicitudes Pendientes
+            </h4>
+            <div id="survAdminPendingList" style="max-height:280px; overflow-y:auto;">
+              <div class="hint-text py-2">Cargando...</div>
+            </div>
+          </section>
+
+          <!-- Approved Players & Status -->
+          <section class="card">
+            <h4 style="font-size:13.5px; font-weight:900; color:#00e676; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+              <span>👥</span> Jugadores en Torneo & Estado
+            </h4>
+            <div id="survAdminApprovedList" style="max-height:400px; overflow-y:auto;">
+              <div class="hint-text py-2">Cargando...</div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- Modal Create Survivor Tournament -->
+      <div id="modalCreateSurvivor" class="login-modal-overlay" style="display:none; z-index:9999;">
+        <div class="login-modal-box" style="max-width:440px;">
+          <h3 style="color:#ffd100; font-size:16px; font-weight:950; margin-bottom:4px;">➕ Crear Nuevo Torneo Survivor</h3>
+          <p class="hint-text" style="font-size:11.5px; margin-bottom:14px;">Configura un nuevo torneo semanal de eliminación directa.</p>
+
+          <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:11px;">Nombre del Torneo*</label>
+            <input type="text" id="newSurvName" placeholder="Ej. Survivor NFL 2026 Juriquilla" style="font-weight:800;"/>
+          </div>
+
+          <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:11px;">Deporte / Liga</label>
+            <select id="newSurvLeague" style="font-weight:800;">
+              <option value="0">🏈 NFL (Americano) - 18 Semanas</option>
+              <option value="1">🇲🇽 Liga MX (Fútbol) - 17 Jornadas</option>
+              <option value="2">🇪🇸 La Liga Española - 38 Jornadas</option>
+              <option value="3">🏆 UEFA Champions League</option>
+              <option value="4">🇬🇧 Premier League - 38 Jornadas</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:11px;">Sucursal / Ubicación</label>
+            <select id="newSurvStore" style="font-weight:800;">
+              <option value="Juriquilla">Juriquilla</option>
+              <option value="Álamos">Álamos</option>
+              <option value="Ambas Sucursales">Ambas Sucursales</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:11px;">Número Total de Semanas</label>
+            <input type="number" id="newSurvWeeks" value="18" min="1" max="40" style="font-weight:800;"/>
+          </div>
+
+          <div class="form-group" style="margin-bottom:16px;">
+            <label style="font-size:11.5px; font-weight:800; color:#e0e0e0; display:flex; align-items:center; gap:8px; cursor:pointer;">
+              <input type="checkbox" id="newSurvAutoApprove" checked style="width:18px; height:18px;"/>
+              <span>Auto-aprobar registro de participantes</span>
+            </label>
+          </div>
+
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-secondary" onclick="window.closeCreateSurvivorModal()" style="flex:1;">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="window.createSurvivorTournament()" style="flex:1; font-weight:900;">Crear Torneo</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v180.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v185.0</span>
       </footer>
     </main>
 
@@ -709,7 +833,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v184.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v185.0</span>
       </footer>
     </main>
   </div>
@@ -725,9 +849,10 @@
   <script src="js/firebase-config.js?v=183.0"></script>
   <script src="js/auth.js?v=183.0"></script>
   <script src="js/team-logos.js?v=183.0"></script>
-  <script src="js/admin.js?v=183.0"></script>
-  <script src="js/quiniela-admin.js?v=183.0"></script>
-  <script src="js/bingo-admin.js?v=183.0"></script>
+  <script src="js/admin.js?v=184.0"></script>
+  <script src="js/quiniela-admin.js?v=184.0"></script>
+  <script src="js/survivor-admin.js?v=184.0"></script>
+  <script src="js/bingo-admin.js?v=184.0"></script>
 
   <!-- Admin Tab Switching for Top Tabs -->
   <script>

@@ -228,7 +228,7 @@
 
       fillTeamSelects();
       loadGamesDropdown();
-      loadSurvivorPlayersList();
+      if (window.initSurvivorAdmin) window.initSurvivorAdmin();
       loadFGGamesList();
     });
   }
