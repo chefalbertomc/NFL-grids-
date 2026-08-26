@@ -723,6 +723,11 @@
     return false;
   };
 
+  function isInAppBrowser() {
+    const ua = navigator.userAgent || navigator.vendor || window.opera || '';
+    return (ua.indexOf('FBAN') > -1) || (ua.indexOf('FBAV') > -1) || (ua.indexOf('Instagram') > -1) || (ua.indexOf('WhatsApp') > -1) || (ua.indexOf('Line') > -1) || (ua.indexOf('TikTok') > -1);
+  }
+
   window.showLoginModal = function(customTitle, customSubtitle) {
     const modal = document.getElementById('globalLoginModal');
     const titleEl = document.getElementById('loginModalTitle');
