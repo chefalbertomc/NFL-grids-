@@ -2465,24 +2465,24 @@
 
     // 18 regular ranges (5 minutes each, 45' and 90' include added time)
     const ranges = [
-      { id: '0_5', name: '0 - 5' },
-      { id: '6_10', name: '6 - 10' },
-      { id: '11_15', name: '11 - 15' },
-      { id: '16_20', name: '16 - 20' },
-      { id: '21_25', name: '21 - 25' },
-      { id: '26_30', name: '26 - 30' },
-      { id: '31_35', name: '31 - 35' },
-      { id: '36_40', name: '36 - 40' },
-      { id: '41_45', name: '41 - 45 y +' },
-      { id: '46_50', name: '46 - 50' },
-      { id: '51_55', name: '51 - 55' },
-      { id: '56_60', name: '56 - 60' },
-      { id: '61_65', name: '61 - 65' },
-      { id: '66_70', name: '66 - 70' },
-      { id: '71_75', name: '71 - 75' },
-      { id: '76_80', name: '76 - 80' },
-      { id: '81_85', name: '81 - 85' },
-      { id: '86_90', name: '86 - 90 y +' }
+      { id: '0_5', name: '0:00 - 5:59' },
+      { id: '6_10', name: '6:00 - 10:59' },
+      { id: '11_15', name: '11:00 - 15:59' },
+      { id: '16_20', name: '16:00 - 20:59' },
+      { id: '21_25', name: '21:00 - 25:59' },
+      { id: '26_30', name: '26:00 - 30:59' },
+      { id: '31_35', name: '31:00 - 35:59' },
+      { id: '36_40', name: '36:00 - 40:59' },
+      { id: '41_45', name: '41:00 - 45:59 (+)' },
+      { id: '46_50', name: '46:00 - 50:59' },
+      { id: '51_55', name: '51:00 - 55:59' },
+      { id: '56_60', name: '56:00 - 60:59' },
+      { id: '61_65', name: '61:00 - 65:59' },
+      { id: '66_70', name: '66:00 - 70:59' },
+      { id: '71_75', name: '71:00 - 75:59' },
+      { id: '76_80', name: '76:00 - 80:59' },
+      { id: '81_85', name: '81:00 - 85:59' },
+      { id: '86_90', name: '86:00 - 90:59 (+)' }
     ];
 
     // Local regular time
@@ -2506,12 +2506,12 @@
     // Extra Time blocks (Strict 5-minute blocks with added time at 105' and 120')
     if (game.activeExtraTime) {
       const etRanges = [
-        { id: '91_95', name: '91 - 95' },
-        { id: '96_100', name: '96 - 100' },
-        { id: '101_105', name: '101 - 105 y +' },
-        { id: '106_110', name: '106 - 110' },
-        { id: '111_115', name: '111 - 115' },
-        { id: '116_120', name: '116 - 120 y +' }
+        { id: '91_95', name: '91:00 - 95:59' },
+        { id: '96_100', name: '96:00 - 100:59' },
+        { id: '101_105', name: '101:00 - 105:59 (+)' },
+        { id: '106_110', name: '106:00 - 110:59' },
+        { id: '111_115', name: '111:00 - 115:59' },
+        { id: '116_120', name: '116:00 - 120:59 (+)' }
       ];
       etRanges.forEach(r => {
         const opt = document.createElement('option');
@@ -2699,30 +2699,30 @@
       // 6-10 => start 360s (6:00), end 659s (10:59)
       // 16-20 => start 960s (16:00), end 1259s (20:59)
       const RANGES = [
-        { id: '0_5', name: '0 - 5', startSec: 0, endSec: 359 },
-        { id: '6_10', name: '6 - 10', startSec: 360, endSec: 659 },
-        { id: '11_15', name: '11 - 15', startSec: 660, endSec: 959 },
-        { id: '16_20', name: '16 - 20', startSec: 960, endSec: 1259 },
-        { id: '21_25', name: '21 - 25', startSec: 1260, endSec: 1559 },
-        { id: '26_30', name: '26 - 30', startSec: 1560, endSec: 1859 },
-        { id: '31_35', name: '31 - 35', startSec: 1860, endSec: 2159 },
-        { id: '36_40', name: '36 - 40', startSec: 2160, endSec: 2459 },
-        { id: '41_45', name: '41 - 45 y +', startSec: 2460, endSec: 2759 },
-        { id: '46_50', name: '46 - 50', startSec: 2760, endSec: 3059 },
-        { id: '51_55', name: '51 - 55', startSec: 3060, endSec: 3359 },
-        { id: '56_60', name: '56 - 60', startSec: 3360, endSec: 3659 },
-        { id: '61_65', name: '61 - 65', startSec: 3660, endSec: 3959 },
-        { id: '66_70', name: '66 - 70', startSec: 3960, endSec: 4259 },
-        { id: '71_75', name: '71 - 75', startSec: 4260, endSec: 4559 },
-        { id: '76_80', name: '76 - 80', startSec: 4560, endSec: 4859 },
-        { id: '81_85', name: '81 - 85', startSec: 4860, endSec: 5159 },
-        { id: '86_90', name: '86 - 90 y +', startSec: 5160, endSec: 5459 },
-        { id: '91_95', name: '91 - 95', startSec: 5460, endSec: 5759 },
-        { id: '96_100', name: '96 - 100', startSec: 5760, endSec: 6059 },
-        { id: '101_105', name: '101 - 105 y +' , startSec: 6060, endSec: 6359 },
-        { id: '106_110', name: '106 - 110', startSec: 6360, endSec: 6659 },
-        { id: '111_115', name: '111 - 115', startSec: 6660, endSec: 6959 },
-        { id: '116_120', name: '116 - 120 y +', startSec: 6960, endSec: 7259 }
+        { id: '0_5', name: '0:00 - 5:59', startSec: 0, endSec: 359 },
+        { id: '6_10', name: '6:00 - 10:59', startSec: 360, endSec: 659 },
+        { id: '11_15', name: '11:00 - 15:59', startSec: 660, endSec: 959 },
+        { id: '16_20', name: '16:00 - 20:59', startSec: 960, endSec: 1259 },
+        { id: '21_25', name: '21:00 - 25:59', startSec: 1260, endSec: 1559 },
+        { id: '26_30', name: '26:00 - 30:59', startSec: 1560, endSec: 1859 },
+        { id: '31_35', name: '31:00 - 35:59', startSec: 1860, endSec: 2159 },
+        { id: '36_40', name: '36:00 - 40:59', startSec: 2160, endSec: 2459 },
+        { id: '41_45', name: '41:00 - 45:59 (+)', startSec: 2460, endSec: 2759 },
+        { id: '46_50', name: '46:00 - 50:59', startSec: 2760, endSec: 3059 },
+        { id: '51_55', name: '51:00 - 55:59', startSec: 3060, endSec: 3359 },
+        { id: '56_60', name: '56:00 - 60:59', startSec: 3360, endSec: 3659 },
+        { id: '61_65', name: '61:00 - 65:59', startSec: 3660, endSec: 3959 },
+        { id: '66_70', name: '66:00 - 70:59', startSec: 3960, endSec: 4259 },
+        { id: '71_75', name: '71:00 - 75:59', startSec: 4260, endSec: 4559 },
+        { id: '76_80', name: '76:00 - 80:59', startSec: 4560, endSec: 4859 },
+        { id: '81_85', name: '81:00 - 85:59', startSec: 4860, endSec: 5159 },
+        { id: '86_90', name: '86:00 - 90:59 (+)', startSec: 5160, endSec: 5459 },
+        { id: '91_95', name: '91:00 - 95:59', startSec: 5460, endSec: 5759 },
+        { id: '96_100', name: '96:00 - 100:59', startSec: 5760, endSec: 6059 },
+        { id: '101_105', name: '101:00 - 105:59 (+)', startSec: 6060, endSec: 6359 },
+        { id: '106_110', name: '106:00 - 110:59', startSec: 6360, endSec: 6659 },
+        { id: '111_115', name: '111:00 - 115:59', startSec: 6660, endSec: 6959 },
+        { id: '116_120', name: '116:00 - 120:59 (+)', startSec: 6960, endSec: 7259 }
       ];
 
       const scoringTeamName = teamSide === 'local' ? (game.homeTeam || 'Local') : (game.awayTeam || 'Visitante');
