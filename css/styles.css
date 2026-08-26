@@ -428,9 +428,11 @@ input:focus, select:focus, textarea:focus {
   color: #ffd100;
 }
 
-/* Hide top tabs on all screens so navigation is 100% unified in the bottom menu */
-.tabs-container {
-  display: none !important;
+/* Hiding player tabs nav bar on mobile viewports */
+@media (max-width: 768px) {
+  .player-tabs-nav {
+    display: none !important;
+  }
 }
 
 /* =============================================
@@ -3115,6 +3117,81 @@ input:focus, select:focus, textarea:focus {
 .fg-penalty-owner.unassigned {
   color: #666;
   font-style: italic;
+}
+
+/* ==========================================================================
+   PREMIUM SIDEBAR DRAWER BUTTONS
+   ========================================================================== */
+.side-drawer-menu li.game-btn-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1.5px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+.side-drawer-menu li.game-btn-item:hover {
+  background: rgba(255, 209, 0, 0.08);
+  border-color: #ffd100;
+  box-shadow: 0 0 10px rgba(255, 209, 0, 0.15);
+}
+.side-drawer-menu li.game-btn-item img.drawer-game-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  flex-shrink: 0;
+}
+.side-drawer-menu li.game-btn-item span.game-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #ffffff;
+  display: block;
+}
+.side-drawer-menu li.game-btn-item span.game-subtitle {
+  font-size: 10px;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 1px;
+}
+
+.drawer-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 14px 8px;
+}
+
+.drawer-utility-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.drawer-utility-menu li {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #bbb;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+}
+.drawer-utility-menu li:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffffff;
+}
+.drawer-utility-menu li span {
+  flex: 1;
 }
 
 

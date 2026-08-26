@@ -32,15 +32,61 @@
       <button type="button" class="close-drawer-btn" onclick="window.toggleSideDrawer(false)">✕</button>
     </div>
     <div class="side-drawer-content">
+      <div style="font-size:10px; text-transform:uppercase; color:var(--text-muted); font-weight:900; letter-spacing:0.08em; padding:0 8px 10px 8px; border-bottom:1px solid rgba(255,255,255,0.06); margin-bottom:12px;">
+        Nuestros Juegos
+      </div>
       <ul class="side-drawer-menu">
-        <li onclick="handleDrawerNav('tab-home')">🏠 <span>Inicio</span></li>
-        <li onclick="handleDrawerNav('tab-grids')">🏈 <span>NFL Grids</span></li>
-        <li onclick="handleDrawerNav('tab-pools')">📋 <span>Quinielas & Pick'em</span></li>
-        <li onclick="handleDrawerNav('tab-survivor')">🏆 <span>Survivor NFL</span></li>
-        <li onclick="handleDrawerNav('tab-firstgoal')">🎯 <span>Primer Gol</span></li>
+        <li class="game-btn-item" onclick="handleDrawerNav('tab-grids')">
+          <img src="img/games/badge_grids.png" alt="NFL Grids" class="drawer-game-badge" onerror="this.src='img/logo.jpg'"/>
+          <div>
+            <span class="game-title">Football Grids</span>
+            <span class="game-subtitle">El clásico de 100 casillas</span>
+          </div>
+        </li>
+        <li class="game-btn-item" onclick="handleDrawerNav('tab-pools')">
+          <img src="img/games/badge_quiniela.png" alt="Quinielas" class="drawer-game-badge" onerror="this.src='img/logo.jpg'"/>
+          <div>
+            <span class="game-title">Quinielas Pick'em</span>
+            <span class="game-subtitle">Predice ganadores y marcadores</span>
+          </div>
+        </li>
+        <li class="game-btn-item" onclick="handleDrawerNav('tab-survivor')">
+          <img src="img/games/badge_survivor.png" alt="Survivor" class="drawer-game-badge" onerror="this.src='img/logo.jpg'"/>
+          <div>
+            <span class="game-title">Survivor NFL</span>
+            <span class="game-subtitle">Sobrevive semana a semana</span>
+          </div>
+        </li>
+        <li class="game-btn-item" onclick="handleDrawerNav('tab-firstgoal')">
+          <img src="img/games/badge_firstgoal.png" alt="Minuto del Gol" class="drawer-game-badge" onerror="this.src='img/logo.jpg'"/>
+          <div>
+            <span class="game-title">Minuto del Gol</span>
+            <span class="game-subtitle">Elige el bloque de tiempo ganador</span>
+          </div>
+        </li>
+        <li class="game-btn-item" onclick="handleDrawerNav('tab-trivia')">
+          <img src="img/games/badge_trivia.png" alt="Trivia" class="drawer-game-badge" onerror="this.src='img/logo.jpg'"/>
+          <div>
+            <span class="game-title">Trivia en Vivo</span>
+            <span class="game-subtitle">Responde y gana al instante</span>
+          </div>
+        </li>
+        <li class="game-btn-item" onclick="handleDrawerNav('tab-bingo')">
+          <img src="img/games/badge_bingo.png" alt="Bingo" class="drawer-game-badge" onerror="this.src='img/logo.jpg'"/>
+          <div>
+            <span class="game-title">Game Day Bingo</span>
+            <span class="game-subtitle">Completa tu cartón en vivo</span>
+          </div>
+        </li>
+      </ul>
+
+      <div class="drawer-divider"></div>
+
+      <ul class="drawer-utility-menu">
+        <li onclick="handleDrawerNav('tab-home')">🏠 <span>Página de Inicio</span></li>
         <li id="drawerAdminItem" class="admin-only hidden" onclick="window.location.href='admin.html'">⚙️ <span style="color:#ffd100; font-weight:800;">Panel Admin</span></li>
-        <li onclick="window.toggleSideDrawer(false); if(window.openUserProfileModal) window.openUserProfileModal(event)">👤 <span>Mi Perfil</span></li>
-        <li onclick="window.toggleSideDrawer(false); if(window.openHowToPlayModal) window.openHowToPlayModal()">❓ <span>¿Cómo Jugar?</span></li>
+        <li onclick="window.toggleSideDrawer(false); if(window.openUserProfileModal) window.openUserProfileModal(event)">👤 <span>Mi Perfil / Avatar</span></li>
+        <li onclick="window.toggleSideDrawer(false); if(window.openHowToPlayModal) window.openHowToPlayModal()">❓ <span>¿Cómo Jugar? (Instructivos)</span></li>
         <li onclick="window.toggleSideDrawer(false); document.querySelector('#tab-home').scrollIntoView({behavior:'smooth'});">📲 <span>Instalar App</span></li>
         <li id="drawerLoginItem" onclick="window.toggleSideDrawer(false); const btnL = document.getElementById('btnHeaderLogin'); if(btnL) btnL.click();">🔑 <span>Iniciar Sesión</span></li>
         <li id="drawerLogoutItem" class="hidden" onclick="handleDrawerLogout()">🚪 <span>Cerrar Sesión</span></li>
@@ -82,7 +128,7 @@
     </header>
 
     <!-- Navigation Tabs -->
-    <div class="tabs-container">
+    <div class="tabs-container player-tabs-nav">
       <button class="tab-btn active" data-target="tab-home">🏠 Inicio</button>
       <button class="tab-btn" data-target="tab-grids">🏈 NFL Grids</button>
       <button class="tab-btn" data-target="tab-pools">📋 Quiniela / Pick'em</button>
@@ -533,37 +579,7 @@
     </main>
   </div>
 
-  <!-- Mobile Bottom Navigation Bar with Full-Height Game Badges (Swipeable) -->
-  <nav class="mobile-nav">
-    <a href="#" class="nav-item active" data-target="tab-home" title="Inicio" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-width: 58px; gap: 2px;">
-      <div style="font-size: 20px; line-height: 1;">🏠</div>
-      <span style="font-size: 9px; font-weight: 900; color: #ffd100; text-transform: uppercase; letter-spacing: 0.02em;">Inicio</span>
-    </a>
-    <a href="#" class="nav-item" data-target="tab-grids" title="NFL Grids">
-      <img src="img/games/badge_grids.png" alt="NFL Grids" class="nav-game-badge" />
-    </a>
-    <a href="#" class="nav-item" data-target="tab-pools" title="Quiniela / Pick'em">
-      <img src="img/games/badge_quiniela.png" alt="Quiniela" class="nav-game-badge" />
-    </a>
-    <a href="#" class="nav-item" data-target="tab-survivor" title="Survivor">
-      <img src="img/games/badge_survivor.png" alt="Survivor" class="nav-game-badge" />
-    </a>
-    <a href="#" class="nav-item" data-target="tab-firstgoal" title="Minuto del Gol">
-      <img src="img/games/badge_firstgoal.png" alt="Primer Gol" class="nav-game-badge" />
-    </a>
-    <a href="#" class="nav-item" data-target="tab-trivia" title="Trivia">
-      <img src="img/games/badge_trivia.png" alt="Trivia" class="nav-game-badge" />
-    </a>
-    <a href="#" class="nav-item" data-target="tab-bingo" title="Game Day Bingo">
-      <img src="img/games/badge_bingo.png" alt="Bingo" class="nav-game-badge" />
-    </a>
-    <a href="admin.html" class="nav-item admin-only hidden" title="Panel Admin">
-      <div class="nav-admin-card">
-        <span class="nav-admin-icon">⚙️</span>
-        <span class="nav-admin-text">Admin</span>
-      </div>
-    </a>
-  </nav>
+
 
   <!-- Firebase v8 SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -571,13 +587,13 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=143.0"></script>
-  <script src="js/auth.js?v=143.0"></script>
-  <script src="js/team-logos.js?v=143.0"></script>
-  <script src="js/grids.js?v=143.0"></script>
-  <script src="js/quiniela-player.js?v=143.0"></script>
-  <script src="js/survivor.js?v=143.0"></script>
-  <script src="js/firstgoal.js?v=143.0"></script>
+  <script src="js/firebase-config.js?v=144.0"></script>
+  <script src="js/auth.js?v=144.0"></script>
+  <script src="js/team-logos.js?v=144.0"></script>
+  <script src="js/grids.js?v=144.0"></script>
+  <script src="js/quiniela-player.js?v=144.0"></script>
+  <script src="js/survivor.js?v=144.0"></script>
+  <script src="js/firstgoal.js?v=144.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
@@ -814,7 +830,7 @@
   <!-- Service Worker: Auto Silent Update -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js?v=143.0', { updateViaCache: 'none' }).then(reg => {
+      navigator.serviceWorker.register('./sw.js?v=144.0', { updateViaCache: 'none' }).then(reg => {
         reg.update().catch(() => {});
       }).catch(() => {});
 
