@@ -35,7 +35,7 @@
         <img src="img/logo.jpg" alt="Drinks & Wins by Beto" class="app-brand-logo" />
         <div>
           <h1 class="header-title gradient-text">Panel de Administración</h1>
-          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v186.0</span></p>
+          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v187.0</span></p>
         </div>
       </div>
       <a href="index.html" class="btn btn-secondary" style="width: auto; padding: 8px 14px; text-decoration: none; font-size: 13px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;">
@@ -50,6 +50,7 @@
       <button class="tab-btn" data-target="admin-survivor">🏆 Survivor</button>
       <button class="tab-btn" data-target="admin-firstgoal">⚽ First Striker Wins</button>
       <button class="tab-btn" data-target="admin-bingo">🎯 Bingo</button>
+      <button class="tab-btn" data-target="admin-trivia">🧠 Trivia en Vivo</button>
     </div>
 
     <!-- ADMIN SECTIONS -->
@@ -491,7 +492,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v186.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v187.0</span>
       </footer>
     </main>
 
@@ -840,12 +841,157 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v187.0</span>
+      </footer>
+    </main>
+
+    <!-- 6. ADMIN TRIVIA (LIVE HOST & AI GENERATOR) -->
+    <main id="admin-trivia" class="admin-tab-content hidden">
+      <!-- Top Selector & Create Button -->
+      <section class="card highlight" style="margin-bottom:14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+          <div>
+            <h3 class="card-title" style="margin:0;">🧠 Gestión de Trivia en Vivo (Bar Host)</h3>
+            <p class="card-subtitle" style="margin:0;">Crea trivias con IA, proyéctalas en las TVs del bar y controla la partida en tiempo real.</p>
+          </div>
+          <button type="button" class="btn btn-primary" onclick="window.openCreateTriviaModal()" style="width:auto; padding:8px 16px; font-size:12.5px; font-weight:900; border-radius:10px; display:inline-flex; align-items:center; gap:6px;">
+            <span>✨</span> Crear Trivia con IA
+          </button>
+        </div>
+
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:12px; font-weight:800; color:#ffd100;">Seleccionar Sala de Trivia:</label>
+          <select id="trivAdminGameSelect" onchange="window.onTriviaGameChange(this.value)" style="font-size:13.5px; font-weight:800;">
+            <option value="">Cargando salas de Trivia...</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- No Games Empty State -->
+      <div id="trivAdminNoGames" style="display:none;" class="card text-center py-5">
+        <span style="font-size:36px;">🧠</span>
+        <h4 style="color:#ffd100; margin-top:8px;">No hay salas de Trivia creadas</h4>
+        <p class="hint-text">Crea tu primera trivia con IA sobre fútbol, NFL o cultura de bar para proyectar en las pantallas.</p>
+        <button class="btn btn-primary" onclick="window.openCreateTriviaModal()" style="width:auto; margin:10px auto; padding:10px 20px;">✨ Crear Trivia con IA</button>
+      </div>
+
+      <!-- Host Control Panel -->
+      <div id="trivAdminHostPanel" style="display:none;">
+        <section class="card" style="border:1.5px solid rgba(255,209,0,0.35); background:linear-gradient(135deg, rgba(20,28,45,0.95) 0%, rgba(10,15,26,0.98) 100%); margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
+            <div>
+              <h3 id="trivAdminTitle" style="margin:0; font-size:17px; font-weight:950; color:#ffffff;">Trivia en Vivo</h3>
+              <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                <span id="trivAdminStatusBadge" class="badge">LOBBY</span>
+                <span id="trivAdminPin" class="badge" style="background:#ffd100; color:#000; font-weight:900;">PIN: ----</span>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button type="button" class="btn btn-primary" onclick="window.openTriviaTVWindow()" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; background:#ffd100; color:#000; border-color:#ffd100; display:inline-flex; align-items:center; gap:5px;">
+                <span>🖥️</span> Abrir Pantalla de TV
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="window.shareTriviaWhatsApp()" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; background:rgba(37,211,102,0.15); border-color:#25d366; color:#25d366; display:inline-flex; align-items:center; gap:5px;">
+                <span>📲</span> WhatsApp
+              </button>
+            </div>
+          </div>
+
+          <!-- Host Remote Control Center -->
+          <div style="background:rgba(0,0,0,0.4); padding:14px; border-radius:14px; border:1px solid rgba(255,255,255,0.08); margin-bottom:14px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+              <strong id="trivAdminQProgress" style="color:#ffd100; font-size:14px;">Pregunta 1 de 10</strong>
+              <div style="font-size:12px; color:#00e676; font-weight:800;" id="trivAdminAnsweredCount">0 de 0 Respondieron</div>
+            </div>
+
+            <!-- Current Question Box -->
+            <div id="trivAdminCurrentQText" style="margin-bottom:14px;"></div>
+
+            <!-- Host Action Buttons -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:8px;">
+              <button type="button" class="btn btn-primary" onclick="window.startTriviaQuestion()" style="font-size:12px; font-weight:900; background:#00e676; color:#000; border-color:#00e676;">
+                ▶️ Iniciar Pregunta
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="window.revealTriviaAnswer()" style="font-size:12px; font-weight:900; border-color:#ffd100; color:#ffd100;">
+                ⏱️ Revelar Respuesta
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="window.showTriviaLeaderboard()" style="font-size:12px; font-weight:900;">
+                📊 Ver Posiciones
+              </button>
+              <button type="button" class="btn btn-primary" onclick="window.nextTriviaQuestion()" style="font-size:12px; font-weight:900;">
+                ⏩ Siguiente Pregunta
+              </button>
+              <button type="button" class="btn btn-primary" onclick="window.showTriviaFinalPodium()" style="font-size:12px; font-weight:900; background:linear-gradient(135deg, #ffd700, #ff8800); color:#000; border:none;">
+                🏆 Podio Final Top 5
+              </button>
+            </div>
+          </div>
+
+          <!-- Connected Players Leaderboard -->
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <h4 style="margin:0; font-size:13.5px; font-weight:900; color:#ffffff;">👥 Clientes Conectados en Vivo:</h4>
+              <span id="trivAdminPlayersCount" class="badge" style="background:rgba(255,255,255,0.1);">0 Conectados</span>
+            </div>
+            <div id="trivAdminPlayersList" style="max-height:300px; overflow-y:auto;">
+              <div class="hint-text py-2">Cargando...</div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Modal Create Trivia Room with AI -->
+      <div id="modalCreateTrivia" class="login-modal-overlay" style="display:none; z-index:9999;">
+        <div class="login-modal-box" style="max-width:460px;">
+          <h3 style="color:#ffd100; font-size:17px; font-weight:950; margin-bottom:4px;">✨ Crear Trivia con IA</h3>
+          <p class="hint-text" style="font-size:11.5px; margin-bottom:14px;">Elige un tema pre-cargado o escribe cualquier tema con Inteligencia Artificial.</p>
+
+          <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:11px;">Elegir Tema o Plantilla IA</label>
+            <select id="newTrivPresetSelect" onchange="window.onPresetTopicSelectChange(this.value)" style="font-weight:800; font-size:13px;">
+            </select>
+          </div>
+
+          <div id="newTrivCustomTopicWrap" class="form-group" style="margin-bottom:10px; display:none;">
+            <label style="font-size:11px;">Escribe el Tema Personalizado para la IA</label>
+            <input type="text" id="newTrivCustomPrompt" placeholder="Ej. Real Madrid, Boxeo Mexicano, Rock de los 80s..." style="font-weight:800;"/>
+          </div>
+
+          <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:11px;">Título de la Trivia*</label>
+            <input type="text" id="newTrivTitle" placeholder="Ej. Trivia Club América" style="font-weight:800;"/>
+          </div>
+
+          <div class="form-group" style="margin-bottom:10px;">
+            <label style="font-size:11px;">Sucursal</label>
+            <select id="newTrivStore" style="font-weight:800;">
+              <option value="Juriquilla">Juriquilla</option>
+              <option value="Álamos">Álamos</option>
+              <option value="Ambas Sucursales">Ambas Sucursales</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom:16px;">
+            <label style="font-size:11px;">Tiempo por Pregunta (Segundos)</label>
+            <select id="newTrivTime" style="font-weight:800;">
+              <option value="15" selected>15 Segundos (Recomendado)</option>
+              <option value="20">20 Segundos</option>
+              <option value="10">10 Segundos (Ultra Rápido)</option>
+            </select>
+          </div>
+
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="btn btn-secondary" onclick="window.closeCreateTriviaModal()" style="flex:1;">Cancelar</button>
+            <button type="button" class="btn btn-primary" onclick="window.generateAndCreateTrivia()" style="flex:1; font-weight:900;">Generar y Crear 🔥</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Footer Version Indicator -->
+      <footer class="tab-footer-version">
         <span>DRINKS & WINS ADMIN</span> • <span class="ver">v186.0</span>
       </footer>
     </main>
   </div>
-
-
 
   <!-- Firebase v8 SDKs -->
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -860,6 +1006,7 @@
   <script src="js/quiniela-admin.js?v=184.0"></script>
   <script src="js/survivor-admin.js?v=184.0"></script>
   <script src="js/bingo-admin.js?v=184.0"></script>
+  <script src="js/trivia-admin.js?v=184.0"></script>
 
   <!-- Admin Tab Switching for Top Tabs -->
   <script>

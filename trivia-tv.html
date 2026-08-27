@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Drinks & Wins TV — Trivia en Vivo</title>
+  <link rel="icon" href="img/logo.jpg" />
+  <link rel="stylesheet" href="css/styles.css?v=187.0" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900;950&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet" />
+  <!-- Canvas Confetti for Grand Finale Podium -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body class="trivia-tv-body-container">
+  <!-- Header Bar -->
+  <header class="trivia-tv-header-bar">
+    <div style="display:flex; align-items:center; gap:14px;">
+      <img src="img/logo.jpg" alt="Drinks & Wins" style="width:48px; height:48px; border-radius:12px; border:2px solid #ffd100; box-shadow:0 0 15px rgba(255,209,0,0.4);" />
+      <div>
+        <h1 style="margin:0; font-size:22px; font-weight:950; color:#ffd100; font-family:'Outfit', sans-serif; letter-spacing:0.5px;">DRINKS & WINS • TRIVIA EN VIVO</h1>
+        <div id="tvGameTitle" style="font-size:13px; color:#e0e0e0; font-weight:800;">Cargando Trivia...</div>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:16px;">
+      <div style="text-align:right;">
+        <div style="font-size:11px; color:var(--text-muted); font-weight:800; text-transform:uppercase;">Únete desde tu celular</div>
+        <div style="font-size:13px; color:#ffffff; font-weight:900;" id="tvJoinUrl">drinks-and-wins.web.app</div>
+      </div>
+      <div id="tvPinBadge" class="trivia-tv-pin-badge">PIN: ----</div>
+    </div>
+  </header>
+
+  <!-- Dynamic Game Views Container -->
+  <main id="tvMainContent" style="padding: 20px 32px; max-width: 1300px; margin: 0 auto;">
+    <!-- Rendered dynamically by js/trivia-tv.js -->
+  </main>
+
+  <!-- Firebase v8 SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="js/firebase-config.js?v=187.0"></script>
+  <script src="js/trivia-tv.js?v=187.0"></script>
+</body>
+</html>
