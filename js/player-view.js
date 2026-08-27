@@ -70,9 +70,13 @@
         const g = game || {};
         const home = g.homeTeam || g.home || 'Local';
         const away = g.awayTeam || g.away || 'Visitante';
-        const origin = window.location.origin;
-        const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-        const joinUrl = `${origin}${path}share-grid.html?code=${encodeURIComponent(code || '')}`;
+        const joinUrl = window.getDynamicShareUrl ? window.getDynamicShareUrl({
+          game: 'grids',
+          code: code || '',
+          away: away,
+          home: home,
+          sport: 'nfl'
+        }) : `share-grid.html?code=${encodeURIComponent(code || '')}`;
         const text = `🏈 *¡Únete a nuestro Grid de Drinks & Wins!*\n\n🏆 *Partido:* ${away} @ ${home}\n🔑 *Código:* ${code}\n\n👉 *Toca aquí para registrarte y escoger tus casillas:*\n${joinUrl}`;
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
       });

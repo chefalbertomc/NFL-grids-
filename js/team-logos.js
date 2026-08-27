@@ -571,5 +571,37 @@
 
     return `https://res.cloudinary.com/demo/image/upload/w_1200,h_630,c_fill,b_rgb:0e1015/l_fetch:${b64A},w_280,g_west,x_120/l_fetch:${b64B},w_280,g_east,x_120/l_text:Arial_60_bold:VS,co_rgb:ffd100,g_center/sample.jpg`;
   };
+
+  /**
+   * Builds the WhatsApp share URL, supporting dynamic bridge if configured
+   */
+  window.getDynamicShareUrl = function(options) {
+    options = options || {};
+    const game = options.game || 'grids';
+    const code = options.code || '';
+    const away = options.away || 'Visitante';
+    const home = options.home || 'Local';
+    const sport = options.sport || (game === 'firstgoal' ? 'soccer' : 'nfl');
+
+    const bridge = window.DW_BRIDGE_URL || localStorage.getItem('dw_bridge_url');
+    if (bridge) {
+      const base = bridge.replace(/\/+$/, '');
+      const qs = new URLSearchParams({
+        game: game,
+        code: code,
+        away: away,
+        home: home,
+        sport: sport
+      });
+      return `${base}/share?${qs.toString()}`;
+    }
+
+    const origin = window.location.origin;
+    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    if (game === 'firstgoal') {
+      return `${origin}${path}share-firstgoal.html?code=${encodeURIComponent(code)}&away=${encodeURIComponent(away)}&home=${encodeURIComponent(home)}`;
+    }
+    return `${origin}${path}share-grid.html?code=${encodeURIComponent(code)}&away=${encodeURIComponent(away)}&home=${encodeURIComponent(home)}`;
+  };
 })();
 

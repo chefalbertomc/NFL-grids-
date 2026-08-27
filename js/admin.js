@@ -433,11 +433,15 @@
           alert('Primero carga un juego en el menú desplegable para compartir su enlace.');
           return;
         }
-        const origin = window.location.origin;
-        const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-        const joinUrl = `${origin}${path}share-grid.html?code=${encodeURIComponent(currentGridCode)}`;
         const home = (currentGame && (currentGame.homeTeam || currentGame.home)) || 'Local';
         const away = (currentGame && (currentGame.awayTeam || currentGame.away)) || 'Visitante';
+        const joinUrl = window.getDynamicShareUrl ? window.getDynamicShareUrl({
+          game: 'grids',
+          code: currentGridCode,
+          away: away,
+          home: home,
+          sport: 'nfl'
+        }) : `share-grid.html?code=${encodeURIComponent(currentGridCode)}`;
         const text = `🏈 *¡Únete a nuestro Grid de Drinks & Wins!*\n\n🏆 *Partido:* ${away} @ ${home}\n🔑 *Código:* ${currentGridCode}\n\n👉 *Toca aquí para registrarte y escoger tus casillas:*\n${joinUrl}`;
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
       });

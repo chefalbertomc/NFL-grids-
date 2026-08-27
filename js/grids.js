@@ -540,9 +540,13 @@
 
   function shareGridWhatsApp(code) {
     const g = ALL_GRIDS.find(x => x.code === code);
-    const origin = window.location.origin;
-    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    const joinUrl = `${origin}${path}share-grid.html?code=${encodeURIComponent(code)}`;
+    const joinUrl = window.getDynamicShareUrl ? window.getDynamicShareUrl({
+      game: 'grids',
+      code: code,
+      away: g ? g.away : 'Visitante',
+      home: g ? g.home : 'Local',
+      sport: 'nfl'
+    }) : `share-grid.html?code=${encodeURIComponent(code)}`;
     const matchName = g ? `${g.away} @ ${g.home}` : 'NFL Grid';
     const text = `🏈 *¡Únete a nuestro Grid de Drinks & Wins!*\n\n🏆 *Partido:* ${matchName}\n🔑 *Código:* ${code}\n\n👉 *Toca aquí para registrarte y escoger tus casillas:*\n${joinUrl}`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
