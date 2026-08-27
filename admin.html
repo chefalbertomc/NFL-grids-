@@ -1059,15 +1059,36 @@
 
         <!-- Live Questions Preview -->
         <div style="margin-top:10px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
             <div style="display:flex; align-items:center; gap:8px;">
-              <label style="font-size:11.5px; font-weight:900; color:#ffd100; margin:0;">📋 Vista Previa de Preguntas:</label>
+              <label style="font-size:11.5px; font-weight:900; color:#ffd100; margin:0;">📋 Preguntas de la Trivia:</label>
               <span id="trivPreviewCountBadge" class="badge" style="background:rgba(255,209,0,0.15); color:#ffd100; font-size:10px; font-weight:800;">10 Preguntas Listas</span>
             </div>
-            <button type="button" class="btn btn-secondary" onclick="window.addNewManualQuestion()" style="font-size:10.5px; padding:3px 8px; font-weight:800; background:rgba(0,230,118,0.1); border-color:#00e676; color:#00e676;">
-              ➕ Agregar Pregunta
-            </button>
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="btn btn-secondary" onclick="window.openPasteQuestionsModal()" style="font-size:10.5px; padding:3px 8px; font-weight:800; background:rgba(30,136,229,0.15); border-color:#42a5f5; color:#42a5f5;">
+                📋 Pegar de Gemini / ChatGPT
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="window.addNewManualQuestion()" style="font-size:10.5px; padding:3px 8px; font-weight:800; background:rgba(0,230,118,0.1); border-color:#00e676; color:#00e676;">
+                ➕ Agregar Manual
+              </button>
+            </div>
           </div>
+
+          <!-- Paste Box -->
+          <div id="trivPasteQuestionsBox" style="display:none; background:#18202c; border:1.5px solid #42a5f5; border-radius:10px; padding:10px; margin-bottom:8px;">
+            <div style="font-size:11px; font-weight:800; color:#42a5f5; margin-bottom:4px;">
+              📋 Pega aquí la lista de preguntas generada en gemini.google.com o ChatGPT:
+            </div>
+            <p style="font-size:10px; color:var(--text-muted); margin:0 0 6px 0;">
+              Acepta formato texto con opciones A), B), C), D) y respuesta, o formato JSON.
+            </p>
+            <textarea id="trivPasteTextInput" rows="5" placeholder="1. ¿En qué año...?&#10;A) Opción 1&#10;B) Opción 2&#10;C) Opción 3&#10;D) Opción 4&#10;Respuesta: B&#10;Dato: ..." style="width:100%; font-size:11px; padding:8px; border-radius:6px; background:#0e131a; color:#fff; border:1px solid rgba(255,255,255,0.1); font-family:monospace;"></textarea>
+            <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:6px;">
+              <button type="button" class="btn btn-secondary" onclick="window.openPasteQuestionsModal()" style="font-size:10.5px; padding:4px 10px;">Cerrar</button>
+              <button type="button" class="btn btn-primary" onclick="window.applyPastedQuestions()" style="font-size:10.5px; padding:4px 12px; font-weight:900;">⚡ Importar Preguntas</button>
+            </div>
+          </div>
+
           <div id="trivQuestionsPreviewList" style="max-height:240px; overflow-y:auto; background:rgba(0,0,0,0.3); padding:8px; border-radius:10px; border:1px solid rgba(255,255,255,0.08);">
             <div class="hint-text text-center py-2">Cargando preguntas...</div>
           </div>

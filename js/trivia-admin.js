@@ -11,6 +11,7 @@
   let currentPlayersMap = {};
   let generatedQuestionsBuffer = [];
   let editingQuestionIndex = null;
+  let firestoreGeminiApiKey = null;
 
   // Key storage
   const GEMINI_STORAGE_KEY = 'bww_gemini_api_key';
@@ -342,7 +343,7 @@ REGLAS ESTRICTAS:
 4. El campo 'exp' debe ser una explicación real, breve (1 o 2 oraciones) y con datos reales de por qué esa es la respuesta correcta o un dato curioso verificado.
 5. El idioma debe ser Español mexicano neutro, claro y ameno para un bar.
 
-RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (sin texto introductorio, sin explicaciones fuera del JSON):
+RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (sin texto introductorio, sin formato markdown extra):
 [
   {
     "q": "¿Texto claro de la pregunta?",
@@ -355,6 +356,7 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
   }
 ]`;
 
+    // Try Gemini 1.5 Flash endpoint, fallback to v1
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey.trim()}`;
 
     const res = await fetch(endpoint, {
@@ -367,16 +369,17 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
           }
         ],
         generationConfig: {
-          temperature: 0.2, // Low temperature for high accuracy & zero hallucinations
+          temperature: 0.2,
           topP: 0.95,
-          maxOutputTokens: 2500
+          maxOutputTokens: 3000
         }
       })
     });
 
     if (!res.ok) {
       const errData = await res.json().catch(() => ({}));
-      throw new Error(errData?.error?.message || `Error HTTP ${res.status} al consultar Gemini API`);
+      const msg = errData?.error?.message || `Error HTTP ${res.status}`;
+      throw new Error(msg);
     }
 
     const data = await res.json();
@@ -405,6 +408,96 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
       correct: ['A', 'B', 'C', 'D'].includes(String(item.correct || '').toUpperCase()) ? String(item.correct).toUpperCase() : 'A',
       exp: String(item.exp || '')
     }));
+  }
+
+  // =========================================================================
+  // PARSER PARA PEGAR PREGUNTAS DESDE GEMINI WEB / CHATGPT / WHATSAPP
+  // =========================================================================
+  function parsePastedQuestionsText(text) {
+    if (!text || !text.trim()) return [];
+
+    const raw = text.trim();
+
+    // 1. Try parsing direct JSON
+    try {
+      let cleaned = raw;
+      if (cleaned.startsWith('```json')) cleaned = cleaned.slice(7);
+      if (cleaned.startsWith('```')) cleaned = cleaned.slice(3);
+      if (cleaned.endsWith('```')) cleaned = cleaned.slice(0, -3);
+      cleaned = cleaned.trim();
+      const jsonParsed = JSON.parse(cleaned);
+      if (Array.isArray(jsonParsed) && jsonParsed.length > 0 && jsonParsed[0].q) {
+        return jsonParsed.map((item, idx) => ({
+          q: String(item.q || `Pregunta ${idx + 1}`),
+          a: String(item.a || item.A || 'Opción A'),
+          b: String(item.b || item.B || 'Opción B'),
+          c: String(item.c || item.C || 'Opción C'),
+          d: String(item.d || item.D || 'Opción D'),
+          correct: ['A', 'B', 'C', 'D'].includes(String(item.correct || item.respuesta || 'A').toUpperCase()) ? String(item.correct || item.respuesta || 'A').toUpperCase() : 'A',
+          exp: String(item.exp || item.explicacion || '')
+        }));
+      }
+    } catch (e) {
+      // Not JSON, continue to text block parsing
+    }
+
+    // 2. Line-by-line smart parser for natural text lists
+    const lines = raw.split(/\r?\n/);
+    const parsedQuestions = [];
+    let currentQ = null;
+
+    for (let line of lines) {
+      line = line.trim();
+      if (!line) continue;
+
+      // Detect Question Start: "1.", "1)", "¿", "Pregunta 1:"
+      const isNewQ = /^(\d+[\.\)]\s*|pregunta\s*\d+[\:\.]?\s*|¿)/i.test(line);
+
+      if (isNewQ && (!currentQ || currentQ.a || currentQ.b)) {
+        if (currentQ && currentQ.q && currentQ.a && currentQ.b) {
+          parsedQuestions.push(currentQ);
+        }
+        let qText = line.replace(/^\d+[\.\)]\s*/, '').replace(/^pregunta\s*\d+[\:\.]?\s*/i, '').trim();
+        currentQ = { q: qText, a: '', b: '', c: '', d: '', correct: 'A', exp: '' };
+        continue;
+      }
+
+      if (!currentQ) {
+        currentQ = { q: line, a: '', b: '', c: '', d: '', correct: 'A', exp: '' };
+        continue;
+      }
+
+      // Detect Options A, B, C, D
+      const matchA = line.match(/^[aA][\.\)\-:]\s*(.+)/);
+      const matchB = line.match(/^[bB][\.\)\-:]\s*(.+)/);
+      const matchC = line.match(/^[cC][\.\)\-:]\s*(.+)/);
+      const matchD = line.match(/^[dD][\.\)\-:]\s*(.+)/);
+
+      if (matchA) { currentQ.a = matchA[1].trim(); continue; }
+      if (matchB) { currentQ.b = matchB[1].trim(); continue; }
+      if (matchC) { currentQ.c = matchC[1].trim(); continue; }
+      if (matchD) { currentQ.d = matchD[1].trim(); continue; }
+
+      // Detect Correct Answer indicator (e.g. "Respuesta: B", "Correcta: C", "R: A")
+      const matchCorrect = line.match(/(?:respuesta|correcta|soluci[oó]n|ans|r)[\s\:\*\-]+([a-dA-D])/i);
+      if (matchCorrect) {
+        currentQ.correct = matchCorrect[1].toUpperCase();
+        continue;
+      }
+
+      // Detect Explanation
+      const matchExp = line.match(/(?:explicaci[oó]n|dato|exp|curioso)[\s\:\*\-]+(.+)/i);
+      if (matchExp) {
+        currentQ.exp = matchExp[1].trim();
+        continue;
+      }
+    }
+
+    if (currentQ && currentQ.q && (currentQ.a || currentQ.b)) {
+      parsedQuestions.push(currentQ);
+    }
+
+    return parsedQuestions;
   }
 
   // =========================================================================
@@ -468,10 +561,24 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     if (window.db) {
       db = window.db;
       loadTriviaGames();
+      loadGeminiKeyFromFirestore();
     } else {
       setTimeout(window.initTriviaAdmin, 100);
     }
   };
+
+  async function loadGeminiKeyFromFirestore() {
+    if (!db) return;
+    try {
+      const doc = await db.collection('settings').doc('trivia_ai').get();
+      if (doc.exists && doc.data().geminiApiKey) {
+        firestoreGeminiApiKey = doc.data().geminiApiKey;
+        updateApiKeyStatusUI();
+      }
+    } catch (e) {
+      console.warn('[TriviaAdmin] Could not load API key from settings:', e);
+    }
+  }
 
   function loadTriviaGames() {
     if (!db) return;
@@ -775,19 +882,37 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
   // =========================================================================
   // API KEY MANAGEMENT FOR REAL GEMINI AI
   // =========================================================================
-  window.saveGeminiApiKey = function(key) {
-    if (key && key.trim()) {
-      localStorage.setItem(GEMINI_STORAGE_KEY, key.trim());
-      alert('🔑 Clave de Google Gemini API guardada correctamente. ¡Ahora puedes generar trivias con IA real sobre cualquier tema!');
+  window.saveGeminiApiKey = async function(key) {
+    const trimmed = (key || '').trim();
+    if (trimmed) {
+      localStorage.setItem(GEMINI_STORAGE_KEY, trimmed);
+      if (db) {
+        try {
+          await db.collection('settings').doc('trivia_ai').set({
+            geminiApiKey: trimmed,
+            updatedAt: Date.now()
+          }, { merge: true });
+          firestoreGeminiApiKey = trimmed;
+        } catch (e) {
+          console.warn('[TriviaAdmin] Could not save API key to firestore:', e);
+        }
+      }
+      alert('🔑 Clave de Google Gemini API guardada con éxito.\n\n✨ ¡Ahora el generador está conectado a Google Gemini AI en tiempo real!');
     } else {
       localStorage.removeItem(GEMINI_STORAGE_KEY);
+      firestoreGeminiApiKey = null;
+      if (db) {
+        try {
+          await db.collection('settings').doc('trivia_ai').delete();
+        } catch (e) {}
+      }
       alert('🔑 Clave de Gemini API eliminada. El sistema usará la base de datos verificada.');
     }
     updateApiKeyStatusUI();
   };
 
   window.getGeminiApiKey = function() {
-    return localStorage.getItem(GEMINI_STORAGE_KEY) || '';
+    return firestoreGeminiApiKey || localStorage.getItem(GEMINI_STORAGE_KEY) || '';
   };
 
   function updateApiKeyStatusUI() {
@@ -797,14 +922,19 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     if (inputEl) inputEl.value = key;
     if (statusEl) {
       if (key) {
-        statusEl.textContent = '✨ Gemini AI Activo';
+        statusEl.textContent = '✨ Gemini AI Conectado';
         statusEl.className = 'badge success';
         statusEl.style.fontSize = '10px';
+        statusEl.style.background = 'rgba(0,230,118,0.15)';
+        statusEl.style.color = '#00e676';
+        statusEl.style.border = '1px solid #00e676';
       } else {
-        statusEl.textContent = '📚 Modo Base Verificada';
+        statusEl.textContent = '📚 Base Verificada (Sin API Key)';
         statusEl.className = 'badge';
         statusEl.style.fontSize = '10px';
         statusEl.style.background = 'rgba(255,255,255,0.1)';
+        statusEl.style.color = '#ffd100';
+        statusEl.style.border = '1px solid rgba(255,209,0,0.3)';
       }
     }
   }
@@ -934,7 +1064,7 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     }
     if (statusMsg) {
       statusMsg.style.display = 'block';
-      statusMsg.innerHTML = `🧠 <em>${apiKey ? 'Consultando Gemini AI' : 'Buscando en Base Verificada'} para generar ${count} preguntas precisas sobre "${topic}"...</em>`;
+      statusMsg.innerHTML = `🧠 <em>${apiKey ? 'Consultando Google Gemini AI en vivo...' : 'Buscando en Base Verificada...'}</em>`;
     }
 
     try {
@@ -950,7 +1080,7 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
         const curated = findBestCuratedQuestions(topic, count);
         generatedQuestionsBuffer = JSON.parse(JSON.stringify(curated));
         if (statusMsg) {
-          statusMsg.innerHTML = `📚 <strong>¡Cargadas ${generatedQuestionsBuffer.length} preguntas verificadas!</strong> (💡 <em>Tip: Si deseas generar temas ilimitados con IA, ingresa una API Key de Gemini</em>).`;
+          statusMsg.innerHTML = `📚 <strong>¡Cargadas ${generatedQuestionsBuffer.length} preguntas verificadas!</strong> <br/><span style="font-size:10px; color:#ffd100;">💡 Para generar temas libres con IA ilimitada, abre "⚙️ Configurar Gemini AI API Key" abajo e ingresa tu clave de Google.</span>`;
         }
       }
 
@@ -960,12 +1090,12 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
         titleInp.value = `🧠 Trivia ${topic}`;
       }
     } catch (err) {
-      console.warn('[TriviaAdmin] Fallback to curated DB due to error:', err);
+      console.warn('[TriviaAdmin] Error in AI call:', err);
       const fallback = findBestCuratedQuestions(topic, count);
       generatedQuestionsBuffer = JSON.parse(JSON.stringify(fallback));
       renderQuestionsPreview(generatedQuestionsBuffer);
       if (statusMsg) {
-        statusMsg.innerHTML = `⚠️ <em>Nota sobre la IA: ${err.message}. Se cargaron ${generatedQuestionsBuffer.length} preguntas verificadas.</em>`;
+        statusMsg.innerHTML = `⚠️ <strong>Aviso de conexión Gemini:</strong> ${err.message}.<br/><span style="font-size:10px; color:#ffd100;">Se cargaron ${generatedQuestionsBuffer.length} preguntas verificadas de respaldo. Puedes editar cualquier pregunta abajo.</span>`;
       }
     } finally {
       if (btnGen) {
@@ -973,6 +1103,39 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
         btnGen.innerHTML = `<span>✨</span> Generar con IA`;
       }
     }
+  };
+
+  // =========================================================================
+  // PASTE QUESTIONS MODAL WORKFLOW
+  // =========================================================================
+  window.openPasteQuestionsModal = function() {
+    const pasteBox = document.getElementById('trivPasteQuestionsBox');
+    if (pasteBox) {
+      pasteBox.style.display = pasteBox.style.display === 'none' ? 'block' : 'none';
+      if (pasteBox.style.display === 'block') {
+        document.getElementById('trivPasteTextInput')?.focus();
+      }
+    }
+  };
+
+  window.applyPastedQuestions = function() {
+    const textInp = document.getElementById('trivPasteTextInput');
+    const rawText = textInp?.value || '';
+    if (!rawText.trim()) {
+      alert('Por favor pega el texto con las preguntas generadas.');
+      return;
+    }
+
+    const parsed = parsePastedQuestionsText(rawText);
+    if (parsed.length === 0) {
+      alert('No se pudieron extraer preguntas del texto pegado. Asegúrate de incluir opciones A), B), C), D) o formato JSON.');
+      return;
+    }
+
+    generatedQuestionsBuffer = parsed;
+    renderQuestionsPreview(generatedQuestionsBuffer);
+    window.openPasteQuestionsModal(); // hide box
+    alert(`🎉 ¡Se importaron con éxito ${parsed.length} preguntas! Revisa y ajusta lo que necesites.`);
   };
 
   // =========================================================================
@@ -986,7 +1149,7 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     if (countBadge) countBadge.textContent = `${questions.length} Preguntas Listas`;
 
     if (!questions || questions.length === 0) {
-      previewContainer.innerHTML = '<div class="hint-text text-center py-3">No hay preguntas generadas. Haz clic en "Generar con IA".</div>';
+      previewContainer.innerHTML = '<div class="hint-text text-center py-3">No hay preguntas generadas. Haz clic en "Generar con IA" o "Pegar Preguntas".</div>';
       return;
     }
 
