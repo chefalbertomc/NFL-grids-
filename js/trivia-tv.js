@@ -19,16 +19,31 @@
     return params.get('gameId') || params.get('id') || params.get('pin');
   }
 
-  function initTriviaTV() {
-    if (window.db) {
-      db = window.db;
-      gameId = getGameIdFromUrl();
-      if (!gameId) {
-        // Show interactive TV room selector & PIN pad
-        showTVRoomSelector();
-      } else {
-        listenToGame(gameId);
+  async function ensureTVAuth() {
+    if (window.firebase && firebase.auth) {
+      if (!firebase.auth().currentUser) {
+        try {
+          await firebase.auth().signInAnonymously();
+          console.log('[TriviaTV] Pantalla TV autenticada correctamente en Firebase');
+        } catch (e) {
+          console.warn('[TriviaTV] Auth note:', e);
+        }
       }
+    }
+  }
+
+  function initTriviaTV() {
+    if (window.db && window.firebase && firebase.auth) {
+      db = window.db;
+      ensureTVAuth().then(() => {
+        gameId = getGameIdFromUrl();
+        if (!gameId) {
+          // Show interactive TV room selector & PIN pad
+          showTVRoomSelector();
+        } else {
+          listenToGame(gameId);
+        }
+      });
     } else {
       setTimeout(initTriviaTV, 100);
     }
