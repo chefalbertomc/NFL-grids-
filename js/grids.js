@@ -82,6 +82,7 @@
           away: away,
           store: d.store || d.tienda || '',
           locked: !!d.locked,
+          autoApprove: d.autoApprove !== false,
           cells: cells,
           size: totalSize,
           free: freeCount,
@@ -633,7 +634,7 @@
       localStorage.setItem('bww_player_id', activeUser.uid);
       localStorage.setItem('player_nick', nick);
 
-      const isAutoApprove = grid && grid.autoApprove === true;
+      const isAutoApprove = grid ? (grid.autoApprove !== false) : true;
 
       const playerData = {
         id: activeUser.uid,

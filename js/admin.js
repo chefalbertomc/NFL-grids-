@@ -433,12 +433,35 @@
           alert('Primero carga un juego en el menú desplegable para compartir su enlace.');
           return;
         }
-        const host = window.location.origin + window.location.pathname.replace('admin.html', '').replace('player-view.html', '');
-        const joinUrl = `${host}?join=${encodeURIComponent(currentGridCode)}`;
+        const origin = window.location.origin;
+        const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+        const joinUrl = `${origin}${path}share-grid.html?code=${encodeURIComponent(currentGridCode)}`;
         const home = (currentGame && (currentGame.homeTeam || currentGame.home)) || 'Local';
         const away = (currentGame && (currentGame.awayTeam || currentGame.away)) || 'Visitante';
         const text = `🏈 *¡Únete a nuestro Grid de Drinks & Wins!*\n\n🏆 *Partido:* ${away} @ ${home}\n🔑 *Código:* ${currentGridCode}\n\n👉 *Toca aquí para registrarte y escoger tus casillas:*\n${joinUrl}`;
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+      });
+    }
+
+    // Toggle Grid Auto-Approve on active grid
+    const btnToggleGridAutoApprove = document.getElementById('btnToggleGridAutoApprove');
+    if (btnToggleGridAutoApprove) {
+      btnToggleGridAutoApprove.addEventListener('click', async () => {
+        if (!currentGridCode) {
+          alert('Primero selecciona y carga un grid activo.');
+          return;
+        }
+        const newAuto = !(currentGame && currentGame.autoApprove !== false);
+        try {
+          await db.collection('games').doc(currentGridCode).update({ autoApprove: newAuto });
+          if (currentGame) currentGame.autoApprove = newAuto;
+          btnToggleGridAutoApprove.textContent = newAuto ? '⚡ Auto-Aprobar: ON' : '⏳ Auto-Aprobar: OFF';
+          btnToggleGridAutoApprove.style.borderColor = newAuto ? '#00e676' : '#ffc107';
+          btnToggleGridAutoApprove.style.color = newAuto ? '#00e676' : '#ffc107';
+          alert(newAuto ? '⚡ Auto-Aprobación ACTIVADA para este Grid.\nLos participantes entrarán directo sin esperar mesero.' : '⏳ Auto-Aprobación DESACTIVADA.\nLos participantes requerirán aprobación manual.');
+        } catch (err) {
+          alert('Error al actualizar auto-aprobación: ' + err.message);
+        }
       });
     }
 
@@ -576,6 +599,15 @@
 
     // Update TV Scorebug banner in Admin
     updateAdminScorebug(g);
+
+    // Update Auto-Approve Toggle button state
+    const btnToggleGridAutoApprove = document.getElementById('btnToggleGridAutoApprove');
+    if (btnToggleGridAutoApprove) {
+      const isAuto = g.autoApprove !== false;
+      btnToggleGridAutoApprove.textContent = isAuto ? '⚡ Auto-Aprobar: ON' : '⏳ Auto-Aprobar: OFF';
+      btnToggleGridAutoApprove.style.borderColor = isAuto ? '#00e676' : '#ffc107';
+      btnToggleGridAutoApprove.style.color = isAuto ? '#00e676' : '#ffc107';
+    }
 
     const wrapper = document.createElement('div');
     wrapper.className = 'grid-container-wrapper';
