@@ -575,6 +575,8 @@
   /**
    * Builds the WhatsApp share URL, supporting dynamic bridge if configured
    */
+  window.DW_BRIDGE_URL = 'https://nfl-grids.vercel.app';
+
   window.getDynamicShareUrl = function(options) {
     options = options || {};
     const game = options.game || 'grids';
