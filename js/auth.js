@@ -1,7 +1,7 @@
-// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v201.0)
+// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v202.0)
 (function() {
   'use strict';
-  console.log('%c🚀 DRINKS & WINS v201.0 CARGADO EXITOSAMENTE', 'background: #ffd100; color: #000; font-weight: bold; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
+  console.log('%c🚀 DRINKS & WINS v202.0 CARGADO EXITOSAMENTE', 'background: #ffd100; color: #000; font-weight: bold; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
 
   window.currentUser = null;
   window.isAdmin = false;

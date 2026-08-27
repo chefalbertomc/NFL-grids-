@@ -27,9 +27,48 @@
         }
       }
     }
+  // =========================================================================
+  // 16:9 DYNAMIC BROADCAST CANVAS AUTO-SCALER
+  // =========================================================================
+  function autoScaleTVCanvas() {
+    const canvas = document.getElementById('tvStageCanvas');
+    if (!canvas) return;
+    const targetW = 1920;
+    const targetH = 1080;
+    const winW = window.innerWidth || document.documentElement.clientWidth || 1920;
+    const winH = window.innerHeight || document.documentElement.clientHeight || 1080;
+
+    const scale = Math.min(winW / targetW, winH / targetH);
+    canvas.style.transform = `scale(${scale})`;
   }
 
+  window.addEventListener('resize', autoScaleTVCanvas);
+  window.addEventListener('orientationchange', autoScaleTVCanvas);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', autoScaleTVCanvas);
+  } else {
+    autoScaleTVCanvas();
+  }
+
+  window.toggleTVFullscreen = function() {
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      const docEl = document.documentElement;
+      if (docEl.requestFullscreen) {
+        docEl.requestFullscreen().catch(() => {});
+      } else if (docEl.webkitRequestFullscreen) {
+        docEl.webkitRequestFullscreen();
+      }
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) {
+        document.webkitExitFullscreen();
+      }
+    }
+  };
+
   function initTriviaTV() {
+    autoScaleTVCanvas();
     if (window.db && window.firebase && firebase.auth) {
       db = window.db;
       ensureTVAuth().then(() => {
