@@ -1374,7 +1374,7 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     }
 
     const store = storeSel ? storeSel.value : 'Juriquilla';
-    const timePerQ = parseInt(timeInp?.value || '8', 10) || 8;
+    const timePerQ = parseInt(timeInp?.value || '15', 10) || 15;
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
     const id = 'triv_' + Date.now();
 

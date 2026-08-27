@@ -63,7 +63,7 @@
     const now = Date.now();
     const elapsedSec = (now - startTime) / 1000;
     const countdownSec = 10;
-    const timePerQ = game.timePerQuestion || 8;
+    const timePerQ = game.timePerQuestion || 15;
     const revealSec = 6;
     const lbSec = 6;
     const cycleSec = timePerQ + revealSec + lbSec;
@@ -168,7 +168,7 @@
               </div>
               <h3 style="margin:0 0 8px 0; font-size:26px; font-weight:950; color:#ffffff; font-family:'Outfit', sans-serif;">${gm.title}</h3>
               <div style="font-size:16px; color:#ffd100; font-weight:800;">
-                ⏱️ ${gm.timePerQuestion || 8}s por pregunta • 📋 ${(gm.questions || []).length} preguntas
+                ⏱️ ${gm.timePerQuestion || 15}s por pregunta • 📋 ${(gm.questions || []).length} preguntas
               </div>
               <div style="margin-top:14px; text-align:right;">
                 <button type="button" class="btn btn-primary" style="font-size:16px; font-weight:900; padding:8px 20px;">

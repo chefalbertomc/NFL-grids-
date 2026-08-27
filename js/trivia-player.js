@@ -53,7 +53,7 @@
     const now = Date.now();
     const elapsedSec = (now - startTime) / 1000;
     const countdownSec = 10;
-    const timePerQ = game.timePerQuestion || 8;
+    const timePerQ = game.timePerQuestion || 15;
     const revealSec = 6;
     const lbSec = 6;
     const cycleSec = timePerQ + revealSec + lbSec;
@@ -247,7 +247,7 @@
               🚀 Entrar con Google
             </button>
           </section>
-          <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v200.0</span></footer>
+          <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v201.0</span></footer>
         `;
       }
       return;
@@ -296,7 +296,7 @@
               ¡Unirme a la Trivia en Vivo! 🔥
             </button>
           </section>
-          <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v200.0</span></footer>
+          <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v201.0</span></footer>
         `;
       }
       return;
@@ -394,7 +394,7 @@
     container.innerHTML = `
       ${playerHeroHtml}
       ${phaseContentHtml}
-      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v200.0</span></footer>
+      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v201.0</span></footer>
     `;
   }
 
@@ -627,7 +627,7 @@
     const isCorrect = choiceKey.toUpperCase() === correct;
 
     const responseTimeMs = Math.max(100, Math.round((qElapsedSec || 1) * 1000));
-    const limitSec = timeLimit || currentTrivia.timePerQuestion || 8;
+    const limitSec = timeLimit || currentTrivia.timePerQuestion || 15;
 
     let pointsEarned = 0;
     if (isCorrect) {
