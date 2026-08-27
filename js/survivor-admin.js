@@ -162,7 +162,13 @@
   };
 
   window.createSurvivorTournament = async function() {
-    if (!db) return;
+    if (!db && window.db) db = window.db;
+    if (!db && typeof firebase !== 'undefined' && firebase.firestore) db = firebase.firestore();
+    
+    if (!db) {
+      alert('⚠️ Conectando con Firebase... Por favor intenta de nuevo en unos segundos.');
+      return;
+    }
     const nameInp = document.getElementById('newSurvName');
     const leagueSel = document.getElementById('newSurvLeague');
     const storeSel = document.getElementById('newSurvStore');
@@ -203,6 +209,7 @@
       window.closeCreateSurvivorModal();
       alert(`🎉 ¡Torneo Survivor "${name}" creado exitosamente!`);
     } catch (err) {
+      console.error('[SurvivorAdmin] Create tournament error:', err);
       alert('Error al crear torneo: ' + err.message);
     }
   };
