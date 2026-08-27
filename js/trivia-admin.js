@@ -978,11 +978,23 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     modal.style.display = 'flex';
     modal.style.opacity = '1';
     modal.style.pointerEvents = 'auto';
-    renderPresetTopicDropdown();
-    updateApiKeyStatusUI();
 
-    // Default to first preset
-    window.onPresetTopicSelectChange('0');
+    // Start completely clean (no default América or pre-loaded questions)
+    generatedQuestionsBuffer = [];
+    editingQuestionIndex = null;
+
+    const titleInp = document.getElementById('newTrivTitle');
+    const customPromptInp = document.getElementById('newTrivCustomPrompt');
+    const statusMsg = document.getElementById('trivGenStatusMsg');
+    const genCountSel = document.getElementById('newTrivAIGenCount');
+
+    if (titleInp) titleInp.value = '';
+    if (customPromptInp) customPromptInp.value = '';
+    if (statusMsg) statusMsg.style.display = 'none';
+    if (genCountSel) genCountSel.value = '3';
+
+    renderQuestionsPreview(generatedQuestionsBuffer);
+    updateApiKeyStatusUI();
   };
 
   window.closeCreateTriviaModal = function() {
@@ -995,153 +1007,97 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     }
   };
 
-  function renderPresetTopicDropdown() {
-    const sel = document.getElementById('newTrivPresetSelect');
-    if (!sel) return;
-    sel.innerHTML = `
-      <optgroup label="✨ Inteligencia Artificial Real">
-        <option value="-1">✨ [Escribir Cualquier Tema Personalizado con Gemini AI]</option>
-      </optgroup>
-      <optgroup label="⚽ Fútbol Mexicano & Liga MX">
-        ${TOPIC_PRESETS.filter(p => p.category.includes('Fútbol Mexicano')).map(p => {
-          const globalIdx = TOPIC_PRESETS.indexOf(p);
-          return `<option value="${globalIdx}">${p.topic}</option>`;
-        }).join('')}
-      </optgroup>
-      <optgroup label="🏆 Fútbol Internacional & Mundiales">
-        ${TOPIC_PRESETS.filter(p => p.category.includes('Internacional')).map(p => {
-          const globalIdx = TOPIC_PRESETS.indexOf(p);
-          return `<option value="${globalIdx}">${p.topic}</option>`;
-        }).join('')}
-      </optgroup>
-      <optgroup label="🏈 NFL & Americano">
-        ${TOPIC_PRESETS.filter(p => p.category.includes('NFL')).map(p => {
-          const globalIdx = TOPIC_PRESETS.indexOf(p);
-          return `<option value="${globalIdx}">${p.topic}</option>`;
-        }).join('')}
-      </optgroup>
-      <optgroup label="🏎️ Motor, Boxeo & Basquetbol">
-        ${TOPIC_PRESETS.filter(p => p.category.includes('Motor') || p.category.includes('Combate') || p.category.includes('Basquetbol')).map(p => {
-          const globalIdx = TOPIC_PRESETS.indexOf(p);
-          return `<option value="${globalIdx}">${p.topic}</option>`;
-        }).join('')}
-      </optgroup>
-      <optgroup label="🍻 Bar, Alitas, Rock & Cultura Pop">
-        ${TOPIC_PRESETS.filter(p => p.category.includes('Bar') || p.category.includes('Música') || p.category.includes('Pop') || p.category.includes('México')).map(p => {
-          const globalIdx = TOPIC_PRESETS.indexOf(p);
-          return `<option value="${globalIdx}">${p.topic}</option>`;
-        }).join('')}
-      </optgroup>
-    `;
-  }
-
-  window.onPresetTopicSelectChange = function(idx) {
-    const titleInp = document.getElementById('newTrivTitle');
-    const customDiv = document.getElementById('newTrivCustomTopicWrap');
-    const customPromptInp = document.getElementById('newTrivCustomPrompt');
-
-    const i = parseInt(idx, 10);
-    if (i >= 0 && TOPIC_PRESETS[i]) {
-      if (titleInp) titleInp.value = TOPIC_PRESETS[i].topic;
-      if (customDiv) customDiv.style.display = 'none';
-      generatedQuestionsBuffer = JSON.parse(JSON.stringify(TOPIC_PRESETS[i].questions));
-      renderQuestionsPreview(generatedQuestionsBuffer);
-    } else {
-      if (customDiv) customDiv.style.display = 'block';
-      if (titleInp && !titleInp.value) titleInp.value = '🧠 Trivia Especial Drinks & Wins';
-      if (customPromptInp) {
-        customPromptInp.focus();
-        if (customPromptInp.value.trim()) {
-          triggerAIGeneration();
-        } else {
-          // Pre-populate with verified default
-          generatedQuestionsBuffer = JSON.parse(JSON.stringify(TOPIC_PRESETS[0].questions));
-          renderQuestionsPreview(generatedQuestionsBuffer);
-        }
-      }
+  window.clearAllTriviaQuestions = function() {
+    generatedQuestionsBuffer = [];
+    editingQuestionIndex = null;
+    renderQuestionsPreview(generatedQuestionsBuffer);
+    const statusMsg = document.getElementById('trivGenStatusMsg');
+    if (statusMsg) {
+      statusMsg.style.display = 'block';
+      statusMsg.innerHTML = '🗑️ Lista de preguntas limpiada. Escribe un nuevo tema para generar.';
     }
   };
 
   window.applyQuickTopicChip = function(topicText) {
-    const sel = document.getElementById('newTrivPresetSelect');
-    const customDiv = document.getElementById('newTrivCustomTopicWrap');
     const customPromptInp = document.getElementById('newTrivCustomPrompt');
-    const titleInp = document.getElementById('newTrivTitle');
-
-    if (sel) sel.value = '-1';
-    if (customDiv) customDiv.style.display = 'block';
     if (customPromptInp) customPromptInp.value = topicText;
-    if (titleInp) titleInp.value = `🧠 Trivia: ${topicText}`;
+
+    const titleInp = document.getElementById('newTrivTitle');
+    if (titleInp && !titleInp.value) {
+      titleInp.value = `🧠 Trivia ${topicText}`;
+    }
 
     window.triggerAIGeneration();
   };
 
   window.syncTriviaQCount = function(val) {
     const targetCount = parseInt(val, 10) || 10;
-    if (generatedQuestionsBuffer.length > targetCount) {
-      generatedQuestionsBuffer = generatedQuestionsBuffer.slice(0, targetCount);
-    } else if (generatedQuestionsBuffer.length < targetCount) {
-      const topic = document.getElementById('newTrivCustomPrompt')?.value || 'Deportes';
-      const pool = findBestCuratedQuestions(topic, targetCount);
-      while (generatedQuestionsBuffer.length < targetCount && pool.length > 0) {
-        const nextQ = pool[generatedQuestionsBuffer.length % pool.length];
-        generatedQuestionsBuffer.push(JSON.parse(JSON.stringify(nextQ)));
-      }
-    }
     renderQuestionsPreview(generatedQuestionsBuffer);
   };
 
   window.triggerAIGeneration = async function() {
     const customPromptInp = document.getElementById('newTrivCustomPrompt');
     const titleInp = document.getElementById('newTrivTitle');
-    const qCountSel = document.getElementById('newTrivAIGenCount') || document.getElementById('newTrivQCount');
+    const batchCountSel = document.getElementById('newTrivAIGenCount');
+    const totalQCountSel = document.getElementById('newTrivQCount');
     const diffSel = document.getElementById('newTrivDifficulty');
     const btnGen = document.getElementById('btnTrivGenAI');
     const statusMsg = document.getElementById('trivGenStatusMsg');
 
-    const topic = (customPromptInp?.value || titleInp?.value || 'Deportes y Cultura Pop').trim();
-    const count = parseInt(qCountSel?.value || '10', 10) || 10;
+    const topic = (customPromptInp?.value || 'NFL y Deportes').trim();
+    const batchCount = parseInt(batchCountSel?.value || '3', 10) || 3;
+    const totalTarget = parseInt(totalQCountSel?.value || '10', 10) || 10;
     const difficulty = diffSel?.value || 'Intermedia';
     const apiKey = window.getGeminiApiKey();
 
     if (btnGen) {
       btnGen.disabled = true;
-      btnGen.innerHTML = `<span>⏳</span> Generando con Gemini...`;
+      btnGen.innerHTML = `<span>⏳</span> Generando +${batchCount} con Gemini...`;
     }
     if (statusMsg) {
       statusMsg.style.display = 'block';
-      statusMsg.innerHTML = `🧠 <em>${apiKey ? 'Consultando Google Gemini AI en vivo (' + difficulty + ')...' : 'Buscando en Base Verificada...'}</em>`;
+      statusMsg.innerHTML = `🧠 <em>Consultando Google Gemini AI para generar +${batchCount} preguntas de "${topic}" (${difficulty})...</em>`;
     }
 
     try {
+      let newQuestions = [];
       if (apiKey) {
-        // Real Gemini AI Generation with Difficulty
-        const aiQuestions = await generateWithRealGeminiAPI(topic, count, apiKey, difficulty);
-        generatedQuestionsBuffer = aiQuestions;
-        if (statusMsg) {
-          statusMsg.innerHTML = `✨ <strong>¡Generadas ${aiQuestions.length} preguntas con Gemini AI!</strong> Nivel: ${difficulty} • Tema: "${topic}".`;
-        }
+        newQuestions = await generateWithRealGeminiAPI(topic, batchCount, apiKey, difficulty);
       } else {
-        // Use verified knowledge database
-        const curated = findBestCuratedQuestions(topic, count);
-        generatedQuestionsBuffer = JSON.parse(JSON.stringify(curated));
-        if (statusMsg) {
-          statusMsg.innerHTML = `📚 <strong>¡Cargadas ${generatedQuestionsBuffer.length} preguntas verificadas!</strong>`;
-        }
+        newQuestions = findBestCuratedQuestions(topic, batchCount);
+      }
+
+      // ACCUMULATE / APPEND TO EXISTING QUESTIONS
+      generatedQuestionsBuffer = [...generatedQuestionsBuffer, ...newQuestions];
+
+      // Automatically adjust total selector if we reached or exceeded it
+      if (totalQCountSel && generatedQuestionsBuffer.length > totalTarget) {
+        totalQCountSel.value = String(Math.min(10, generatedQuestionsBuffer.length));
+      }
+
+      // Update room title if empty
+      if (titleInp && !titleInp.value) {
+        titleInp.value = `🧠 Trivia ${topic}`;
       }
 
       renderQuestionsPreview(generatedQuestionsBuffer);
 
-      if (titleInp && (!titleInp.value || titleInp.value.startsWith('🧠 Trivia:'))) {
-        titleInp.value = `🧠 Trivia ${topic}`;
+      if (statusMsg) {
+        statusMsg.innerHTML = `✨ <strong>¡Se agregaron +${newQuestions.length} preguntas de "${topic}"!</strong> (${generatedQuestionsBuffer.length} de ${totalQCountSel?.value || totalTarget} preguntas listas). <br/><span style="font-size:10px; color:#ffd100;">💡 Puedes escribir otro tema (ej. Cowboys) y presionar "Generar con IA" para seguir sumando.</span>`;
+      }
+
+      // Clear input so user can type next topic immediately
+      if (customPromptInp) {
+        customPromptInp.value = '';
+        customPromptInp.focus();
       }
     } catch (err) {
       console.warn('[TriviaAdmin] Error in AI call:', err);
-      const fallback = findBestCuratedQuestions(topic, count);
-      generatedQuestionsBuffer = JSON.parse(JSON.stringify(fallback));
+      const fallback = findBestCuratedQuestions(topic, batchCount);
+      generatedQuestionsBuffer = [...generatedQuestionsBuffer, ...fallback];
       renderQuestionsPreview(generatedQuestionsBuffer);
       if (statusMsg) {
-        statusMsg.innerHTML = `⚠️ <strong>Aviso de conexión Gemini:</strong> ${err.message}.<br/><span style="font-size:10px; color:#ffd100;">Se cargaron ${generatedQuestionsBuffer.length} preguntas de respaldo. Puedes editarlas abajo.</span>`;
+        statusMsg.innerHTML = `⚠️ <strong>Aviso de conexión:</strong> ${err.message}. Se agregaron +${fallback.length} preguntas verificadas de respaldo.`;
       }
     } finally {
       if (btnGen) {
@@ -1190,12 +1146,17 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
   function renderQuestionsPreview(questions) {
     const previewContainer = document.getElementById('trivQuestionsPreviewList');
     const countBadge = document.getElementById('trivPreviewCountBadge');
+    const totalQCountSel = document.getElementById('newTrivQCount');
+    const targetCount = totalQCountSel ? totalQCountSel.value : '10';
+
     if (!previewContainer) return;
 
-    if (countBadge) countBadge.textContent = `${questions.length} Preguntas Listas`;
+    if (countBadge) {
+      countBadge.textContent = `${questions.length} de ${targetCount} Preguntas Listas`;
+    }
 
     if (!questions || questions.length === 0) {
-      previewContainer.innerHTML = '<div class="hint-text text-center py-3">No hay preguntas generadas. Haz clic en "Generar con IA" o "Pegar Preguntas".</div>';
+      previewContainer.innerHTML = '<div class="hint-text text-center py-4" style="color:#aaa;">Aún no has agregado preguntas.<br/><span style="color:#ffd100; font-weight:800; font-size:12px; margin-top:4px; display:inline-block;">Escribe un tema arriba (ej. Steelers, Cowboys, NFL) y presiona "✨ Generar con IA" para ir sumando preguntas.</span></div>';
       return;
     }
 
