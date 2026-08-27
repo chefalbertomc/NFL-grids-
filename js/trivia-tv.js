@@ -9,6 +9,7 @@
   let timerInterval = null;
   let autoFlowCoordinatorTimer = null;
   let isTransitioningPhase = false;
+  let renderedPhaseKey = null;
   let leaderboardLoopPageIndex = 0;
   let leaderboardLoopInterval = null;
 
@@ -40,6 +41,7 @@
     if (autoFlowCoordinatorTimer) clearInterval(autoFlowCoordinatorTimer);
     if (leaderboardLoopInterval) clearInterval(leaderboardLoopInterval);
 
+    renderedPhaseKey = null;
     const main = document.getElementById('tvMainContent');
     const titleEl = document.getElementById('tvGameTitle');
     const pinEl = document.getElementById('tvPinBadge');
@@ -113,7 +115,7 @@
 
   window.selectTVGame = function(targetGameId) {
     gameId = targetGameId;
-    // Update URL without reload
+    renderedPhaseKey = null;
     const newUrl = `${window.location.pathname}?gameId=${targetGameId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
     listenToGame(targetGameId);
@@ -170,13 +172,13 @@
       runAutoFlowCoordinator();
     }, err => console.error('[TriviaTV] Error loading game:', err));
 
-    // 2. Listen to connected players in real time
+    // 2. Listen to connected players in real time (Surgical in-place updates)
     db.collection('trivia_games').doc(targetId).collection('players').onSnapshot(snap => {
       playersMap = {};
       snap.forEach(pDoc => {
         playersMap[pDoc.id] = { id: pDoc.id, ...pDoc.data() };
       });
-      renderCurrentPhase();
+      updatePlayersUIInPlace();
     }, err => console.error('[TriviaTV] Error loading players:', err));
   }
 
@@ -191,8 +193,41 @@
     if (urlEl) urlEl.textContent = `${window.location.host || 'drinks-wins.web.app'}`;
   }
 
+  // Update players count and chips without re-rendering entire screen
+  function updatePlayersUIInPlace() {
+    const players = Object.values(playersMap);
+    const status = gameData?.status || 'lobby';
+    const currIdx = gameData?.currentQuestionIndex || 0;
+
+    if (status === 'lobby') {
+      const countEl = document.getElementById('tvLobbyPlayersCount');
+      const listEl = document.getElementById('tvLobbyPlayersList');
+      if (countEl) countEl.textContent = `${players.length}`;
+
+      if (listEl) {
+        if (players.length === 0) {
+          listEl.innerHTML = `<div style="font-size:22px; color:var(--text-muted); padding:20px 0;">Escanea el código QR gigante para unirte a la trivia...</div>`;
+        } else {
+          listEl.innerHTML = players.map(p => {
+            const photoSrc = p.photoURL || p.userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nickname || p.playerName || 'J')}&background=ffd100&color=000&bold=true`;
+            return `
+              <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.1); padding:10px 20px; border-radius:30px; border:2px solid rgba(255,209,0,0.4); animation:popIn 0.3s ease;">
+                <img src="${photoSrc}" style="width:44px; height:44px; border-radius:50%; object-fit:cover; border:2.5px solid #ffd100;" alt="${p.nickname}" onerror="this.src='img/logo.jpg'"/>
+                <span style="font-size:20px; font-weight:950; color:#ffffff;">${p.nickname || p.playerName}</span>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+    } else if (status === 'question') {
+      const answeredCount = players.filter(p => p.answers && p.answers[currIdx] !== undefined).length;
+      const ansEl = document.getElementById('tvQuestionAnsweredCount');
+      if (ansEl) ansEl.textContent = `⚡ ${answeredCount} de ${players.length} Jugadores han respondido`;
+    }
+  }
+
   // =========================================================================
-  // ROBUST SERVER-SYNCHRONIZED AUTO FLOW COORDINATOR (NO INFINITE LOOPS)
+  // ROBUST SERVER-SYNCHRONIZED AUTO FLOW COORDINATOR (NO RACE CONDITIONS)
   // =========================================================================
   function runAutoFlowCoordinator() {
     if (autoFlowCoordinatorTimer) clearInterval(autoFlowCoordinatorTimer);
@@ -211,7 +246,7 @@
       if (status === 'countdown') {
         const startTime = gameData.countdownStartTime || now;
         const elapsed = (now - startTime) / 1000;
-        if (elapsed >= 10.5) {
+        if (elapsed >= 10) {
           isTransitioningPhase = true;
           try {
             await db.collection('trivia_games').doc(gameData.id).update({
@@ -229,7 +264,7 @@
       else if (status === 'question') {
         const startTime = gameData.questionStartTime || now;
         const elapsed = (now - startTime) / 1000;
-        if (elapsed >= (timePerQ + 0.5)) {
+        if (elapsed >= timePerQ) {
           isTransitioningPhase = true;
           try {
             await db.collection('trivia_games').doc(gameData.id).update({
@@ -246,7 +281,7 @@
       else if (status === 'reveal') {
         const revealTime = gameData.revealTime || now;
         const elapsed = (now - revealTime) / 1000;
-        if (elapsed >= 6.5) {
+        if (elapsed >= 6) {
           isTransitioningPhase = true;
           try {
             await db.collection('trivia_games').doc(gameData.id).update({
@@ -263,7 +298,7 @@
       else if (status === 'leaderboard') {
         const lbTime = gameData.leaderboardTime || now;
         const elapsed = (now - lbTime) / 1000;
-        if (elapsed >= 6.5) {
+        if (elapsed >= 6) {
           isTransitioningPhase = true;
           if (currIdx + 1 < totalQ) {
             try {
@@ -288,7 +323,7 @@
           }
         }
       }
-    }, 400);
+    }, 250);
   }
 
   // Remote Start Triggered from TV Screen
@@ -306,7 +341,7 @@
   };
 
   // =========================================================================
-  // RENDER DYNAMIC GAME PHASES (GIANT HIGH-CONTRAST RESTAURANT DISPLAY)
+  // RENDER DYNAMIC GAME PHASES (FLICKER-FREE RENDER PIPELINE)
   // =========================================================================
   function renderCurrentPhase() {
     if (!gameData) return;
@@ -314,6 +349,15 @@
     if (!main) return;
 
     const status = gameData.status || 'lobby';
+    const currIdx = gameData.currentQuestionIndex || 0;
+    const phaseKey = `${status}_${currIdx}`;
+
+    // Prevent re-rendering same phase repeatedly (prevents clock resets & flicker)
+    if (renderedPhaseKey === phaseKey) {
+      updatePlayersUIInPlace();
+      return;
+    }
+    renderedPhaseKey = phaseKey;
 
     if (status === 'lobby') {
       renderLobbyPhase(main);
@@ -343,21 +387,6 @@
     const joinUrl = `${origin}${cleanPath}?pin=${gameData.pin || ''}#tab-trivia`;
     const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=340x340&data=${encodeURIComponent(joinUrl)}&color=0-0-0&bgcolor=ffd100&margin=2`;
 
-    let playersHtml = '';
-    if (players.length === 0) {
-      playersHtml = `<div style="font-size:22px; color:var(--text-muted); padding:20px 0;">Escanea el código QR gigante para unirte a la trivia...</div>`;
-    } else {
-      players.forEach(p => {
-        const photoSrc = p.photoURL || p.userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nickname || p.playerName || 'J')}&background=ffd100&color=000&bold=true`;
-        playersHtml += `
-          <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.1); padding:10px 20px; border-radius:30px; border:2px solid rgba(255,209,0,0.4); animation:popIn 0.3s ease;">
-            <img src="${photoSrc}" style="width:44px; height:44px; border-radius:50%; object-fit:cover; border:2.5px solid #ffd100;" alt="${p.nickname}" onerror="this.src='img/logo.jpg'"/>
-            <span style="font-size:20px; font-weight:950; color:#ffffff;">${p.nickname || p.playerName}</span>
-          </div>
-        `;
-      });
-    }
-
     container.innerHTML = `
       <div style="text-align:center; padding:10px 0; width:100%;">
         <div style="display:flex; align-items:center; justify-content:center; gap:60px; flex-wrap:wrap; background:rgba(0,0,0,0.55); padding:36px 48px; border-radius:32px; border:3px solid #ffd100; box-shadow:0 15px 50px rgba(0,0,0,0.85); max-width:1250px; margin:0 auto;">
@@ -381,7 +410,7 @@
               Contesta cada pregunta en tu celular lo más rápido posible. ¡Entre más rápido aciertes, más puntos ganas!
             </p>
             <div style="font-size:22px; color:#00e676; font-weight:950; margin-bottom:24px;">
-              👥 <strong>${players.length}</strong> Jugadores Conectados en el Bar
+              👥 <strong id="tvLobbyPlayersCount">${players.length}</strong> Jugadores Conectados en el Bar
             </div>
 
             <!-- Big Start Button on TV -->
@@ -394,14 +423,14 @@
         <!-- Connected Players Live Grid -->
         <div style="width:100%; max-width:1250px; margin:28px auto 0 auto; text-align:left;">
           <h3 style="font-size:22px; font-weight:950; color:#ffd100; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:14px;">
-            🔥 Jugadores Conectados (${players.length}):
+            🔥 Jugadores Conectados:
           </h3>
-          <div style="display:flex; flex-wrap:wrap; gap:12px; max-height:200px; overflow-y:auto;">
-            ${playersHtml}
-          </div>
+          <div id="tvLobbyPlayersList" style="display:flex; flex-wrap:wrap; gap:12px; max-height:200px; overflow-y:auto;"></div>
         </div>
       </div>
     `;
+
+    updatePlayersUIInPlace();
   }
 
   // 2. Countdown Phase (200px Giant Number Pulsating)
@@ -430,11 +459,13 @@
       const remaining = Math.max(0, 10 - elapsed);
       if (clockEl) clockEl.textContent = remaining;
       if (remaining <= 0) clearInterval(timerInterval);
-    }, 200);
+    }, 150);
   }
 
-  // 3. Question Phase (Huge 52px Question, 4 High-Contrast 34px Options, Big 100px Clock)
+  // 3. Question Phase (Huge 52px Question, 4 High-Contrast 34px Options, Big 95px Clock)
   function renderQuestionPhase(container) {
+    if (timerInterval) clearInterval(timerInterval);
+
     const currIdx = gameData.currentQuestionIndex || 0;
     const totalQ = (gameData.questions || []).length || 10;
     const q = gameData.questions?.[currIdx] || {};
@@ -460,7 +491,7 @@
             ${q.q || 'Cargando pregunta...'}
           </h2>
           <div style="display:inline-flex; align-items:center; gap:12px; background:rgba(255,255,255,0.12); padding:8px 22px; border-radius:24px;">
-            <span style="font-size:18px; font-weight:900; color:#00e676;">⚡ ${answeredCount} de ${players.length} Jugadores han respondido</span>
+            <span id="tvQuestionAnsweredCount" style="font-size:18px; font-weight:900; color:#00e676;">⚡ ${answeredCount} de ${players.length} Jugadores han respondido</span>
           </div>
         </div>
 
@@ -487,9 +518,7 @@
     `;
 
     // Live Clock Countdown
-    if (timerInterval) clearInterval(timerInterval);
     const clockEl = document.getElementById('tvCountdownClock');
-
     timerInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 1000);
       const remaining = Math.max(0, timeLimit - elapsed);
@@ -504,7 +533,7 @@
       }
 
       if (remaining <= 0) clearInterval(timerInterval);
-    }, 200);
+    }, 150);
   }
 
   // 4. Reveal Phase (Emerald Green Correct Answer + 32px Gold Fact Box)
@@ -696,7 +725,7 @@
         ${(p4 || p5) ? `
           <div style="display:flex; justify-content:center; gap:24px; margin-top:14px;">
             ${p4 ? `
-              <div style="display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.1); padding:10px 24px; border-radius:16px; border:1.5px solid rgba(255,255,255,0.2);">
+              <div style="display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.1); padding:10px 24px; border-radius:16px; border:1.5px solid rgba(255,255,209,0.2);">
                 <span style="font-weight:950; color:#ffd100; font-size:20px;">4°</span>
                 <img src="${getPhoto(p4)}" style="width:42px; height:42px; border-radius:50%; object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
                 <strong style="color:#fff; font-size:20px;">${p4.nickname || p4.playerName}</strong>
@@ -704,7 +733,7 @@
               </div>
             ` : ''}
             ${p5 ? `
-              <div style="display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.1); padding:10px 24px; border-radius:16px; border:1.5px solid rgba(255,255,255,0.2);">
+              <div style="display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.1); padding:10px 24px; border-radius:16px; border:1.5px solid rgba(255,255,209,0.2);">
                 <span style="font-weight:950; color:#ffd100; font-size:20px;">5°</span>
                 <img src="${getPhoto(p5)}" style="width:42px; height:42px; border-radius:50%; object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
                 <strong style="color:#fff; font-size:20px;">${p5.nickname || p5.playerName}</strong>

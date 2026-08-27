@@ -13,6 +13,8 @@
   let unsubMyPlayer = null;
   let unsubAllPlayers = null;
   let mobileTimerInterval = null;
+  let mobileCountdownInterval = null;
+  let renderedMobilePhaseKey = null;
 
   function getCurrentUser() {
     if (user && user.uid) return user;
@@ -35,6 +37,7 @@
     if (window.onAuthChange) {
       window.onAuthChange(currentUser => {
         user = currentUser;
+        renderedMobilePhaseKey = null;
         renderTriviaMobile();
       });
     }
@@ -71,6 +74,7 @@
         } else {
           currentTriviaId = null;
           currentTrivia = null;
+          renderedMobilePhaseKey = null;
           renderTriviaMobile();
         }
       }, err => {
@@ -119,22 +123,24 @@
 
   window.selectTriviaMobileGame = function(gId) {
     currentTriviaId = gId;
+    renderedMobilePhaseKey = null;
     listenToCurrentTrivia(gId);
   };
 
-  // Main Render Routine for Mobile
+  // Main Render Routine for Mobile (Flicker-Free, No Interval Resets)
   function renderTriviaMobile() {
     const container = document.getElementById('tab-trivia');
     if (!container) return;
 
     if (activeGames.length === 0) {
+      renderedMobilePhaseKey = 'no_games';
       container.innerHTML = `
         <section class="card text-center py-5">
           <span style="font-size:44px;">🧠</span>
           <h3 style="color:#ffd100; margin-top:10px;">No hay Trivias en Vivo</h3>
           <p class="hint-text">El mesero o el host iniciará una trivia en las pantallas del bar muy pronto.</p>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v195.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v196.0</span></footer>
       `;
       return;
     }
@@ -143,60 +149,82 @@
     const u = getCurrentUser();
     const isJoined = !!myPlayerDoc;
     const status = g.status || 'lobby';
+    const currIdx = g.currentQuestionIndex || 0;
 
-    // Game Switcher if multiple
-    let selectorHtml = '';
-    if (activeGames.length > 1) {
-      const opts = activeGames.map(gm => `
-        <option value="${gm.id}" ${gm.id === g.id ? 'selected' : ''}>
-          ${gm.title} [PIN: ${gm.pin || gm.id}] (${gm.store || 'General'})
-        </option>
-      `).join('');
-      selectorHtml = `
-        <div style="margin-bottom:12px; background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.08);">
-          <label style="font-size:11px; font-weight:800; color:#ffd100; display:block; margin-bottom:4px;">Sala de Trivia:</label>
-          <select onchange="window.selectTriviaMobileGame(this.value)" style="font-size:13px; font-weight:800; width:100%;">
-            ${opts}
-          </select>
-        </div>
-      `;
+    // Calculate player rank in room
+    const sorted = [...allPlayers].sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+    const myRankIdx = sorted.findIndex(p => p.id === (u ? u.uid : ''));
+    const myRank = myRankIdx >= 0 ? myRankIdx + 1 : 1;
+    const totalScore = myPlayerDoc?.totalScore || 0;
+
+    const phaseKey = `${g.id}_${status}_${currIdx}_${isJoined}_${u ? u.uid : 'anon'}`;
+
+    // If already in this exact phase, perform only surgical UI state updates
+    if (renderedMobilePhaseKey === phaseKey) {
+      // Update score in hero
+      const scoreEl = document.getElementById('triviaMobileHeroScore');
+      if (scoreEl) scoreEl.textContent = `⭐ ${totalScore} PTS`;
+
+      // Update question answered state if in question phase
+      if (status === 'question') {
+        const myAnswer = myPlayerDoc?.answers?.[currIdx];
+        if (myAnswer) {
+          ['a', 'b', 'c', 'd'].forEach(letter => {
+            const btn = document.getElementById(`btnMobileChoice_${letter.toUpperCase()}`);
+            if (btn) {
+              if (letter.toUpperCase() === myAnswer.choice) {
+                btn.classList.add('selected');
+                btn.classList.remove('disabled');
+              } else {
+                btn.classList.add('disabled');
+                btn.classList.remove('selected');
+              }
+            }
+          });
+          const fbBox = document.getElementById('triviaMobileAnswerSubmittedBox');
+          if (fbBox) fbBox.style.display = 'block';
+        }
+      }
+      return;
     }
 
-    // If user is not logged in
+    renderedMobilePhaseKey = phaseKey;
+
+    // 1. Not Logged In Screen
     if (!u) {
       container.innerHTML = `
-        ${selectorHtml}
-        <section class="card highlight text-center py-4">
-          <span style="font-size:40px;">🧠</span>
-          <h3 style="color:#ffd100; margin-top:8px;">${g.title}</h3>
-          <p class="hint-text" style="font-size:13px; margin-bottom:16px;">Inicia sesión con Google con 1 solo toque para participar desde tu celular.</p>
-          <button type="button" class="btn btn-primary" onclick="if(window.loginWithGoogle) window.loginWithGoogle();" style="font-weight:900;">
+        <section class="card text-center py-5">
+          <span style="font-size:48px;">🧠</span>
+          <h2 style="color:#ffd100; margin-top:8px; font-family:'Outfit', sans-serif;">Trivia en Vivo Drinks & Wins</h2>
+          <p class="hint-text" style="font-size:13px; max-width:320px; margin:8px auto 20px auto;">
+            Inicia sesión con tu cuenta de Google en 1 clic para participar en la trivia de las pantallas del bar.
+          </p>
+          <button type="button" class="btn btn-primary" onclick="if(window.loginWithGoogle) window.loginWithGoogle();" style="font-size:15px; font-weight:900;">
             🚀 Entrar con Google
           </button>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v195.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v196.0</span></footer>
       `;
       return;
     }
 
-    // If user has not joined this trivia room
+    // 2. Not Joined Room Screen
     if (!isJoined) {
-      const defName = u.displayName || '';
+      const defaultNick = (u.displayName || 'Socio').split(' ')[0];
       container.innerHTML = `
-        ${selectorHtml}
-        <section class="card highlight" style="border:1.5px solid #ffd100; background:linear-gradient(135deg, rgba(255,209,0,0.08) 0%, rgba(10,15,24,0.95) 100%);">
-          <div style="text-align:center; margin-bottom:12px;">
-            <span style="font-size:36px;">🧠</span>
-            <h3 style="color:#ffd100; margin:6px 0 2px 0; font-size:18px; font-weight:950;">${g.title}</h3>
-            <span class="badge" style="background:#ffd100; color:#000; font-weight:900;">PIN: ${g.pin || g.id}</span>
+        <section class="card highlight" style="border:2px solid #ffd100;">
+          <div style="text-align:center; margin-bottom:14px;">
+            <span class="badge" style="background:#ffd100; color:#000; font-size:12px; font-weight:900;">PIN: ${g.pin || '----'}</span>
+            <h3 style="color:#ffffff; margin:8px 0 4px 0; font-size:18px; font-family:'Outfit', sans-serif;">${g.title}</h3>
+            <p class="hint-text" style="font-size:12px; margin:0;">📍 ${g.store || 'Sucursal'} • ${g.timePerQuestion || 8}s por pregunta</p>
           </div>
 
           <div class="form-group" style="margin-bottom:10px;">
-            <label style="font-size:11px;">Tu Apodo de Juego*</label>
-            <input type="text" id="trivJoinNickname" value="${defName}" placeholder="Ej. El Master de la Trivia" style="font-weight:800; font-size:14px;"/>
+            <label style="font-size:11px;">Tu Apodo / Nombre en Pantalla*</label>
+            <input type="text" id="trivJoinNickname" value="${defaultNick}" placeholder="Ej. Alex, Beto, Campeón" style="font-weight:800; font-size:14px;"/>
           </div>
 
-          <div class="form-group" style="margin-bottom:14px;">
+          <div class="form-group" style="margin-bottom:16px;">
             <label style="font-size:11px;">Mesa / Mesero</label>
             <input type="text" id="trivJoinWaiter" placeholder="Ej. Mesa 3 / Memo" style="font-weight:700;"/>
           </div>
@@ -205,16 +233,10 @@
             ¡Unirme a la Trivia en Vivo! 🔥
           </button>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v195.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v196.0</span></footer>
       `;
       return;
     }
-
-    // Calculate player rank in room
-    const sorted = [...allPlayers].sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
-    const myRankIdx = sorted.findIndex(p => p.id === u.uid);
-    const myRank = myRankIdx >= 0 ? myRankIdx + 1 : 1;
-    const totalScore = myPlayerDoc.totalScore || 0;
 
     // Header Hero for Active Mobile Player
     const playerHeroHtml = `
@@ -227,7 +249,7 @@
               <div style="font-size:10px; color:var(--text-muted);">Puesto #${myRank} de ${sorted.length}</div>
             </div>
           </div>
-          <div class="trivia-score-pill">
+          <div id="triviaMobileHeroScore" class="trivia-score-pill">
             <span>⭐ ${totalScore}</span> <span style="font-size:10px; opacity:0.8;">PTS</span>
           </div>
         </div>
@@ -275,13 +297,12 @@
     }
 
     container.innerHTML = `
-      ${selectorHtml}
       ${playerHeroHtml}
       ${phaseContentHtml}
-      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v195.0</span></footer>
+      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v196.0</span></footer>
     `;
 
-    // Start mobile countdown interval or timer bar based on active phase
+    // Start live countdown or question progress bar
     if (status === 'countdown') {
       startMobileCountdown(g);
     } else if (status === 'question') {
@@ -293,7 +314,6 @@
     }
   }
 
-  let mobileCountdownInterval = null;
   function startMobileCountdown(game) {
     if (mobileCountdownInterval) clearInterval(mobileCountdownInterval);
     const clockEl = document.getElementById('mobileCountdownNum');
@@ -306,7 +326,7 @@
       if (remaining <= 0) {
         clearInterval(mobileCountdownInterval);
       }
-    }, 200);
+    }, 150);
   }
 
   // Mobile Question Phase (Question Text + 4 Giant Touch Buttons)
@@ -330,32 +350,31 @@
         <div class="trivia-mobile-q-text">${q.q || ''}</div>
       </div>
 
-      ${hasAnswered ? `
-        <div style="background:rgba(255,209,0,0.1); border:1.5px solid #ffd100; border-radius:14px; padding:16px; text-align:center; margin-bottom:12px;">
-          <span style="font-size:24px;">✓</span>
-          <h4 style="color:#ffd100; margin:4px 0 2px 0;">¡Respuesta Enviada!</h4>
-          <p class="hint-text" style="font-size:12px; margin:0;">Elegiste la opción <strong>[${myAnswer.choice}]</strong>. Espera la revelación en la TV.</p>
-        </div>
-      ` : ''}
+      <!-- Answer Confirmation Box -->
+      <div id="triviaMobileAnswerSubmittedBox" style="display:${hasAnswered ? 'block' : 'none'}; background:rgba(255,209,0,0.1); border:1.5px solid #ffd100; border-radius:14px; padding:14px; text-align:center; margin-bottom:12px;">
+        <span style="font-size:22px;">✓</span>
+        <h4 style="color:#ffd100; margin:2px 0;">¡Respuesta Registrada!</h4>
+        <p class="hint-text" style="font-size:12px; margin:0;">Elegiste la opción <strong>[${myAnswer?.choice || ''}]</strong>. Mira la TV para los resultados.</p>
+      </div>
 
       <!-- 4 Giant Thumb Buttons -->
       <div class="trivia-buttons-grid">
-        <button type="button" class="trivia-btn-choice btn-a ${myAnswer?.choice === 'A' ? 'selected' : (hasAnswered ? 'disabled' : '')}" onclick="window.submitTriviaMobileAnswer('${game.id}', ${currIdx}, 'A')">
+        <button type="button" id="btnMobileChoice_A" class="trivia-btn-choice btn-a ${myAnswer?.choice === 'A' ? 'selected' : (hasAnswered ? 'disabled' : '')}" onclick="window.submitTriviaMobileAnswer('${game.id}', ${currIdx}, 'A')">
           <span class="trivia-btn-letter">🔴 A</span>
           <span class="trivia-btn-text">${q.a || ''}</span>
         </button>
 
-        <button type="button" class="trivia-btn-choice btn-b ${myAnswer?.choice === 'B' ? 'selected' : (hasAnswered ? 'disabled' : '')}" onclick="window.submitTriviaMobileAnswer('${game.id}', ${currIdx}, 'B')">
+        <button type="button" id="btnMobileChoice_B" class="trivia-btn-choice btn-b ${myAnswer?.choice === 'B' ? 'selected' : (hasAnswered ? 'disabled' : '')}" onclick="window.submitTriviaMobileAnswer('${game.id}', ${currIdx}, 'B')">
           <span class="trivia-btn-letter">🔵 B</span>
           <span class="trivia-btn-text">${q.b || ''}</span>
         </button>
 
-        <button type="button" class="trivia-btn-choice btn-c ${myAnswer?.choice === 'C' ? 'selected' : (hasAnswered ? 'disabled' : '')}" onclick="window.submitTriviaMobileAnswer('${game.id}', ${currIdx}, 'C')">
+        <button type="button" id="btnMobileChoice_C" class="trivia-btn-choice btn-c ${myAnswer?.choice === 'C' ? 'selected' : (hasAnswered ? 'disabled' : '')}" onclick="window.submitTriviaMobileAnswer('${game.id}', ${currIdx}, 'C')">
           <span class="trivia-btn-letter">🟡 C</span>
           <span class="trivia-btn-text">${q.c || ''}</span>
         </button>
 
-        <button type="button" class="trivia-btn-choice btn-d ${myAnswer?.choice === 'D' ? 'selected' : (hasAnswered ? 'disabled' : '')}" onclick="window.submitTriviaMobileAnswer('${game.id}', ${currIdx}, 'D')">
+        <button type="button" id="btnMobileChoice_D" class="trivia-btn-choice btn-d ${myAnswer?.choice === 'D' ? 'selected' : (hasAnswered ? 'disabled' : '')}" onclick="window.submitTriviaMobileAnswer('${game.id}', ${currIdx}, 'D')">
           <span class="trivia-btn-letter">🟢 D</span>
           <span class="trivia-btn-text">${q.d || ''}</span>
         </button>
@@ -368,7 +387,7 @@
     const bar = document.getElementById('triviaMobileTimerBar');
     if (!bar) return;
 
-    const timeLimit = game.timePerQuestion || 15;
+    const timeLimit = game.timePerQuestion || 8;
     const startTime = game.questionStartTime || Date.now();
 
     mobileTimerInterval = setInterval(() => {
@@ -520,6 +539,20 @@
     // Check if already answered
     if (myPlayerDoc?.answers?.[questionIndex]) return;
 
+    // Immediate optimistic UI update
+    ['a', 'b', 'c', 'd'].forEach(letter => {
+      const btn = document.getElementById(`btnMobileChoice_${letter.toUpperCase()}`);
+      if (btn) {
+        if (letter.toUpperCase() === choiceKey) {
+          btn.classList.add('selected');
+        } else {
+          btn.classList.add('disabled');
+        }
+      }
+    });
+    const fbBox = document.getElementById('triviaMobileAnswerSubmittedBox');
+    if (fbBox) fbBox.style.display = 'block';
+
     // Haptic feedback for tactile thumb feel
     if (navigator.vibrate) navigator.vibrate(50);
 
@@ -527,35 +560,46 @@
     const correct = (q.correct || 'A').toUpperCase();
     const isCorrect = choiceKey.toUpperCase() === correct;
 
-    const timeLimit = currentTrivia.timePerQuestion || 15;
+    const timeLimit = currentTrivia.timePerQuestion || 8;
     const startTime = currentTrivia.questionStartTime || Date.now();
     const responseTimeMs = Math.max(100, Date.now() - startTime);
 
-    // Calculate Points with Kahoot/Crowdpurr speed formula
+    // Calculate Points with Kahoot/Crowdpurr speed formula (500 to 1000 pts)
     let pointsEarned = 0;
     if (isCorrect) {
       const timeLimitMs = timeLimit * 1000;
       const speedFactor = Math.max(0, Math.min(1, 1 - (responseTimeMs / (timeLimitMs * 2))));
       pointsEarned = Math.round(1000 * speedFactor);
-      if (pointsEarned < 500) pointsEarned = 500; // minimum guarantee for correct before timeout
+      if (pointsEarned < 500) pointsEarned = 500;
     }
 
-    const newTotal = (myPlayerDoc?.totalScore || 0) + pointsEarned;
-
     try {
-      await db.collection('trivia_games').doc(gameId).collection('players').doc(u.uid).update({
-        totalScore: newTotal,
-        [`answers.${questionIndex}`]: {
-          choice: choiceKey.toUpperCase(),
+      const pRef = db.collection('trivia_games').doc(gameId).collection('players').doc(u.uid);
+      await db.runTransaction(async tx => {
+        const pDoc = await tx.get(pRef);
+        const pData = pDoc.exists ? pDoc.data() : {};
+        const answers = pData.answers || {};
+
+        if (answers[questionIndex]) return; // Already answered
+
+        answers[questionIndex] = {
+          choice: choiceKey,
           isCorrect: isCorrect,
-          responseTimeMs: responseTimeMs,
           pointsEarned: pointsEarned,
+          responseTimeMs: responseTimeMs,
           answeredAt: Date.now()
-        }
+        };
+
+        const currentTotal = pData.totalScore || 0;
+        const newTotal = currentTotal + pointsEarned;
+
+        tx.update(pRef, {
+          answers: answers,
+          totalScore: newTotal
+        });
       });
-      console.log(`[TriviaPlayer] Respuesta enviada: [${choiceKey}] (${isCorrect ? '+' + pointsEarned + ' pts' : '0 pts'})`);
     } catch (err) {
-      alert('Error al enviar respuesta: ' + err.message);
+      console.error('[TriviaPlayer] Error saving answer:', err);
     }
   };
 
