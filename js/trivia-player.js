@@ -247,7 +247,7 @@
               🚀 Entrar con Google
             </button>
           </section>
-          <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v209.0</span></footer>
+          <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v210.0</span></footer>
         `;
       }
       return;
@@ -296,7 +296,7 @@
               ¡Unirme a la Trivia en Vivo! 🔥
             </button>
           </section>
-          <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v209.0</span></footer>
+          <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v210.0</span></footer>
         `;
       }
       return;
@@ -394,7 +394,7 @@
     container.innerHTML = `
       ${playerHeroHtml}
       ${phaseContentHtml}
-      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v209.0</span></footer>
+      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v210.0</span></footer>
     `;
   }
 
