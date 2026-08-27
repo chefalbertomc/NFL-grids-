@@ -8,7 +8,7 @@
   let playersMap = {};
   let timerInterval = null;
   let autoFlowCoordinatorTimer = null;
-  let podiumSequenceStep = 0;
+  let isTransitioningPhase = false;
   let leaderboardLoopPageIndex = 0;
   let leaderboardLoopInterval = null;
 
@@ -22,7 +22,8 @@
       db = window.db;
       gameId = getGameIdFromUrl();
       if (!gameId) {
-        loadLatestTriviaGame();
+        // Show interactive TV room selector & PIN pad
+        showTVRoomSelector();
       } else {
         listenToGame(gameId);
       }
@@ -31,74 +32,145 @@
     }
   }
 
-  function loadLatestTriviaGame() {
-    if (!db) return;
-    try {
-      db.collection('trivia_games').onSnapshot(snap => {
-        if (!snap.empty) {
-          const games = [];
-          snap.forEach(doc => games.push({ id: doc.id, ...doc.data() }));
-          games.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-          if (games.length > 0) {
-            gameId = games[0].id;
-            listenToGame(gameId);
-          } else {
-            renderNoGameScreen();
-          }
-        } else {
-          renderNoGameScreen();
-        }
-      }, err => {
-        console.error('[TriviaTV] Error loading games:', err);
-        renderNoGameScreen();
-      });
-    } catch (e) {
-      console.error('[TriviaTV] Init error:', e);
+  // =========================================================================
+  // TV ROOM SELECTOR & REMOTE-FRIENDLY PIN PAD
+  // =========================================================================
+  window.showTVRoomSelector = function() {
+    if (timerInterval) clearInterval(timerInterval);
+    if (autoFlowCoordinatorTimer) clearInterval(autoFlowCoordinatorTimer);
+    if (leaderboardLoopInterval) clearInterval(leaderboardLoopInterval);
+
+    const main = document.getElementById('tvMainContent');
+    const titleEl = document.getElementById('tvGameTitle');
+    const pinEl = document.getElementById('tvPinBadge');
+
+    if (titleEl) titleEl.textContent = '📍 Selecciona una Sala de Trivia';
+    if (pinEl) pinEl.textContent = 'PIN: ----';
+
+    if (!db || !main) return;
+
+    db.collection('trivia_games').get().then(snap => {
+      const games = [];
+      snap.forEach(doc => games.push({ id: doc.id, ...doc.data() }));
+      games.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+      let gamesCardsHtml = '';
+      if (games.length === 0) {
+        gamesCardsHtml = `
+          <div style="background:rgba(255,255,255,0.05); padding:30px; border-radius:18px; text-align:center; border:2px dashed rgba(255,209,0,0.3); grid-column:1/-1;">
+            <p style="font-size:22px; color:var(--text-muted); margin:0;">No hay salas de trivia creadas actualmente.</p>
+            <p style="font-size:16px; color:#ffd100; margin-top:8px;">Crea una sala desde el Panel de Administración para proyectar aquí.</p>
+          </div>
+        `;
+      } else {
+        games.forEach(gm => {
+          gamesCardsHtml += `
+            <div onclick="window.selectTVGame('${gm.id}')" style="background:rgba(255,255,255,0.07); border:2.5px solid rgba(255,209,0,0.4); border-radius:20px; padding:24px 28px; cursor:pointer; text-align:left; transition:all 0.25s ease; box-shadow:0 8px 30px rgba(0,0,0,0.5);" onmouseover="this.style.borderColor='#ffd100'; this.style.transform='scale(1.02)';" onmouseout="this.style.borderColor='rgba(255,209,0,0.4)'; this.style.transform='scale(1)';">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span class="badge" style="background:#ffd100; color:#000; font-size:18px; font-weight:950; padding:6px 14px; border-radius:10px; font-family:'Outfit', sans-serif;">PIN: ${gm.pin || '----'}</span>
+                <span style="font-size:15px; color:#00e676; font-weight:800;">📍 ${gm.store || 'Sucursal'}</span>
+              </div>
+              <h3 style="margin:0 0 8px 0; font-size:26px; font-weight:950; color:#ffffff; font-family:'Outfit', sans-serif;">${gm.title}</h3>
+              <div style="font-size:16px; color:#ffd100; font-weight:800;">
+                ⏱️ ${gm.timePerQuestion || 8}s por pregunta • 📋 ${(gm.questions || []).length} preguntas
+              </div>
+              <div style="margin-top:14px; text-align:right;">
+                <button type="button" class="btn btn-primary" style="font-size:16px; font-weight:900; padding:8px 20px;">
+                  Proyectar Sala 🖥️
+                </button>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      main.innerHTML = `
+        <div style="max-width:1300px; margin:0 auto; width:100%; text-align:center;">
+          <h2 style="font-size:42px; font-weight:950; color:#ffd100; margin:0 0 10px 0; font-family:'Outfit', sans-serif;">
+            📺 SELECCIONA LA SALA PARA PROYECTAR
+          </h2>
+          <p class="hint-text" style="font-size:18px; margin:0 0 28px 0;">Elige una sala activa o ingresa el PIN de 4 dígitos:</p>
+
+          <!-- Quick PIN Input Row -->
+          <div style="display:flex; justify-content:center; align-items:center; gap:14px; margin-bottom:34px; background:rgba(0,0,0,0.5); padding:16px 28px; border-radius:20px; border:2px solid rgba(255,209,0,0.3); max-width:600px; margin-left:auto; margin-right:auto;">
+            <label style="font-size:20px; font-weight:900; color:#ffd100;">Ingresar PIN:</label>
+            <input type="text" id="tvPinDirectInput" maxlength="4" placeholder="4 Dígitos" style="font-size:28px; font-weight:950; text-align:center; width:170px; letter-spacing:4px; padding:8px; border-radius:12px; border:2px solid #ffd100; background:#0e1420; color:#ffd100; font-family:'Outfit', sans-serif;" onkeypress="if(event.key==='Enter') window.submitDirectPin();" />
+            <button type="button" onclick="window.submitDirectPin()" class="btn btn-primary" style="font-size:18px; font-weight:900; padding:10px 24px;">
+              Entrar 🚀
+            </button>
+          </div>
+
+          <!-- Active Rooms Grid -->
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap:20px;">
+            ${gamesCardsHtml}
+          </div>
+        </div>
+      `;
+    }).catch(err => {
+      console.error('[TriviaTV] Error loading rooms:', err);
+    });
+  };
+
+  window.selectTVGame = function(targetGameId) {
+    gameId = targetGameId;
+    // Update URL without reload
+    const newUrl = `${window.location.pathname}?gameId=${targetGameId}`;
+    window.history.pushState({ path: newUrl }, '', newUrl);
+    listenToGame(targetGameId);
+  };
+
+  window.submitDirectPin = function() {
+    const pinVal = document.getElementById('tvPinDirectInput')?.value.trim();
+    if (!pinVal || pinVal.length < 4) {
+      alert('Ingresa el PIN de 4 dígitos de la trivia.');
+      return;
     }
-  }
+    db.collection('trivia_games').where('pin', '==', pinVal).limit(1).get().then(snap => {
+      if (!snap.empty) {
+        window.selectTVGame(snap.docs[0].id);
+      } else {
+        alert(`No se encontró ninguna sala de trivia con el PIN ${pinVal}.`);
+      }
+    });
+  };
 
-  function listenToGame(gId) {
-    if (!db || !gId) return;
+  // =========================================================================
+  // LISTEN TO ACTIVE TRIVIA GAME
+  // =========================================================================
+  function listenToGame(targetId) {
+    if (!db || !targetId) return;
 
-    // Check if gId is a 4-digit PIN instead of document ID
-    if (/^\d{4}$/.test(gId)) {
-      db.collection('trivia_games').where('pin', '==', gId).limit(1).onSnapshot(snap => {
+    if (/^\d{4}$/.test(targetId)) {
+      db.collection('trivia_games').where('pin', '==', targetId).limit(1).onSnapshot(snap => {
         if (!snap.empty) {
-          const doc = snap.docs[0];
-          gameId = doc.id;
+          gameId = snap.docs[0].id;
           setupGameListeners(gameId);
         } else {
-          renderNoGameScreen();
+          showTVRoomSelector();
         }
       });
       return;
     }
 
-    setupGameListeners(gId);
+    setupGameListeners(targetId);
   }
 
   function setupGameListeners(targetId) {
-    // 1. Listen to game state
+    // 1. Listen to game state in real time
     db.collection('trivia_games').doc(targetId).onSnapshot(doc => {
       if (!doc.exists) {
-        renderNoGameScreen();
+        showTVRoomSelector();
         return;
       }
-      const prevStatus = gameData?.status;
       gameData = { id: doc.id, ...doc.data() };
+      isTransitioningPhase = false;
 
       updateHeaderInfo();
-
-      // Reset podium sequence if entering podium afresh
-      if (gameData.status === 'podium' && prevStatus !== 'podium') {
-        podiumSequenceStep = 0;
-      }
-
       renderCurrentPhase();
       runAutoFlowCoordinator();
     }, err => console.error('[TriviaTV] Error loading game:', err));
 
-    // 2. Listen to connected players
+    // 2. Listen to connected players in real time
     db.collection('trivia_games').doc(targetId).collection('players').onSnapshot(snap => {
       playersMap = {};
       snap.forEach(pDoc => {
@@ -112,37 +184,23 @@
     if (!gameData) return;
     const titleEl = document.getElementById('tvGameTitle');
     const pinEl = document.getElementById('tvPinBadge');
-    const urlEl = document.getElementById('tvJoinUrlDisplay') || document.getElementById('tvJoinUrl');
+    const urlEl = document.getElementById('tvJoinUrlDisplay');
 
     if (titleEl) titleEl.textContent = `📍 ${gameData.store || 'Sucursal'} • ${gameData.title}`;
     if (pinEl) pinEl.textContent = `PIN: ${gameData.pin || gameData.id}`;
     if (urlEl) urlEl.textContent = `${window.location.host || 'drinks-wins.web.app'}`;
   }
 
-  function renderNoGameScreen() {
-    const main = document.getElementById('tvMainContent');
-    if (!main) return;
-    main.innerHTML = `
-      <div style="text-align:center; padding:80px 20px;">
-        <span style="font-size:72px;">🧠</span>
-        <h2 style="color:#ffd100; font-size:32px; margin-top:16px; font-family:'Outfit', sans-serif;">Esperando Inicio de Trivia en Vivo...</h2>
-        <p class="hint-text" style="font-size:17px; max-width:540px; margin:10px auto 24px auto;">
-          Inicia o selecciona una sala de Trivia desde el Panel de Administración de Drinks & Wins.
-        </p>
-      </div>
-    `;
-  }
-
   // =========================================================================
-  // AUTOMATIC GAME FLOW COORDINATOR
+  // ROBUST SERVER-SYNCHRONIZED AUTO FLOW COORDINATOR (NO INFINITE LOOPS)
   // =========================================================================
   function runAutoFlowCoordinator() {
     if (autoFlowCoordinatorTimer) clearInterval(autoFlowCoordinatorTimer);
     if (!gameData || !db) return;
 
-    // Only coordinate if status is active
     autoFlowCoordinatorTimer = setInterval(async () => {
-      if (!gameData) return;
+      if (!gameData || isTransitioningPhase) return;
+
       const status = gameData.status;
       const now = Date.now();
       const currIdx = gameData.currentQuestionIndex || 0;
@@ -153,15 +211,17 @@
       if (status === 'countdown') {
         const startTime = gameData.countdownStartTime || now;
         const elapsed = (now - startTime) / 1000;
-        if (elapsed >= 10) {
-          clearInterval(autoFlowCoordinatorTimer);
+        if (elapsed >= 10.5) {
+          isTransitioningPhase = true;
           try {
             await db.collection('trivia_games').doc(gameData.id).update({
               status: 'question',
               currentQuestionIndex: 0,
               questionStartTime: Date.now()
             });
-          } catch (e) {}
+          } catch (e) {
+            isTransitioningPhase = false;
+          }
         }
       }
 
@@ -169,14 +229,16 @@
       else if (status === 'question') {
         const startTime = gameData.questionStartTime || now;
         const elapsed = (now - startTime) / 1000;
-        if (elapsed >= timePerQ) {
-          clearInterval(autoFlowCoordinatorTimer);
+        if (elapsed >= (timePerQ + 0.5)) {
+          isTransitioningPhase = true;
           try {
             await db.collection('trivia_games').doc(gameData.id).update({
               status: 'reveal',
               revealTime: Date.now()
             });
-          } catch (e) {}
+          } catch (e) {
+            isTransitioningPhase = false;
+          }
         }
       }
 
@@ -184,23 +246,25 @@
       else if (status === 'reveal') {
         const revealTime = gameData.revealTime || now;
         const elapsed = (now - revealTime) / 1000;
-        if (elapsed >= 6) {
-          clearInterval(autoFlowCoordinatorTimer);
+        if (elapsed >= 6.5) {
+          isTransitioningPhase = true;
           try {
             await db.collection('trivia_games').doc(gameData.id).update({
               status: 'leaderboard',
               leaderboardTime: Date.now()
             });
-          } catch (e) {}
+          } catch (e) {
+            isTransitioningPhase = false;
+          }
         }
       }
 
-      // 4. Leaderboard Phase (6 seconds display -> Next Q or Podium)
+      // 4. Leaderboard Phase (6 seconds display -> Next Question or Final Podium)
       else if (status === 'leaderboard') {
         const lbTime = gameData.leaderboardTime || now;
         const elapsed = (now - lbTime) / 1000;
-        if (elapsed >= 6) {
-          clearInterval(autoFlowCoordinatorTimer);
+        if (elapsed >= 6.5) {
+          isTransitioningPhase = true;
           if (currIdx + 1 < totalQ) {
             try {
               await db.collection('trivia_games').doc(gameData.id).update({
@@ -208,24 +272,26 @@
                 status: 'question',
                 questionStartTime: Date.now()
               });
-            } catch (e) {}
+            } catch (e) {
+              isTransitioningPhase = false;
+            }
           } else {
-            // Final Podium
+            // All questions finished -> Launch Grand Podium
             try {
               await db.collection('trivia_games').doc(gameData.id).update({
                 status: 'podium',
                 podiumTime: Date.now()
               });
-            } catch (e) {}
+            } catch (e) {
+              isTransitioningPhase = false;
+            }
           }
         }
       }
-    }, 500);
+    }, 400);
   }
 
-  // =========================================================================
-  // HOST CONTROLS TRIGGERED DIRECTLY FROM TV
-  // =========================================================================
+  // Remote Start Triggered from TV Screen
   window.startTriviaFromTV = async function() {
     if (!gameData || !db) return;
     try {
@@ -240,7 +306,7 @@
   };
 
   // =========================================================================
-  // RENDER CURRENT GAME PHASE
+  // RENDER DYNAMIC GAME PHASES (GIANT HIGH-CONTRAST RESTAURANT DISPLAY)
   // =========================================================================
   function renderCurrentPhase() {
     if (!gameData) return;
@@ -264,7 +330,7 @@
     }
   }
 
-  // 1. Lobby Phase (Giant QR Code + Connected Players + Start Button)
+  // 1. Lobby Phase (Huge 340px QR Code + Big PIN + Remote Start Button)
   function renderLobbyPhase(container) {
     if (timerInterval) clearInterval(timerInterval);
     if (leaderboardLoopInterval) clearInterval(leaderboardLoopInterval);
@@ -272,57 +338,65 @@
     const players = Object.values(playersMap);
     const origin = window.location.origin || '';
     const cleanPath = window.location.pathname.replace('trivia-tv.html', 'index.html').replace('tv.html', 'index.html');
-    const joinUrl = `${origin}${cleanPath}#tab-trivia?pin=${gameData.pin || ''}`;
-    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(joinUrl)}&color=0-0-0&bgcolor=ffd100&margin=1`;
+    
+    // Direct joining URL encoded into the QR code
+    const joinUrl = `${origin}${cleanPath}?pin=${gameData.pin || ''}#tab-trivia`;
+    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=340x340&data=${encodeURIComponent(joinUrl)}&color=0-0-0&bgcolor=ffd100&margin=2`;
 
     let playersHtml = '';
     if (players.length === 0) {
-      playersHtml = `<div style="font-size:18px; color:var(--text-muted); padding:20px 0;">Escanea el código QR o entra en tu celular para aparecer aquí...</div>`;
+      playersHtml = `<div style="font-size:22px; color:var(--text-muted); padding:20px 0;">Escanea el código QR gigante para unirte a la trivia...</div>`;
     } else {
       players.forEach(p => {
         const photoSrc = p.photoURL || p.userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nickname || p.playerName || 'J')}&background=ffd100&color=000&bold=true`;
         playersHtml += `
-          <div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.08); padding:8px 16px; border-radius:30px; border:1.5px solid rgba(255,209,0,0.3); animation:popIn 0.3s ease;">
-            <img src="${photoSrc}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:2px solid #ffd100;" alt="${p.nickname}" onerror="this.src='img/logo.jpg'"/>
-            <span style="font-size:16px; font-weight:900; color:#ffffff;">${p.nickname || p.playerName}</span>
+          <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.1); padding:10px 20px; border-radius:30px; border:2px solid rgba(255,209,0,0.4); animation:popIn 0.3s ease;">
+            <img src="${photoSrc}" style="width:44px; height:44px; border-radius:50%; object-fit:cover; border:2.5px solid #ffd100;" alt="${p.nickname}" onerror="this.src='img/logo.jpg'"/>
+            <span style="font-size:20px; font-weight:950; color:#ffffff;">${p.nickname || p.playerName}</span>
           </div>
         `;
       });
     }
 
     container.innerHTML = `
-      <div style="text-align:center; padding:10px 0;">
-        <div style="display:flex; align-items:center; justify-content:center; gap:40px; flex-wrap:wrap; background:rgba(0,0,0,0.45); padding:28px 36px; border-radius:24px; border:2px solid rgba(255,209,0,0.35); box-shadow:0 12px 40px rgba(0,0,0,0.7); max-width:980px; margin:0 auto;">
-          <!-- Giant High Contrast QR Code -->
+      <div style="text-align:center; padding:10px 0; width:100%;">
+        <div style="display:flex; align-items:center; justify-content:center; gap:60px; flex-wrap:wrap; background:rgba(0,0,0,0.55); padding:36px 48px; border-radius:32px; border:3px solid #ffd100; box-shadow:0 15px 50px rgba(0,0,0,0.85); max-width:1250px; margin:0 auto;">
+          <!-- Giant QR Code -->
           <div style="text-align:center;">
-            <img src="${qrApiUrl}" alt="QR de Acceso" class="tv-qr-giant" style="display:block; margin:0 auto;" />
-            <div style="font-size:14px; font-weight:950; color:#ffd100; margin-top:10px; letter-spacing:0.5px;">ESCANEA CON TU CELULAR</div>
+            <img src="${qrApiUrl}" alt="QR de Acceso" class="tv-qr-giant" />
+            <div style="font-size:20px; font-weight:950; color:#ffd100; margin-top:14px; letter-spacing:1px;">
+              📱 ESCANEA CON TU CÁMARA
+            </div>
           </div>
 
           <!-- Instructions & Start Button -->
-          <div style="text-align:left; max-width:440px;">
-            <span class="badge" style="background:#ffd100; color:#000; font-size:13px; font-weight:950; padding:4px 12px; border-radius:8px;">1. ENTRA A LA APP</span>
-            <h2 style="font-size:32px; font-weight:950; color:#ffffff; margin:10px 0 6px 0; font-family:'Outfit', sans-serif;">¡Preparen sus Celulares!</h2>
-            <p style="font-size:15.5px; color:#e0e0e0; line-height:1.4; margin-bottom:12px;">
-              Contesta cada pregunta en tu celular en tiempo real. ¡Los más rápidos se llevan más puntos!
+          <div style="text-align:left; max-width:560px;">
+            <div style="display:inline-block; background:#ffd100; color:#000; font-size:20px; font-weight:950; padding:6px 18px; border-radius:10px; margin-bottom:12px; font-family:'Outfit', sans-serif;">
+              PASO 1: ENTRA AL JUEGO
+            </div>
+            <h2 style="font-size:44px; font-weight:950; color:#ffffff; margin:0 0 10px 0; font-family:'Outfit', sans-serif; line-height:1.15;">
+              ¡Preparen sus Celulares para Jugar!
+            </h2>
+            <p style="font-size:20px; color:#e0e0e0; line-height:1.4; margin-bottom:18px;">
+              Contesta cada pregunta en tu celular lo más rápido posible. ¡Entre más rápido aciertes, más puntos ganas!
             </p>
-            <div style="font-size:16px; color:#00e676; font-weight:900; margin-bottom:16px;">
+            <div style="font-size:22px; color:#00e676; font-weight:950; margin-bottom:24px;">
               👥 <strong>${players.length}</strong> Jugadores Conectados en el Bar
             </div>
 
-            <!-- Start Trivia Button right on TV Screen -->
-            <button type="button" onclick="window.startTriviaFromTV()" class="btn btn-primary" style="padding:14px 28px; font-size:18px; font-weight:950; background:linear-gradient(135deg, #ffd100, #ff9900); color:#000; border:none; border-radius:14px; box-shadow:0 0 25px rgba(255,209,0,0.55); cursor:pointer; width:100%;">
+            <!-- Big Start Button on TV -->
+            <button type="button" onclick="window.startTriviaFromTV()" class="btn btn-primary" style="padding:18px 36px; font-size:24px; font-weight:950; background:linear-gradient(135deg, #ffd100, #ff9900); color:#000; border:none; border-radius:18px; box-shadow:0 0 35px rgba(255,209,0,0.7); cursor:pointer; width:100%; letter-spacing:0.5px;">
               ▶️ Empezar Trivia (10s) 🔥
             </button>
           </div>
         </div>
 
-        <!-- Connected Players Grid -->
-        <div style="width:100%; max-width:980px; margin:24px auto 0 auto; text-align:left;">
-          <h3 style="font-size:16px; font-weight:900; color:#ffd100; text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;">
-            🔥 Jugadores Listos (${players.length}):
+        <!-- Connected Players Live Grid -->
+        <div style="width:100%; max-width:1250px; margin:28px auto 0 auto; text-align:left;">
+          <h3 style="font-size:22px; font-weight:950; color:#ffd100; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:14px;">
+            🔥 Jugadores Conectados (${players.length}):
           </h3>
-          <div style="display:flex; flex-wrap:wrap; gap:10px; max-height:160px; overflow-y:auto;">
+          <div style="display:flex; flex-wrap:wrap; gap:12px; max-height:200px; overflow-y:auto;">
             ${playersHtml}
           </div>
         </div>
@@ -330,21 +404,21 @@
     `;
   }
 
-  // 2. Countdown Phase (10 to 1 Fullscreen Animation)
+  // 2. Countdown Phase (200px Giant Number Pulsating)
   function renderCountdownPhase(container) {
     if (timerInterval) clearInterval(timerInterval);
     const startTime = gameData.countdownStartTime || Date.now();
 
     container.innerHTML = `
-      <div style="text-align:center; padding:50px 20px;">
-        <div style="font-size:22px; font-weight:900; color:#ffd100; text-transform:uppercase; letter-spacing:2px; margin-bottom:16px;">
+      <div style="text-align:center; padding:40px 20px;">
+        <div style="font-size:30px; font-weight:950; color:#ffd100; text-transform:uppercase; letter-spacing:3px; margin-bottom:18px;">
           ⚡ ¡ATENCIÓN A TODAS LAS MESAS! ⚡
         </div>
-        <h2 style="font-size:38px; font-weight:950; color:#ffffff; margin:0 0 20px 0; font-family:'Outfit', sans-serif;">
+        <h2 style="font-size:54px; font-weight:950; color:#ffffff; margin:0 0 24px 0; font-family:'Outfit', sans-serif;">
           LA TRIVIA VA A COMENZAR EN:
         </h2>
         <div id="tvCountdownBigNum" class="tv-countdown-number">10</div>
-        <p style="font-size:20px; color:#00e676; font-weight:900; margin-top:24px;">
+        <p style="font-size:28px; color:#00e676; font-weight:950; margin-top:28px; letter-spacing:0.5px;">
           ¡Preparen sus dedos para contestar rápido! 🚀
         </p>
       </div>
@@ -359,7 +433,7 @@
     }, 200);
   }
 
-  // 3. Question Phase (Big 38px Text, 4 Option Boxes, 5/8/12s Clock)
+  // 3. Question Phase (Huge 52px Question, 4 High-Contrast 34px Options, Big 100px Clock)
   function renderQuestionPhase(container) {
     const currIdx = gameData.currentQuestionIndex || 0;
     const totalQ = (gameData.questions || []).length || 10;
@@ -371,40 +445,41 @@
     const answeredCount = players.filter(p => p.answers && p.answers[currIdx] !== undefined).length;
 
     container.innerHTML = `
-      <div style="max-width:1250px; margin:0 auto; width:100%;">
+      <div style="max-width:1450px; margin:0 auto; width:100%;">
         <!-- Question Box -->
-        <div style="background:rgba(0,0,0,0.5); border:2px solid rgba(255,209,0,0.4); border-radius:24px; padding:24px 36px; margin-bottom:24px; position:relative; box-shadow:0 12px 40px rgba(0,0,0,0.6); text-align:center;">
-          <div id="tvCountdownClock" style="position:absolute; top:20px; right:28px; width:74px; height:74px; border-radius:50%; background:#101726; border:4px solid #ffd100; display:flex; align-items:center; justify-content:center; font-size:32px; font-weight:950; color:#ffd100; font-family:'Outfit', sans-serif; box-shadow:0 0 20px rgba(255,209,0,0.4);">
+        <div style="background:rgba(0,0,0,0.6); border:3px solid #ffd100; border-radius:30px; padding:32px 48px; margin-bottom:28px; position:relative; box-shadow:0 15px 50px rgba(0,0,0,0.8); text-align:center;">
+          <!-- Giant Clock -->
+          <div id="tvCountdownClock" style="position:absolute; top:24px; right:32px; width:95px; height:95px; border-radius:50%; background:#101726; border:5px solid #ffd100; display:flex; align-items:center; justify-content:center; font-size:44px; font-weight:950; color:#ffd100; font-family:'Outfit', sans-serif; box-shadow:0 0 30px rgba(255,209,0,0.6);">
             ${timeLimit}
           </div>
 
-          <div style="font-size:15px; font-weight:900; color:#ffd100; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:10px;">
+          <div style="font-size:22px; font-weight:950; color:#ffd100; text-transform:uppercase; letter-spacing:2px; margin-bottom:12px;">
             PREGUNTA ${currIdx + 1} DE ${totalQ}
           </div>
-          <h2 class="tv-question-text" style="margin:0 0 14px 0;">
+          <h2 class="tv-question-text" style="margin:0 0 16px 0;">
             ${q.q || 'Cargando pregunta...'}
           </h2>
-          <div style="display:inline-flex; align-items:center; gap:10px; background:rgba(255,255,255,0.08); padding:6px 16px; border-radius:20px;">
-            <span style="font-size:14px; font-weight:800; color:#00e676;">⚡ ${answeredCount} de ${players.length} Jugadores han respondido</span>
+          <div style="display:inline-flex; align-items:center; gap:12px; background:rgba(255,255,255,0.12); padding:8px 22px; border-radius:24px;">
+            <span style="font-size:18px; font-weight:900; color:#00e676;">⚡ ${answeredCount} de ${players.length} Jugadores han respondido</span>
           </div>
         </div>
 
-        <!-- 4 Option Cards -->
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+        <!-- 4 Giant Option Cards -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
           <div class="tv-option-box opt-a">
-            <span style="font-size:32px; font-weight:950;">🔴 A</span>
+            <span style="font-size:42px; font-weight:950;">🔴 A</span>
             <span>${q.a || ''}</span>
           </div>
           <div class="tv-option-box opt-b">
-            <span style="font-size:32px; font-weight:950;">🔵 B</span>
+            <span style="font-size:42px; font-weight:950;">🔵 B</span>
             <span>${q.b || ''}</span>
           </div>
           <div class="tv-option-box opt-c">
-            <span style="font-size:32px; font-weight:950;">🟡 C</span>
+            <span style="font-size:42px; font-weight:950;">🟡 C</span>
             <span>${q.c || ''}</span>
           </div>
           <div class="tv-option-box opt-d">
-            <span style="font-size:32px; font-weight:950;">🟢 D</span>
+            <span style="font-size:42px; font-weight:950;">🟢 D</span>
             <span>${q.d || ''}</span>
           </div>
         </div>
@@ -424,7 +499,7 @@
         if (remaining <= 3) {
           clockEl.style.borderColor = '#ff0033';
           clockEl.style.color = '#ff0033';
-          clockEl.style.boxShadow = '0 0 30px rgba(255,0,51,0.9)';
+          clockEl.style.boxShadow = '0 0 35px rgba(255,0,51,1)';
         }
       }
 
@@ -432,7 +507,7 @@
     }, 200);
   }
 
-  // 4. Reveal Phase (Correct Answer Highlight + Expanded Fact / Explicación)
+  // 4. Reveal Phase (Emerald Green Correct Answer + 32px Gold Fact Box)
   function renderRevealPhase(container) {
     if (timerInterval) clearInterval(timerInterval);
 
@@ -453,55 +528,55 @@
     const pct = key => totalAnswers > 0 ? Math.round((counts[key] / totalAnswers) * 100) : 0;
 
     container.innerHTML = `
-      <div style="max-width:1250px; margin:0 auto; width:100%;">
+      <div style="max-width:1450px; margin:0 auto; width:100%;">
         <!-- Question Box with Correct Badge & Fact -->
-        <div style="background:rgba(0,0,0,0.5); border:2px solid #00e676; border-radius:24px; padding:22px 36px; margin-bottom:20px; box-shadow:0 0 30px rgba(0,230,118,0.3); text-align:center;">
-          <div style="font-size:15px; font-weight:900; color:#00e676; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:8px;">
+        <div style="background:rgba(0,0,0,0.6); border:3px solid #00e676; border-radius:30px; padding:28px 48px; margin-bottom:24px; box-shadow:0 0 40px rgba(0,230,118,0.4); text-align:center;">
+          <div style="font-size:22px; font-weight:950; color:#00e676; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px;">
             ✓ RESPUESTA REVELADA • PREGUNTA ${currIdx + 1} DE ${totalQ}
           </div>
-          <h2 class="tv-question-text" style="font-size:32px; margin:0 0 12px 0;">
+          <h2 class="tv-question-text" style="font-size:44px; margin:0 0 16px 0;">
             ${q.q || ''}
           </h2>
 
           <!-- Expanded Real Explanation / Dato Curioso -->
-          <div style="background:rgba(255,209,0,0.12); border:1.5px solid #ffd100; border-radius:14px; padding:10px 20px; display:inline-block; max-width:90%; text-align:left;">
-            <div style="font-size:15px; color:#ffd100; font-weight:900;">
+          <div style="background:rgba(255,209,0,0.15); border:2.5px solid #ffd100; border-radius:18px; padding:14px 28px; display:inline-block; max-width:92%; text-align:left; box-shadow:0 4px 20px rgba(0,0,0,0.4);">
+            <div style="font-size:22px; color:#ffd100; font-weight:950; line-height:1.35;">
               💡 <strong>Dato Curioso / Explicación:</strong> ${q.exp || '¡Respuesta correcta verificada!'}
             </div>
           </div>
         </div>
 
         <!-- 4 Option Cards with Correct Highlight and Stats -->
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
           <div class="tv-option-box opt-a ${correct === 'A' ? 'correct-highlight' : 'wrong-dimmed'}">
-            <span style="font-size:32px; font-weight:950;">🔴 A</span>
+            <span style="font-size:42px; font-weight:950;">🔴 A</span>
             <div style="flex:1;">
               <div>${q.a || ''} ${correct === 'A' ? '⭐ (CORRECTA)' : ''}</div>
-              <div style="font-size:13px; opacity:0.85; margin-top:2px;">${counts['A']} votos (${pct('A')}%)</div>
+              <div style="font-size:16px; opacity:0.9; margin-top:4px;">${counts['A']} votos (${pct('A')}%)</div>
             </div>
           </div>
 
           <div class="tv-option-box opt-b ${correct === 'B' ? 'correct-highlight' : 'wrong-dimmed'}">
-            <span style="font-size:32px; font-weight:950;">🔵 B</span>
+            <span style="font-size:42px; font-weight:950;">🔵 B</span>
             <div style="flex:1;">
               <div>${q.b || ''} ${correct === 'B' ? '⭐ (CORRECTA)' : ''}</div>
-              <div style="font-size:13px; opacity:0.85; margin-top:2px;">${counts['B']} votos (${pct('B')}%)</div>
+              <div style="font-size:16px; opacity:0.9; margin-top:4px;">${counts['B']} votos (${pct('B')}%)</div>
             </div>
           </div>
 
           <div class="tv-option-box opt-c ${correct === 'C' ? 'correct-highlight' : 'wrong-dimmed'}">
-            <span style="font-size:32px; font-weight:950;">🟡 C</span>
+            <span style="font-size:42px; font-weight:950;">🟡 C</span>
             <div style="flex:1;">
               <div>${q.c || ''} ${correct === 'C' ? '⭐ (CORRECTA)' : ''}</div>
-              <div style="font-size:13px; opacity:0.85; margin-top:2px;">${counts['C']} votos (${pct('C')}%)</div>
+              <div style="font-size:16px; opacity:0.9; margin-top:4px;">${counts['C']} votos (${pct('C')}%)</div>
             </div>
           </div>
 
           <div class="tv-option-box opt-d ${correct === 'D' ? 'correct-highlight' : 'wrong-dimmed'}">
-            <span style="font-size:32px; font-weight:950;">🟢 D</span>
+            <span style="font-size:42px; font-weight:950;">🟢 D</span>
             <div style="flex:1;">
               <div>${q.d || ''} ${correct === 'D' ? '⭐ (CORRECTA)' : ''}</div>
-              <div style="font-size:13px; opacity:0.85; margin-top:2px;">${counts['D']} votos (${pct('D')}%)</div>
+              <div style="font-size:16px; opacity:0.9; margin-top:4px;">${counts['D']} votos (${pct('D')}%)</div>
             </div>
           </div>
         </div>
@@ -526,39 +601,39 @@
       const thisQPoints = p.answers?.[currIdx]?.pointsEarned || 0;
 
       rowsHtml += `
-        <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.06); border:2px solid ${idx === 0 ? '#ffd100' : 'rgba(255,255,255,0.12)'}; border-radius:18px; padding:14px 28px; margin-bottom:12px; box-shadow:0 6px 20px rgba(0,0,0,0.4);">
-          <div style="display:flex; align-items:center; gap:18px;">
-            <span style="font-size:30px;">${medals[idx] || '#' + (idx + 1)}</span>
-            <img src="${photoSrc}" style="width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid ${idx === 0 ? '#ffd100' : '#fff'};" onerror="this.src='img/logo.jpg'"/>
+        <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.08); border:2.5px solid ${idx === 0 ? '#ffd100' : 'rgba(255,255,255,0.15)'}; border-radius:22px; padding:18px 36px; margin-bottom:14px; box-shadow:0 8px 25px rgba(0,0,0,0.5);">
+          <div style="display:flex; align-items:center; gap:22px;">
+            <span style="font-size:38px;">${medals[idx] || '#' + (idx + 1)}</span>
+            <img src="${photoSrc}" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:3px solid ${idx === 0 ? '#ffd100' : '#fff'};" onerror="this.src='img/logo.jpg'"/>
             <div>
-              <strong style="font-size:22px; color:#ffffff; font-family:'Outfit', sans-serif;">${p.nickname || p.playerName}</strong>
-              <div style="font-size:13px; color:#ffd100; font-weight:800;">${p.waiter ? 'Mesa: ' + p.waiter : 'Cliente'} ${thisQPoints > 0 ? `• 🔥 +${thisQPoints} pts` : ''}</div>
+              <strong style="font-size:28px; color:#ffffff; font-family:'Outfit', sans-serif;">${p.nickname || p.playerName}</strong>
+              <div style="font-size:16px; color:#ffd100; font-weight:900;">${p.waiter ? 'Mesa: ' + p.waiter : 'Cliente'} ${thisQPoints > 0 ? `• 🔥 +${thisQPoints} pts` : ''}</div>
             </div>
           </div>
           <div style="text-align:right;">
-            <div style="font-size:30px; font-weight:950; color:#ffd100; font-family:'Outfit', sans-serif;">${p.totalScore || 0}</div>
-            <div style="font-size:11px; color:var(--text-muted); font-weight:800; letter-spacing:0.5px;">PUNTOS</div>
+            <div style="font-size:38px; font-weight:950; color:#ffd100; font-family:'Outfit', sans-serif;">${p.totalScore || 0}</div>
+            <div style="font-size:13px; color:var(--text-muted); font-weight:900; letter-spacing:1px;">PUNTOS</div>
           </div>
         </div>
       `;
     });
 
     container.innerHTML = `
-      <div style="max-width:920px; margin:0 auto; width:100%; text-align:center;">
-        <div style="font-size:15px; font-weight:900; color:#00e676; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">
+      <div style="max-width:1100px; margin:0 auto; width:100%; text-align:center;">
+        <div style="font-size:20px; font-weight:950; color:#00e676; text-transform:uppercase; letter-spacing:1.5px; margin-bottom:6px;">
           POSICIONES TRAS LA PREGUNTA ${currIdx + 1} DE ${totalQ}
         </div>
-        <h2 style="font-size:36px; font-weight:950; color:#ffd100; margin:0 0 20px 0; font-family:'Outfit', sans-serif;">
+        <h2 style="font-size:46px; font-weight:950; color:#ffd100; margin:0 0 24px 0; font-family:'Outfit', sans-serif;">
           📊 TABLA DE POSICIONES EN VIVO
         </h2>
         <div style="text-align:left;">
-          ${rowsHtml || '<div class="hint-text text-center py-4">Esperando respuestas...</div>'}
+          ${rowsHtml || '<div class="hint-text text-center py-4" style="font-size:20px;">Esperando respuestas de los clientes...</div>'}
         </div>
       </div>
     `;
   }
 
-  // 6. Podium Grand Finale (Reverse Sequential Reveal + Paginated Looping Table)
+  // 6. Podium Grand Finale (Reverse Sequential Reveal + Looping Paginated Table)
   function renderPodiumPhase(container) {
     if (timerInterval) clearInterval(timerInterval);
 
@@ -575,81 +650,81 @@
 
     container.innerHTML = `
       <div id="tvPodiumContainer" style="text-align:center; padding:10px 0; width:100%;">
-        <h2 style="font-size:42px; font-weight:950; color:#ffd100; margin:0 0 6px 0; font-family:'Outfit', sans-serif; text-shadow:0 0 25px rgba(255,209,0,0.5);">
+        <h2 style="font-size:52px; font-weight:950; color:#ffd100; margin:0 0 8px 0; font-family:'Outfit', sans-serif; text-shadow:0 0 35px rgba(255,209,0,0.6);">
           🏆 ¡PODIO DE GANADORES DE TRIVIA! 🏆
         </h2>
-        <p class="hint-text" style="font-size:16px; margin:0 0 20px 0;">Felicidades a los campeones de Drinks & Wins:</p>
+        <p class="hint-text" style="font-size:20px; margin:0 0 24px 0;">Felicidades a los campeones de Drinks & Wins:</p>
 
         <!-- Top 3 Pedestals (Silver 2nd, Gold 1st, Bronze 3rd) -->
-        <div class="trivia-tv-podium-wrap" style="display:flex; justify-content:center; align-items:flex-end; gap:20px; margin-bottom:20px;">
+        <div class="trivia-tv-podium-wrap" style="display:flex; justify-content:center; align-items:flex-end; gap:28px; margin-bottom:24px;">
           <!-- 2nd Place (Silver) -->
-          <div id="podiumCol2" class="trivia-podium-column" style="order:1; transition:all 0.5s ease;">
-            <img src="${getPhoto(p2)}" class="trivia-podium-avatar" style="width:72px; height:72px; border-radius:50%; border:3px solid #silver; object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
-            <div style="font-size:18px; font-weight:900; color:#fff; margin-bottom:2px;">${p2.nickname || p2.playerName}</div>
-            <div style="font-size:15px; font-weight:950; color:#ffd100; margin-bottom:6px;">${p2.totalScore || 0} pts</div>
-            <div class="trivia-podium-pedestal silver" style="background:linear-gradient(to top, #757575, #bdbdbd); padding:20px 24px; border-radius:14px 14px 0 0; color:#000; font-weight:950;">
-              <span style="font-size:36px;">🥈</span>
-              <div style="font-size:18px;">2° LUGAR</div>
+          <div class="trivia-podium-column" style="order:1; transition:all 0.5s ease;">
+            <img src="${getPhoto(p2)}" class="trivia-podium-avatar" style="width:88px; height:88px; border-radius:50%; border:4px solid #c0c0c0; object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
+            <div style="font-size:24px; font-weight:950; color:#fff; margin-bottom:3px;">${p2.nickname || p2.playerName}</div>
+            <div style="font-size:20px; font-weight:950; color:#ffd100; margin-bottom:8px;">${p2.totalScore || 0} pts</div>
+            <div class="trivia-podium-pedestal silver" style="background:linear-gradient(to top, #757575, #bdbdbd); padding:26px 32px; border-radius:18px 18px 0 0; color:#000; font-weight:950;">
+              <span style="font-size:46px;">🥈</span>
+              <div style="font-size:22px;">2° LUGAR</div>
             </div>
           </div>
 
           <!-- 1st Place (Gold Champion) -->
-          <div id="podiumCol1" class="trivia-podium-column" style="order:2; width:220px; transition:all 0.5s ease;">
-            <span style="font-size:36px; margin-bottom:-10px; z-index:10; display:block;">👑</span>
-            <img src="${getPhoto(p1)}" class="trivia-podium-avatar gold-ring" style="width:96px; height:96px; border-radius:50%; border:4px solid #ffd100; box-shadow:0 0 30px rgba(255,209,0,0.8); object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
-            <div style="font-size:22px; font-weight:950; color:#ffd100; margin-bottom:2px; font-family:'Outfit', sans-serif;">${p1.nickname || p1.playerName}</div>
-            <div style="font-size:20px; font-weight:950; color:#00e676; margin-bottom:6px;">${p1.totalScore || 0} pts</div>
-            <div class="trivia-podium-pedestal gold" style="background:linear-gradient(to top, #f57f17, #ffd600); padding:32px 28px; border-radius:16px 16px 0 0; color:#000; font-weight:950; box-shadow:0 0 40px rgba(255,209,0,0.6);">
-              <span style="font-size:52px;">🏆</span>
-              <div style="font-size:24px; font-weight:950;">1° CAMPEÓN</div>
+          <div class="trivia-podium-column" style="order:2; width:260px; transition:all 0.5s ease;">
+            <span style="font-size:48px; margin-bottom:-12px; z-index:10; display:block;">👑</span>
+            <img src="${getPhoto(p1)}" class="trivia-podium-avatar gold-ring" style="width:115px; height:115px; border-radius:50%; border:5px solid #ffd100; box-shadow:0 0 35px rgba(255,209,0,0.9); object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
+            <div style="font-size:28px; font-weight:950; color:#ffd100; margin-bottom:4px; font-family:'Outfit', sans-serif;">${p1.nickname || p1.playerName}</div>
+            <div style="font-size:24px; font-weight:950; color:#00e676; margin-bottom:8px;">${p1.totalScore || 0} pts</div>
+            <div class="trivia-podium-pedestal gold" style="background:linear-gradient(to top, #f57f17, #ffd600); padding:40px 36px; border-radius:20px 20px 0 0; color:#000; font-weight:950; box-shadow:0 0 50px rgba(255,209,0,0.7);">
+              <span style="font-size:64px;">🏆</span>
+              <div style="font-size:28px; font-weight:950;">1° CAMPEÓN</div>
             </div>
           </div>
 
           <!-- 3rd Place (Bronze) -->
-          <div id="podiumCol3" class="trivia-podium-column" style="order:3; transition:all 0.5s ease;">
-            <img src="${getPhoto(p3)}" class="trivia-podium-avatar" style="width:68px; height:68px; border-radius:50%; border:3px solid #cd7f32; object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
-            <div style="font-size:18px; font-weight:900; color:#fff; margin-bottom:2px;">${p3.nickname || p3.playerName}</div>
-            <div style="font-size:15px; font-weight:950; color:#ffd100; margin-bottom:6px;">${p3.totalScore || 0} pts</div>
-            <div class="trivia-podium-pedestal bronze" style="background:linear-gradient(to top, #8d6e63, #d7ccc8); padding:16px 20px; border-radius:12px 12px 0 0; color:#000; font-weight:950;">
-              <span style="font-size:32px;">🥉</span>
-              <div style="font-size:16px;">3° LUGAR</div>
+          <div class="trivia-podium-column" style="order:3; transition:all 0.5s ease;">
+            <img src="${getPhoto(p3)}" class="trivia-podium-avatar" style="width:84px; height:84px; border-radius:50%; border:4px solid #cd7f32; object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
+            <div style="font-size:24px; font-weight:950; color:#fff; margin-bottom:3px;">${p3.nickname || p3.playerName}</div>
+            <div style="font-size:20px; font-weight:950; color:#ffd100; margin-bottom:8px;">${p3.totalScore || 0} pts</div>
+            <div class="trivia-podium-pedestal bronze" style="background:linear-gradient(to top, #8d6e63, #d7ccc8); padding:20px 28px; border-radius:16px 16px 0 0; color:#000; font-weight:950;">
+              <span style="font-size:42px;">🥉</span>
+              <div style="font-size:20px;">3° LUGAR</div>
             </div>
           </div>
         </div>
 
         <!-- 4th & 5th Place Runner-ups -->
         ${(p4 || p5) ? `
-          <div style="display:flex; justify-content:center; gap:20px; margin-top:10px;">
+          <div style="display:flex; justify-content:center; gap:24px; margin-top:14px;">
             ${p4 ? `
-              <div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.08); padding:8px 18px; border-radius:12px; border:1px solid rgba(255,255,255,0.15);">
-                <span style="font-weight:900; color:#ffd100;">4°</span>
-                <img src="${getPhoto(p4)}" style="width:34px; height:34px; border-radius:50%; object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
-                <strong style="color:#fff;">${p4.nickname || p4.playerName}</strong>
-                <span style="color:#ffd100; font-weight:800;">${p4.totalScore || 0} pts</span>
+              <div style="display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.1); padding:10px 24px; border-radius:16px; border:1.5px solid rgba(255,255,255,0.2);">
+                <span style="font-weight:950; color:#ffd100; font-size:20px;">4°</span>
+                <img src="${getPhoto(p4)}" style="width:42px; height:42px; border-radius:50%; object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
+                <strong style="color:#fff; font-size:20px;">${p4.nickname || p4.playerName}</strong>
+                <span style="color:#ffd100; font-weight:950; font-size:20px;">${p4.totalScore || 0} pts</span>
               </div>
             ` : ''}
             ${p5 ? `
-              <div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.08); padding:8px 18px; border-radius:12px; border:1px solid rgba(255,255,255,0.15);">
-                <span style="font-weight:900; color:#ffd100;">5°</span>
-                <img src="${getPhoto(p5)}" style="width:34px; height:34px; border-radius:50%; object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
-                <strong style="color:#fff;">${p5.nickname || p5.playerName}</strong>
-                <span style="color:#ffd100; font-weight:800;">${p5.totalScore || 0} pts</span>
+              <div style="display:flex; align-items:center; gap:14px; background:rgba(255,255,255,0.1); padding:10px 24px; border-radius:16px; border:1.5px solid rgba(255,255,255,0.2);">
+                <span style="font-weight:950; color:#ffd100; font-size:20px;">5°</span>
+                <img src="${getPhoto(p5)}" style="width:42px; height:42px; border-radius:50%; object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
+                <strong style="color:#fff; font-size:20px;">${p5.nickname || p5.playerName}</strong>
+                <span style="color:#ffd100; font-weight:950; font-size:20px;">${p5.totalScore || 0} pts</span>
               </div>
             ` : ''}
           </div>
         ` : ''}
 
         <!-- Looping Full Ranking Carousel Container -->
-        <div id="tvFullRankingLoopWrap" style="margin-top:24px; display:none;"></div>
+        <div id="tvFullRankingLoopWrap" style="margin-top:30px; display:none;"></div>
       </div>
     `;
 
     // Fire Confetti Cannon
     if (window.confetti) {
-      window.confetti({ particleCount: 160, spread: 100, origin: { y: 0.6 } });
+      window.confetti({ particleCount: 180, spread: 110, origin: { y: 0.6 } });
       setTimeout(() => {
-        window.confetti({ particleCount: 120, angle: 60, spread: 70, origin: { x: 0 } });
-        window.confetti({ particleCount: 120, angle: 120, spread: 70, origin: { x: 1 } });
+        window.confetti({ particleCount: 140, angle: 60, spread: 80, origin: { x: 0 } });
+        window.confetti({ particleCount: 140, angle: 120, spread: 80, origin: { x: 1 } });
       }, 600);
     }
 
@@ -683,29 +758,29 @@
         const photoSrc = p.photoURL || p.userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nickname || p.playerName || 'J')}&background=ffd100&color=000&bold=true`;
 
         rowsHtml += `
-          <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.06); border-radius:12px; padding:10px 20px; border:1px solid rgba(255,255,255,0.1);">
-            <div style="display:flex; align-items:center; gap:12px;">
-              <span style="font-size:18px; font-weight:900; color:#ffd100; width:28px;">#${globalRank}</span>
-              <img src="${photoSrc}" style="width:36px; height:36px; border-radius:50%; object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
+          <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.08); border-radius:16px; padding:12px 24px; border:1.5px solid rgba(255,255,255,0.15);">
+            <div style="display:flex; align-items:center; gap:16px;">
+              <span style="font-size:24px; font-weight:950; color:#ffd100; width:36px;">#${globalRank}</span>
+              <img src="${photoSrc}" style="width:46px; height:46px; border-radius:50%; object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
               <div>
-                <strong style="color:#ffffff; font-size:16px;">${p.nickname || p.playerName}</strong>
-                <div style="font-size:11px; color:var(--text-muted);">${p.waiter ? 'Mesa: ' + p.waiter : 'Cliente'}</div>
+                <strong style="color:#ffffff; font-size:22px;">${p.nickname || p.playerName}</strong>
+                <div style="font-size:14px; color:var(--text-muted);">${p.waiter ? 'Mesa: ' + p.waiter : 'Cliente'}</div>
               </div>
             </div>
-            <div style="font-size:18px; font-weight:900; color:#ffd100;">${p.totalScore || 0} pts</div>
+            <div style="font-size:24px; font-weight:950; color:#ffd100;">${p.totalScore || 0} pts</div>
           </div>
         `;
       });
 
       wrap.innerHTML = `
-        <div style="background:rgba(0,0,0,0.45); border:1.5px solid rgba(255,209,0,0.3); border-radius:20px; padding:18px 24px; max-width:880px; margin:0 auto;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-            <h3 style="margin:0; font-size:18px; font-weight:900; color:#ffd100; font-family:'Outfit', sans-serif;">
+        <div style="background:rgba(0,0,0,0.55); border:2px solid #ffd100; border-radius:24px; padding:22px 32px; max-width:1050px; margin:0 auto; box-shadow:0 10px 40px rgba(0,0,0,0.7);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <h3 style="margin:0; font-size:24px; font-weight:950; color:#ffd100; font-family:'Outfit', sans-serif;">
               📋 TABLA GENERAL DE POSICIONES (Página ${pageIdx + 1} de ${totalPages})
             </h3>
-            <span class="badge" style="background:#ffd100; color:#000; font-weight:900;">${players.length} Jugadores</span>
+            <span class="badge" style="background:#ffd100; color:#000; font-size:16px; font-weight:950; padding:6px 14px; border-radius:10px;">${players.length} Jugadores</span>
           </div>
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; text-align:left;">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; text-align:left;">
             ${rowsHtml}
           </div>
         </div>
@@ -722,6 +797,6 @@
     }
   }
 
-  // Initialize on Load
+  // Initialize
   initTriviaTV();
 })();

@@ -134,7 +134,7 @@
           <h3 style="color:#ffd100; margin-top:10px;">No hay Trivias en Vivo</h3>
           <p class="hint-text">El mesero o el host iniciará una trivia en las pantallas del bar muy pronto.</p>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v194.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v195.0</span></footer>
       `;
       return;
     }
@@ -174,7 +174,7 @@
             🚀 Entrar con Google
           </button>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v194.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v195.0</span></footer>
       `;
       return;
     }
@@ -205,7 +205,7 @@
             ¡Unirme a la Trivia en Vivo! 🔥
           </button>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v194.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v195.0</span></footer>
       `;
       return;
     }
@@ -278,13 +278,35 @@
       ${selectorHtml}
       ${playerHeroHtml}
       ${phaseContentHtml}
-      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v194.0</span></footer>
+      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v195.0</span></footer>
     `;
 
-    // Start mobile timer bar if question is active
-    if (status === 'question') {
+    // Start mobile countdown interval or timer bar based on active phase
+    if (status === 'countdown') {
+      startMobileCountdown(g);
+    } else if (status === 'question') {
+      if (mobileCountdownInterval) clearInterval(mobileCountdownInterval);
       startMobileTimerBar(g);
+    } else {
+      if (mobileCountdownInterval) clearInterval(mobileCountdownInterval);
+      if (mobileTimerInterval) clearInterval(mobileTimerInterval);
     }
+  }
+
+  let mobileCountdownInterval = null;
+  function startMobileCountdown(game) {
+    if (mobileCountdownInterval) clearInterval(mobileCountdownInterval);
+    const clockEl = document.getElementById('mobileCountdownNum');
+    const startTime = game.countdownStartTime || Date.now();
+
+    mobileCountdownInterval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = Math.max(0, 10 - elapsed);
+      if (clockEl) clockEl.textContent = remaining;
+      if (remaining <= 0) {
+        clearInterval(mobileCountdownInterval);
+      }
+    }, 200);
   }
 
   // Mobile Question Phase (Question Text + 4 Giant Touch Buttons)
