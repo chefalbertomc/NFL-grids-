@@ -105,7 +105,7 @@
           <img src="img/logo.jpg" alt="Drinks & Wins by Beto" class="app-brand-logo" />
           <div>
             <h1 class="header-title gradient-text" style="font-size: 20px;">Drinks & Wins</h1>
-            <p class="hint-text">Juegos de Bar en tu Celular • <span class="app-version-badge">v205.0</span></p>
+            <p class="hint-text">Juegos de Bar en tu Celular • <span class="app-version-badge">v206.0</span></p>
           </div>
         </div>
       </div>
@@ -343,7 +343,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v205.0</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v206.0</span>
       </footer>
     </main>
 
@@ -405,7 +405,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v205.0</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v206.0</span>
       </footer>
     </main>
 
@@ -413,79 +413,130 @@
     <main id="tab-pools" class="tab-content hidden">
 
       <!-- VIEW A: MULTI-QUINIELA CATALOG & CARDS GRID -->
-      <div id="quinielasCatalogView">
-        <section class="card highlight">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
+      <section id="qCatalogSection" class="card highlight" style="margin-bottom:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+          <div>
             <h3 class="card-title" style="margin:0; display:flex; align-items:center; gap:8px;">
               <img src="img/games/badge_quinielas.png" alt="Quinielas" style="width:28px; height:28px; object-fit:contain;" onerror="this.src='img/logo.jpg'"/>
-              <span>Quinielas & Pick'em</span>
+              <span>🏆 Quinielas & Pick'ems</span>
             </h3>
-            <button type="button" class="btn btn-secondary" onclick="window.openHowToPlayModal()" style="width:auto; padding:6px 14px; font-size:12px; font-weight:900; border-radius:10px; background:rgba(255,209,0,0.15); border:1px solid #ffd100; color:#ffd100; display:inline-flex; align-items:center; gap:6px;">
-              ❓ ¿Cómo Jugar?
-            </button>
+            <p class="card-subtitle" style="margin:2px 0 0 0;">Elige una quiniela para pronosticar o ver las posiciones en tiempo real.</p>
           </div>
-          <p class="card-subtitle">Pronostica los resultados de tu jornada deportiva favorita y compite en el ranking en vivo.</p>
-
-          <!-- Dynamic Catalog of Active Quinielas -->
-          <div id="quinielasCatalogList" class="flex-row" style="flex-direction:column; gap:12px;">
-            <div class="text-center hint-text py-3">Cargando quinielas disponibles...</div>
-          </div>
-        </section>
-      </div>
-
-      <!-- VIEW B: SINGLE QUINIELA DETAIL & PREDICTIONS INTERACTION -->
-      <div id="quinielaDetailView" class="hidden">
-        <div style="margin-bottom:12px;">
-          <button type="button" class="btn btn-secondary" onclick="window.backToQuinielasCatalog()" style="width:auto; padding:6px 12px; font-size:12.5px; font-weight:800; border-radius:10px; display:inline-flex; align-items:center; gap:6px;">
-            <span>⬅️</span> Volver a Quinielas
+          <button type="button" class="btn btn-secondary" onclick="window.openHowToPlayModal()" style="width:auto; padding:6px 14px; font-size:12px; font-weight:900; border-radius:10px; background:rgba(255,209,0,0.15); border:1px solid #ffd100; color:#ffd100; display:inline-flex; align-items:center; gap:6px;">
+            ❓ ¿Cómo Jugar?
           </button>
         </div>
 
-        <section class="card highlight">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:6px;">
-            <h3 id="playerQTitle" class="card-title" style="margin:0;">Quiniela Deportiva</h3>
-            <span id="playerQStatusBadge" class="badge">ABIERTO</span>
-          </div>
-          <p id="playerQSubtitle" class="card-subtitle" style="margin-bottom:12px;">Pronostica los marcadores antes del inicio de los partidos.</p>
+        <!-- Filter Pills Strip -->
+        <div class="q-filter-nav" id="qFilterNav" style="display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:12px;">
+          <button type="button" class="q-filter-pill active" data-q-filter="all">🌐 Todas</button>
+          <button type="button" class="q-filter-pill" data-q-filter="open">🟢 Abiertas</button>
+          <button type="button" class="q-filter-pill" data-q-filter="live">🔴 En Vivo</button>
+          <button type="button" class="q-filter-pill" data-q-filter="mine">🎟️ Mis Quinielas</button>
+          <button type="button" class="q-filter-pill" data-q-filter="soccer">⚽ Fútbol</button>
+          <button type="button" class="q-filter-pill" data-q-filter="football">🏈 NFL</button>
+          <button type="button" class="q-filter-pill" data-q-filter="baseball">⚾ Béisbol</button>
+          <button type="button" class="q-filter-pill" data-q-filter="basketball">🏀 Basquetbol</button>
+        </div>
 
-          <!-- Action Buttons: How to play & View positions -->
-          <div class="flex-row" style="gap:8px; margin-bottom:14px; flex-wrap:wrap;">
-            <button type="button" class="btn btn-secondary" onclick="window.openHowToPlayModal()" style="flex:1; min-width:140px; font-size:12px; font-weight:800;">
-              📖 Reglas & Sistema de Puntos
+        <!-- Multi-Quiniela Cards Grid -->
+        <div id="qCatalogGrid" class="q-catalog-grid" style="display:flex; flex-direction:column; gap:12px;">
+          <div class="text-center hint-text py-4" style="grid-column: 1/-1;">Cargando quinielas disponibles...</div>
+        </div>
+      </section>
+
+      <!-- VIEW B: SINGLE QUINIELA DETAIL & PICKS -->
+      <div id="qDetailSection" style="display:none;">
+
+        <!-- Navigation Breadcrumb & Toolbar -->
+        <div class="q-toolbar" style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-secondary" id="btnBackToCatalog" style="width:auto; padding:6px 14px; font-size:12.5px; font-weight:800; border-radius:10px; display:inline-flex; align-items:center; gap:6px;">
+            <span>⬅️</span> Volver a Quinielas
+          </button>
+          <div class="q-share-group" style="display:flex; gap:6px;">
+            <button type="button" class="btn btn-secondary" id="btnShareQWhatsApp" style="width:auto; padding:6px 12px; font-size:12px; font-weight:800; border-radius:10px;" title="Compartir quiniela en WhatsApp">
+              💬 WhatsApp
             </button>
-            <button type="button" class="btn btn-secondary" id="btnToggleQLeaderboard" onclick="window.toggleQuinielaLeaderboard()" style="flex:1; min-width:140px; font-size:12px; font-weight:800;">
-              📊 Ver Tabla de Posiciones
+            <button type="button" class="btn btn-secondary" id="btnCopyQLink" style="width:auto; padding:6px 12px; font-size:12px; font-weight:800; border-radius:10px;" title="Copiar enlace">
+              🔗 Copiar Link
             </button>
           </div>
+        </div>
 
-          <!-- Predictions Match Cards List -->
-          <div id="quinielaMatchesList" style="display:flex; flex-direction:column; gap:12px;">
-            <div class="text-center hint-text py-3">Cargando partidos de la quiniela...</div>
+        <!-- Lock / Deadline Status Banner with Live Countdown -->
+        <div id="qLockBanner" class="card highlight" style="margin-bottom:14px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; gap:10px; background:linear-gradient(135deg, rgba(255,209,0,0.1) 0%, rgba(10,15,24,0.95) 100%);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:22px;">⏳</span>
+            <div>
+              <strong id="qLockBannerTitle" style="color:#ffd100; font-size:13.5px; display:block;">Pronósticos Abiertos</strong>
+              <div id="qLockBannerSubtitle" style="font-size:11.5px; color:var(--text-muted);">
+                Cerrará automáticamente cuando inicie el primer partido.
+              </div>
+            </div>
+          </div>
+          <div id="qCountdownContainer" style="text-align:right; flex-shrink:0;">
+            <div style="font-size:10px; text-transform:uppercase; font-weight:800; color:var(--text-muted);">Cierre en</div>
+            <span id="qCountdownTimer" class="badge accent" style="font-size:13px; font-weight:900; font-family:monospace;">--:--:--</span>
+          </div>
+        </div>
+
+        <!-- Picks Form Section -->
+        <section id="qPicksSection" class="card" style="margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:12px;">
+            <div>
+              <h3 class="card-title" id="qPicksTitle" style="margin:0;">Pronósticos</h3>
+              <p class="card-subtitle" id="qPicksSubtitle" style="margin:2px 0 0 0;">Ingresa tus marcadores previstos antes de que ruede el balón.</p>
+            </div>
+            <span id="qPicksStatusBadge" class="badge success" style="font-weight:800; font-size:11px;">🟢 ABIERTA</span>
           </div>
 
-          <!-- Save Predictions Button -->
-          <button id="btnSaveQuinielaPredictions" type="button" class="btn btn-primary" onclick="window.saveQuinielaPredictions()" style="margin-top:16px; font-size:15px; font-weight:900; padding:12px 20px;">
+          <!-- Player Nickname -->
+          <div class="form-group" style="margin-bottom:14px;">
+            <label style="display:flex; justify-content:space-between; font-size:12px; font-weight:800; color:#ffd100; margin-bottom:4px;">
+              <span>👤 Tu Nombre / Apodo:</span>
+            </label>
+            <input type="text" id="qPlayerName" placeholder="Ej. BETO"
+              style="font-size:14px; font-weight:800; letter-spacing:0.02em; padding:10px 12px; border-radius:10px;"/>
+          </div>
+
+          <!-- Matches Cards List -->
+          <div id="qMatchPicksForm" style="display:flex; flex-direction:column; gap:12px; margin-bottom:18px;">
+            <div class="text-center hint-text py-3">Cargando partidos...</div>
+          </div>
+
+          <!-- Save Button -->
+          <button id="btnSaveQPicks" class="btn btn-primary" style="font-size:15px; font-weight:900; padding:13px 20px; border-radius:12px; width:100%; box-shadow:0 4px 16px rgba(255,209,0,0.3);">
             💾 Guardar Mis Pronósticos
           </button>
         </section>
 
-        <!-- Live Leaderboard Container (Toggled) -->
-        <section class="card hidden" id="quinielaLeaderboardContainer" style="margin-top:14px;">
-          <h3 class="card-title">📊 Ranking en Vivo de Participantes</h3>
-          <div id="quinielaLeaderboardList" style="margin-top:10px;">
-            <div class="text-center hint-text py-2">Cargando puntuaciones...</div>
+        <!-- Live Standings / Leaderboard Section -->
+        <section id="qStandingsSection" class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+            <h3 class="card-title" style="margin:0;">📊 Tabla de Posiciones en Vivo</h3>
+            <span class="badge" style="background:rgba(255,209,0,0.15); color:var(--accent-color); font-weight:800; font-size:11px;">
+              ⚡ En Tiempo Real
+            </span>
+          </div>
+          <p class="card-subtitle" style="margin-bottom:12px; font-size:11.5px;">
+            Exacto (+3 pts) • Ganador (+1 pt) • Error (0 pts)
+          </p>
+          <div id="qLiveStandings">
+            <div class="text-center hint-text py-3">Cargando posiciones...</div>
           </div>
         </section>
+
       </div>
 
-      <!-- Toast for feedback -->
+      <!-- Toast Notification Element -->
       <div id="qToast" class="q-toast hidden">
+        <span id="qToastIcon">✅</span>
         <span id="qToastMsg">¡Enlace copiado al portapapeles!</span>
       </div>
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v205.0</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v206.0</span>
       </footer>
     </main>
 
@@ -498,7 +549,7 @@
       </section>
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v205.0</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v206.0</span>
       </footer>
     </main>
 
@@ -531,7 +582,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v205.0</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v206.0</span>
       </footer>
     </main>
 
@@ -544,7 +595,7 @@
       </section>
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v205.0</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v206.0</span>
       </footer>
     </main>
 
@@ -581,7 +632,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v205.0</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v206.0</span>
       </footer>
     </main>
   </div>
@@ -594,15 +645,15 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=205.0"></script>
-  <script src="js/auth.js?v=205.0"></script>
-  <script src="js/team-logos.js?v=205.0"></script>
-  <script src="js/grids.js?v=205.0"></script>
-  <script src="js/quiniela-player.js?v=205.0"></script>
-  <script src="js/survivor.js?v=205.0"></script>
-  <script src="js/firstgoal.js?v=205.0"></script>
-  <script src="js/bingo-player.js?v=205.0"></script>
-  <script src="js/trivia-player.js?v=205.0"></script>
+  <script src="js/firebase-config.js?v=206.0"></script>
+  <script src="js/auth.js?v=206.0"></script>
+  <script src="js/team-logos.js?v=206.0"></script>
+  <script src="js/grids.js?v=206.0"></script>
+  <script src="js/quiniela-player.js?v=206.0"></script>
+  <script src="js/survivor.js?v=206.0"></script>
+  <script src="js/firstgoal.js?v=206.0"></script>
+  <script src="js/bingo-player.js?v=206.0"></script>
+  <script src="js/trivia-player.js?v=206.0"></script>
 
   <!-- Tab Switching Handler -->
   <script>
