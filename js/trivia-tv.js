@@ -6,11 +6,8 @@
   let gameId = null;
   let gameData = null;
   let playersMap = {};
-  let timerInterval = null;
-  let autoFlowCoordinatorTimer = null;
-  let isTransitioningPhase = false;
-  let lastTransitionKey = null;
-  let renderedPhaseKey = null;
+  let tvTickerInterval = null;
+  let currentRenderedKey = null;
   let leaderboardLoopPageIndex = 0;
   let leaderboardLoopInterval = null;
 
@@ -24,7 +21,7 @@
       if (!firebase.auth().currentUser) {
         try {
           await firebase.auth().signInAnonymously();
-          console.log('[TriviaTV] Pantalla TV autenticada correctamente en Firebase');
+          console.log('[TriviaTV] Pantalla TV autenticada en Firebase');
         } catch (e) {
           console.warn('[TriviaTV] Auth note:', e);
         }
@@ -38,7 +35,6 @@
       ensureTVAuth().then(() => {
         gameId = getGameIdFromUrl();
         if (!gameId) {
-          // Show interactive TV room selector & PIN pad
           showTVRoomSelector();
         } else {
           listenToGame(gameId);
@@ -50,15 +46,96 @@
   }
 
   // =========================================================================
+  // CENTRAL SYNCHRONIZED TIMELINE CALCULATOR (ZERO FIRESTORE WRITE ERRORS)
+  // =========================================================================
+  function computeTriviaTimelinePhase(game) {
+    if (!game) return { status: 'lobby' };
+    const status = game.status || 'lobby';
+    if (status === 'lobby' || status === 'finished') {
+      return { status: status };
+    }
+
+    const startTime = game.autoFlowStartTime || game.countdownStartTime;
+    if (!startTime) {
+      return { status: 'lobby' };
+    }
+
+    const now = Date.now();
+    const elapsedSec = (now - startTime) / 1000;
+    const countdownSec = 10;
+    const timePerQ = game.timePerQuestion || 8;
+    const revealSec = 6;
+    const lbSec = 6;
+    const cycleSec = timePerQ + revealSec + lbSec;
+    const questions = game.questions || [];
+    const totalQ = questions.length || 10;
+
+    // 1. Initial 10s Countdown
+    if (elapsedSec < countdownSec) {
+      const rem = Math.max(0, Math.ceil(countdownSec - elapsedSec));
+      return {
+        status: 'countdown',
+        remainingSec: rem,
+        totalSec: countdownSec
+      };
+    }
+
+    // 2. Question Cycles
+    const gameElapsed = elapsedSec - countdownSec;
+    const qIdx = Math.floor(gameElapsed / cycleSec);
+
+    if (qIdx < totalQ) {
+      const qSec = gameElapsed % cycleSec;
+      const q = questions[qIdx] || {};
+
+      if (qSec < timePerQ) {
+        // Answering Question
+        const rem = Math.max(0, Math.ceil(timePerQ - qSec));
+        return {
+          status: 'question',
+          questionIndex: qIdx,
+          question: q,
+          remainingSec: rem,
+          timeLimit: timePerQ,
+          totalQuestions: totalQ
+        };
+      } else if (qSec < timePerQ + revealSec) {
+        // Revealing Correct Answer
+        const rem = Math.max(0, Math.ceil((timePerQ + revealSec) - qSec));
+        return {
+          status: 'reveal',
+          questionIndex: qIdx,
+          question: q,
+          remainingSec: rem,
+          totalQuestions: totalQ
+        };
+      } else {
+        // Showing Question Leaderboard
+        const rem = Math.max(0, Math.ceil(cycleSec - qSec));
+        return {
+          status: 'leaderboard',
+          questionIndex: qIdx,
+          remainingSec: rem,
+          totalQuestions: totalQ
+        };
+      }
+    }
+
+    // 3. Grand Podium
+    return {
+      status: 'podium',
+      totalQuestions: totalQ
+    };
+  }
+
+  // =========================================================================
   // TV ROOM SELECTOR & REMOTE-FRIENDLY PIN PAD
   // =========================================================================
   window.showTVRoomSelector = function() {
-    if (timerInterval) clearInterval(timerInterval);
-    if (autoFlowCoordinatorTimer) clearInterval(autoFlowCoordinatorTimer);
+    if (tvTickerInterval) clearInterval(tvTickerInterval);
     if (leaderboardLoopInterval) clearInterval(leaderboardLoopInterval);
 
-    renderedPhaseKey = null;
-    lastTransitionKey = null;
+    currentRenderedKey = null;
     const main = document.getElementById('tvMainContent');
     const titleEl = document.getElementById('tvGameTitle');
     const pinEl = document.getElementById('tvPinBadge');
@@ -132,8 +209,7 @@
 
   window.selectTVGame = function(targetGameId) {
     gameId = targetGameId;
-    renderedPhaseKey = null;
-    lastTransitionKey = null;
+    currentRenderedKey = null;
     const newUrl = `${window.location.pathname}?gameId=${targetGameId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
     listenToGame(targetGameId);
@@ -183,14 +259,10 @@
         return;
       }
       gameData = { id: doc.id, ...doc.data() };
-      isTransitioningPhase = false;
-
       updateHeaderInfo();
-      renderCurrentPhase();
-      runAutoFlowCoordinator();
     }, err => console.error('[TriviaTV] Error loading game:', err));
 
-    // 2. Listen to connected players in real time (Surgical in-place updates)
+    // 2. Listen to connected players in real time
     db.collection('trivia_games').doc(targetId).collection('players').onSnapshot(snap => {
       playersMap = {};
       snap.forEach(pDoc => {
@@ -198,6 +270,9 @@
       });
       updatePlayersUIInPlace();
     }, err => console.error('[TriviaTV] Error loading players:', err));
+
+    // 3. Start high-precision TV Ticker loop (100ms)
+    startTVTicker();
   }
 
   function updateHeaderInfo() {
@@ -214,172 +289,33 @@
   // Update players count and chips without re-rendering entire screen
   function updatePlayersUIInPlace() {
     const players = Object.values(playersMap);
-    const status = gameData?.status || 'lobby';
-    const currIdx = gameData?.currentQuestionIndex || 0;
+    const countEl = document.getElementById('tvLobbyPlayersCount');
+    const listEl = document.getElementById('tvLobbyPlayersList');
 
-    if (status === 'lobby') {
-      const countEl = document.getElementById('tvLobbyPlayersCount');
-      const listEl = document.getElementById('tvLobbyPlayersList');
-      if (countEl) countEl.textContent = `${players.length}`;
+    if (countEl) countEl.textContent = `${players.length}`;
 
-      if (listEl) {
-        if (players.length === 0) {
-          listEl.innerHTML = `<div style="font-size:22px; color:var(--text-muted); padding:20px 0;">Escanea el código QR gigante para unirte a la trivia...</div>`;
-        } else {
-          listEl.innerHTML = players.map(p => {
-            const photoSrc = p.photoURL || p.userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nickname || p.playerName || 'J')}&background=ffd100&color=000&bold=true`;
-            return `
-              <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.1); padding:10px 20px; border-radius:30px; border:2px solid rgba(255,209,0,0.4); animation:popIn 0.3s ease;">
-                <img src="${photoSrc}" style="width:44px; height:44px; border-radius:50%; object-fit:cover; border:2.5px solid #ffd100;" alt="${p.nickname}" onerror="this.src='img/logo.jpg'"/>
-                <span style="font-size:20px; font-weight:950; color:#ffffff;">${p.nickname || p.playerName}</span>
-              </div>
-            `;
-          }).join('');
-        }
+    if (listEl) {
+      if (players.length === 0) {
+        listEl.innerHTML = `<div style="font-size:22px; color:var(--text-muted); padding:20px 0;">Escanea el código QR gigante para unirte a la trivia...</div>`;
+      } else {
+        listEl.innerHTML = players.map(p => {
+          const photoSrc = p.photoURL || p.userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nickname || p.playerName || 'J')}&background=ffd100&color=000&bold=true`;
+          return `
+            <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.1); padding:10px 20px; border-radius:30px; border:2px solid rgba(255,209,0,0.4); animation:popIn 0.3s ease;">
+              <img src="${photoSrc}" style="width:44px; height:44px; border-radius:50%; object-fit:cover; border:2.5px solid #ffd100;" alt="${p.nickname}" onerror="this.src='img/logo.jpg'"/>
+              <span style="font-size:20px; font-weight:950; color:#ffffff;">${p.nickname || p.playerName}</span>
+            </div>
+          `;
+        }).join('');
       }
-    } else if (status === 'question') {
-      const answeredCount = players.filter(p => p.answers && p.answers[currIdx] !== undefined).length;
-      const ansEl = document.getElementById('tvQuestionAnsweredCount');
-      if (ansEl) ansEl.textContent = `⚡ ${answeredCount} de ${players.length} Jugadores han respondido`;
     }
   }
 
-  // =========================================================================
-  // DEFINITIVE TRANSACTION-GUARDED AUTO FLOW COORDINATOR (NO INFINITE LOOPS)
-  // =========================================================================
-  function runAutoFlowCoordinator() {
-    if (autoFlowCoordinatorTimer) clearInterval(autoFlowCoordinatorTimer);
-    if (!gameData || !db) return;
-
-    autoFlowCoordinatorTimer = setInterval(async () => {
-      if (!gameData || isTransitioningPhase) return;
-
-      const status = gameData.status;
-      const now = Date.now();
-      const currIdx = gameData.currentQuestionIndex || 0;
-      const totalQ = (gameData.questions || []).length || 10;
-      const timePerQ = gameData.timePerQuestion || 8;
-
-      // 1. Countdown Phase (10 real seconds)
-      if (status === 'countdown') {
-        const startTime = gameData.countdownStartTime;
-        if (!startTime) return;
-        const elapsed = (now - startTime) / 1000;
-        if (elapsed >= 10) {
-          const tKey = `${gameData.id}_countdown_to_q0`;
-          if (lastTransitionKey === tKey) return;
-          lastTransitionKey = tKey;
-          isTransitioningPhase = true;
-
-          try {
-            await db.collection('trivia_games').doc(gameData.id).update({
-              status: 'question',
-              currentQuestionIndex: 0,
-              questionStartTime: Date.now()
-            });
-          } catch (e) {
-            console.error(e);
-          } finally {
-            isTransitioningPhase = false;
-          }
-        }
-      }
-
-      // 2. Question Phase (timePerQ seconds)
-      else if (status === 'question') {
-        const startTime = gameData.questionStartTime;
-        if (!startTime) return;
-        const elapsed = (now - startTime) / 1000;
-        if (elapsed >= timePerQ) {
-          const tKey = `${gameData.id}_question_to_reveal_${currIdx}`;
-          if (lastTransitionKey === tKey) return;
-          lastTransitionKey = tKey;
-          isTransitioningPhase = true;
-
-          try {
-            await db.collection('trivia_games').doc(gameData.id).update({
-              status: 'reveal',
-              revealTime: Date.now()
-            });
-          } catch (e) {
-            console.error(e);
-          } finally {
-            isTransitioningPhase = false;
-          }
-        }
-      }
-
-      // 3. Reveal Phase (6 seconds display)
-      else if (status === 'reveal') {
-        const revealTime = gameData.revealTime;
-        if (!revealTime) return;
-        const elapsed = (now - revealTime) / 1000;
-        if (elapsed >= 6) {
-          const tKey = `${gameData.id}_reveal_to_lb_${currIdx}`;
-          if (lastTransitionKey === tKey) return;
-          lastTransitionKey = tKey;
-          isTransitioningPhase = true;
-
-          try {
-            await db.collection('trivia_games').doc(gameData.id).update({
-              status: 'leaderboard',
-              leaderboardTime: Date.now()
-            });
-          } catch (e) {
-            console.error(e);
-          } finally {
-            isTransitioningPhase = false;
-          }
-        }
-      }
-
-      // 4. Leaderboard Phase (6 seconds display -> Next Question or Final Podium)
-      else if (status === 'leaderboard') {
-        const lbTime = gameData.leaderboardTime;
-        if (!lbTime) return;
-        const elapsed = (now - lbTime) / 1000;
-        if (elapsed >= 6) {
-          const tKey = `${gameData.id}_lb_to_next_${currIdx}`;
-          if (lastTransitionKey === tKey) return;
-          lastTransitionKey = tKey;
-          isTransitioningPhase = true;
-
-          if (currIdx + 1 < totalQ) {
-            try {
-              await db.collection('trivia_games').doc(gameData.id).update({
-                currentQuestionIndex: currIdx + 1,
-                status: 'question',
-                questionStartTime: Date.now()
-              });
-            } catch (e) {
-              console.error(e);
-            } finally {
-              isTransitioningPhase = false;
-            }
-          } else {
-            // All questions finished -> Podium
-            try {
-              await db.collection('trivia_games').doc(gameData.id).update({
-                status: 'podium',
-                podiumTime: Date.now()
-              });
-            } catch (e) {
-              console.error(e);
-            } finally {
-              isTransitioningPhase = false;
-            }
-          }
-        }
-      }
-    }, 200);
-  }
-
-  // Remote Start Triggered from TV Screen (Clean Start with Fresh Timestamps)
+  // TV Remote Start Button (Sets start timestamp once)
   window.startTriviaFromTV = async function() {
     if (!gameData || !db) return;
-    lastTransitionKey = null;
     try {
-      // 1. Reset all player scores/answers
+      // Clear player scores
       const playersSnap = await db.collection('trivia_games').doc(gameData.id).collection('players').get();
       if (!playersSnap.empty) {
         const batch = db.batch();
@@ -389,35 +325,22 @@
         await batch.commit();
       }
 
-      // 2. Set countdown with FRESH timestamp
       await db.collection('trivia_games').doc(gameData.id).update({
-        status: 'countdown',
-        countdownStartTime: Date.now(),
-        currentQuestionIndex: 0,
-        questionStartTime: null,
-        revealTime: null,
-        leaderboardTime: null,
-        podiumTime: null
+        status: 'running',
+        autoFlowStartTime: Date.now()
       });
     } catch (e) {
       alert('Error al iniciar: ' + e.message);
     }
   };
 
-  // Reset Game back to Lobby
+  // TV Reset to Lobby Button
   window.resetTriviaToLobby = async function() {
     if (!gameData || !db) return;
-    lastTransitionKey = null;
-    renderedPhaseKey = null;
     try {
       await db.collection('trivia_games').doc(gameData.id).update({
         status: 'lobby',
-        currentQuestionIndex: 0,
-        countdownStartTime: null,
-        questionStartTime: null,
-        revealTime: null,
-        leaderboardTime: null,
-        podiumTime: null
+        autoFlowStartTime: null
       });
 
       const playersSnap = await db.collection('trivia_games').doc(gameData.id).collection('players').get();
@@ -434,49 +357,72 @@
   };
 
   // =========================================================================
-  // RENDER DYNAMIC GAME PHASES (FLICKER-FREE RENDER PIPELINE)
+  // HIGH PRECISION TICKER LOOP (100ms)
   // =========================================================================
-  function renderCurrentPhase() {
-    if (!gameData) return;
+  function startTVTicker() {
+    if (tvTickerInterval) clearInterval(tvTickerInterval);
+    tvTickerInterval = setInterval(() => {
+      if (!gameData) return;
+      const phase = computeTriviaTimelinePhase(gameData);
+      renderTVPhase(phase);
+    }, 100);
+  }
+
+  function renderTVPhase(phase) {
     const main = document.getElementById('tvMainContent');
     if (!main) return;
 
-    const status = gameData.status || 'lobby';
-    const currIdx = gameData.currentQuestionIndex || 0;
-    const phaseKey = `${status}_${currIdx}`;
+    const phaseKey = `${phase.status}_${phase.questionIndex !== undefined ? phase.questionIndex : ''}`;
 
-    // Prevent re-rendering same phase repeatedly (prevents clock resets & flicker)
-    if (renderedPhaseKey === phaseKey) {
-      updatePlayersUIInPlace();
+    // Update live clock in-place if phase is already mounted
+    if (currentRenderedKey === phaseKey) {
+      if (phase.status === 'countdown') {
+        const clockEl = document.getElementById('tvCountdownBigNum');
+        if (clockEl) clockEl.textContent = phase.remainingSec;
+      } else if (phase.status === 'question') {
+        const clockEl = document.getElementById('tvCountdownClock');
+        if (clockEl) {
+          clockEl.textContent = phase.remainingSec;
+          if (phase.remainingSec <= 3) {
+            clockEl.style.borderColor = '#ff0033';
+            clockEl.style.color = '#ff0033';
+            clockEl.style.boxShadow = '0 0 35px rgba(255,0,51,1)';
+          }
+        }
+        // Update answered count in-place
+        const players = Object.values(playersMap);
+        const answeredCount = players.filter(p => p.answers && p.answers[phase.questionIndex] !== undefined).length;
+        const ansEl = document.getElementById('tvQuestionAnsweredCount');
+        if (ansEl) ansEl.textContent = `⚡ ${answeredCount} de ${players.length} Jugadores han respondido`;
+      }
       return;
     }
-    renderedPhaseKey = phaseKey;
 
-    if (status === 'lobby') {
+    // Phase changed -> Render new phase structure
+    currentRenderedKey = phaseKey;
+
+    if (phase.status === 'lobby') {
       renderLobbyPhase(main);
-    } else if (status === 'countdown') {
-      renderCountdownPhase(main);
-    } else if (status === 'question') {
-      renderQuestionPhase(main);
-    } else if (status === 'reveal') {
-      renderRevealPhase(main);
-    } else if (status === 'leaderboard') {
-      renderLeaderboardPhase(main);
-    } else if (status === 'podium' || status === 'finished') {
-      renderPodiumPhase(main);
+    } else if (phase.status === 'countdown') {
+      renderCountdownPhase(main, phase);
+    } else if (phase.status === 'question') {
+      renderQuestionPhase(main, phase);
+    } else if (phase.status === 'reveal') {
+      renderRevealPhase(main, phase);
+    } else if (phase.status === 'leaderboard') {
+      renderLeaderboardPhase(main, phase);
+    } else if (phase.status === 'podium' || phase.status === 'finished') {
+      renderPodiumPhase(main, phase);
     }
   }
 
-  // 1. Lobby Phase (Huge 340px QR Code + Big PIN + Remote Start Button)
+  // 1. Lobby Phase
   function renderLobbyPhase(container) {
-    if (timerInterval) clearInterval(timerInterval);
     if (leaderboardLoopInterval) clearInterval(leaderboardLoopInterval);
 
     const players = Object.values(playersMap);
     const origin = window.location.origin || '';
     const cleanPath = window.location.pathname.replace('trivia-tv.html', 'index.html').replace('tv.html', 'index.html');
-    
-    // Direct joining URL encoded into the QR code
     const joinUrl = `${origin}${cleanPath}?pin=${gameData.pin || ''}#tab-trivia`;
     const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=340x340&data=${encodeURIComponent(joinUrl)}&color=0-0-0&bgcolor=ffd100&margin=2`;
 
@@ -526,11 +472,8 @@
     updatePlayersUIInPlace();
   }
 
-  // 2. Countdown Phase (200px Giant Number Pulsating)
-  function renderCountdownPhase(container) {
-    if (timerInterval) clearInterval(timerInterval);
-    const startTime = gameData.countdownStartTime || Date.now();
-
+  // 2. Countdown Phase
+  function renderCountdownPhase(container, phase) {
     container.innerHTML = `
       <div style="text-align:center; padding:40px 20px;">
         <div style="font-size:30px; font-weight:950; color:#ffd100; text-transform:uppercase; letter-spacing:3px; margin-bottom:18px;">
@@ -539,35 +482,20 @@
         <h2 style="font-size:54px; font-weight:950; color:#ffffff; margin:0 0 24px 0; font-family:'Outfit', sans-serif;">
           LA TRIVIA VA A COMENZAR EN:
         </h2>
-        <div id="tvCountdownBigNum" class="tv-countdown-number">10</div>
+        <div id="tvCountdownBigNum" class="tv-countdown-number">${phase.remainingSec}</div>
         <p style="font-size:28px; color:#00e676; font-weight:950; margin-top:28px; letter-spacing:0.5px;">
           ¡Preparen sus dedos para contestar rápido! 🚀
         </p>
       </div>
     `;
-
-    const clockEl = document.getElementById('tvCountdownBigNum');
-    function tickCountdown() {
-      const elapsed = (Date.now() - startTime) / 1000;
-      const remaining = Math.max(0, Math.ceil(10 - elapsed));
-      if (clockEl) clockEl.textContent = remaining;
-      if (remaining <= 0) {
-        clearInterval(timerInterval);
-      }
-    }
-    tickCountdown();
-    timerInterval = setInterval(tickCountdown, 100);
   }
 
-  // 3. Question Phase (Huge 52px Question, 4 High-Contrast 34px Options, Big 95px Clock)
-  function renderQuestionPhase(container) {
-    if (timerInterval) clearInterval(timerInterval);
-
-    const currIdx = gameData.currentQuestionIndex || 0;
-    const totalQ = (gameData.questions || []).length || 10;
-    const q = gameData.questions?.[currIdx] || {};
-    const timeLimit = gameData.timePerQuestion || 8;
-    const startTime = gameData.questionStartTime || Date.now();
+  // 3. Question Phase
+  function renderQuestionPhase(container, phase) {
+    const currIdx = phase.questionIndex;
+    const totalQ = phase.totalQuestions;
+    const q = phase.question || {};
+    const timeLimit = phase.timeLimit || 8;
 
     const players = Object.values(playersMap);
     const answeredCount = players.filter(p => p.answers && p.answers[currIdx] !== undefined).length;
@@ -578,7 +506,7 @@
         <div style="background:rgba(0,0,0,0.6); border:3px solid #ffd100; border-radius:30px; padding:32px 48px; margin-bottom:28px; position:relative; box-shadow:0 15px 50px rgba(0,0,0,0.8); text-align:center;">
           <!-- Giant Clock -->
           <div id="tvCountdownClock" style="position:absolute; top:24px; right:32px; width:95px; height:95px; border-radius:50%; background:#101726; border:5px solid #ffd100; display:flex; align-items:center; justify-content:center; font-size:44px; font-weight:950; color:#ffd100; font-family:'Outfit', sans-serif; box-shadow:0 0 30px rgba(255,209,0,0.6);">
-            ${timeLimit}
+            ${phase.remainingSec}
           </div>
 
           <div style="font-size:22px; font-weight:950; color:#ffd100; text-transform:uppercase; letter-spacing:2px; margin-bottom:12px;">
@@ -613,35 +541,13 @@
         </div>
       </div>
     `;
-
-    // Live Clock Countdown
-    const clockEl = document.getElementById('tvCountdownClock');
-    function tickQuestionClock() {
-      const elapsed = (Date.now() - startTime) / 1000;
-      const remaining = Math.max(0, Math.ceil(timeLimit - elapsed));
-
-      if (clockEl) {
-        clockEl.textContent = remaining;
-        if (remaining <= 3) {
-          clockEl.style.borderColor = '#ff0033';
-          clockEl.style.color = '#ff0033';
-          clockEl.style.boxShadow = '0 0 35px rgba(255,0,51,1)';
-        }
-      }
-
-      if (remaining <= 0) clearInterval(timerInterval);
-    }
-    tickQuestionClock();
-    timerInterval = setInterval(tickQuestionClock, 100);
   }
 
-  // 4. Reveal Phase (Emerald Green Correct Answer + 32px Gold Fact Box)
-  function renderRevealPhase(container) {
-    if (timerInterval) clearInterval(timerInterval);
-
-    const currIdx = gameData.currentQuestionIndex || 0;
-    const totalQ = (gameData.questions || []).length || 10;
-    const q = gameData.questions?.[currIdx] || {};
+  // 4. Reveal Phase
+  function renderRevealPhase(container, phase) {
+    const currIdx = phase.questionIndex;
+    const totalQ = phase.totalQuestions;
+    const q = phase.question || {};
     const correct = (q.correct || 'A').toUpperCase();
 
     const players = Object.values(playersMap);
@@ -712,15 +618,13 @@
     `;
   }
 
-  // 5. Leaderboard Phase (Top 5 Live Standing with Scores)
-  function renderLeaderboardPhase(container) {
-    if (timerInterval) clearInterval(timerInterval);
-
+  // 5. Leaderboard Phase
+  function renderLeaderboardPhase(container, phase) {
     const players = Object.values(playersMap);
     players.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
 
-    const currIdx = gameData.currentQuestionIndex || 0;
-    const totalQ = (gameData.questions || []).length || 10;
+    const currIdx = phase.questionIndex;
+    const totalQ = phase.totalQuestions;
 
     let rowsHtml = '';
     players.slice(0, 5).forEach((p, idx) => {
@@ -761,10 +665,8 @@
     `;
   }
 
-  // 6. Podium Grand Finale (Reverse Sequential Reveal + Looping Paginated Table)
-  function renderPodiumPhase(container) {
-    if (timerInterval) clearInterval(timerInterval);
-
+  // 6. Podium Grand Finale
+  function renderPodiumPhase(container, phase) {
     const players = Object.values(playersMap);
     players.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
 

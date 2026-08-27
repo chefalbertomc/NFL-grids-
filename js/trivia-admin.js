@@ -807,17 +807,14 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
         await batch.commit();
       }
 
-      // 2. Set fresh countdown starting from NOW
+      // 2. Set fresh running timestamp starting from NOW
       await db.collection('trivia_games').doc(selectedTriviaId).update({
-        status: 'countdown',
+        status: 'running',
+        autoFlowStartTime: Date.now(),
         countdownStartTime: Date.now(),
-        currentQuestionIndex: 0,
-        questionStartTime: null,
-        revealTime: null,
-        leaderboardTime: null,
-        podiumTime: null
+        currentQuestionIndex: 0
       });
-      alert('🚀 ¡Trivia Automática Iniciada con Éxito!\n\nCuenta regresiva de 10s activada en pantallas y celulares.\nEl juego avanzará solo de forma automática.');
+      alert('🚀 ¡Trivia Automática Iniciada con Éxito!\n\nCuenta regresiva de 10s activada en pantallas y celulares.\nEl juego avanzará de forma 100% sincronizada.');
     } catch (err) {
       alert('Error al iniciar trivia automática: ' + err.message);
     }
@@ -828,12 +825,9 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     try {
       await db.collection('trivia_games').doc(selectedTriviaId).update({
         status: 'lobby',
-        currentQuestionIndex: 0,
+        autoFlowStartTime: null,
         countdownStartTime: null,
-        questionStartTime: null,
-        revealTime: null,
-        leaderboardTime: null,
-        podiumTime: null
+        currentQuestionIndex: 0
       });
 
       const playersSnap = await db.collection('trivia_games').doc(selectedTriviaId).collection('players').get();
