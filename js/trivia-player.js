@@ -42,24 +42,34 @@
 
   function loadActiveTriviaGames() {
     if (!db) return;
-    db.collection('trivia_games').orderBy('createdAt', 'desc').limit(5).onSnapshot(snap => {
-      activeGames = [];
-      snap.forEach(doc => {
-        activeGames.push({ id: doc.id, ...doc.data() });
-      });
+    try {
+      db.collection('trivia_games').onSnapshot(snap => {
+        activeGames = [];
+        snap.forEach(doc => {
+          activeGames.push({ id: doc.id, ...doc.data() });
+        });
 
-      if (activeGames.length > 0) {
-        if (!currentTriviaId || !activeGames.some(g => g.id === currentTriviaId)) {
-          // Select the most recent active game
-          currentTriviaId = activeGames[0].id;
+        // In-memory sort
+        activeGames.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+        if (activeGames.length > 0) {
+          if (!currentTriviaId || !activeGames.some(g => g.id === currentTriviaId)) {
+            // Select the most recent active game
+            currentTriviaId = activeGames[0].id;
+          }
+          listenToCurrentTrivia(currentTriviaId);
+        } else {
+          currentTriviaId = null;
+          currentTrivia = null;
+          renderTriviaMobile();
         }
-        listenToCurrentTrivia(currentTriviaId);
-      } else {
-        currentTriviaId = null;
-        currentTrivia = null;
+      }, err => {
+        console.error('[TriviaPlayer] Error loading active games:', err);
         renderTriviaMobile();
-      }
-    }, err => console.error('[TriviaPlayer] Error loading active games:', err));
+      });
+    } catch (e) {
+      console.error('[TriviaPlayer] Init error:', e);
+    }
   }
 
   function listenToCurrentTrivia(gId) {
@@ -114,7 +124,7 @@
           <h3 style="color:#ffd100; margin-top:10px;">No hay Trivias en Vivo</h3>
           <p class="hint-text">El mesero o el host iniciará una trivia en las pantallas del bar muy pronto.</p>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v186.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v188.1</span></footer>
       `;
       return;
     }
@@ -154,7 +164,7 @@
             🚀 Entrar con Google
           </button>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v186.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v188.1</span></footer>
       `;
       return;
     }
@@ -185,7 +195,7 @@
             ¡Unirme a la Trivia en Vivo! 🔥
           </button>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v186.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v188.1</span></footer>
       `;
       return;
     }
@@ -244,7 +254,7 @@
       ${selectorHtml}
       ${playerHeroHtml}
       ${phaseContentHtml}
-      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v186.0</span></footer>
+      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v188.1</span></footer>
     `;
 
     // Start mobile timer bar if question is active

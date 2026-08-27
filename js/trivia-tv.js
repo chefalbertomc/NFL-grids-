@@ -29,15 +29,28 @@
   }
 
   function loadLatestTriviaGame() {
-    db.collection('trivia_games').orderBy('createdAt', 'desc').limit(1).onSnapshot(snap => {
-      if (!snap.empty) {
-        const doc = snap.docs[0];
-        gameId = doc.id;
-        listenToGame(gameId);
-      } else {
+    try {
+      db.collection('trivia_games').onSnapshot(snap => {
+        if (!snap.empty) {
+          const games = [];
+          snap.forEach(doc => games.push({ id: doc.id, ...doc.data() }));
+          games.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+          if (games.length > 0) {
+            gameId = games[0].id;
+            listenToGame(gameId);
+          } else {
+            renderNoGameScreen();
+          }
+        } else {
+          renderNoGameScreen();
+        }
+      }, err => {
+        console.error('[TriviaTV] Error loading games:', err);
         renderNoGameScreen();
-      }
-    });
+      });
+    } catch (e) {
+      console.error('[TriviaTV] Init error:', e);
+    }
   }
 
   function listenToGame(gId) {
