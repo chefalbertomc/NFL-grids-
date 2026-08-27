@@ -124,7 +124,7 @@ export default function handler(req, res) {
   const b64A = Buffer.from(logoA).toString('base64').replace(/=+$/, '');
   const b64B = Buffer.from(logoB).toString('base64').replace(/=+$/, '');
 
-  const imageUrl = `https://res.cloudinary.com/demo/image/upload/w_1200,h_630,c_fill,b_rgb:0e1015/l_fetch:${b64A},w_280,g_west,x_120/l_fetch:${b64B},w_280,g_east,x_120/l_text:Arial_60_bold:VS,co_rgb:ffd100,g_center/sample.jpg`;
+  const imageUrl = `https://res.cloudinary.com/demo/image/upload/w_1200,h_630,c_fill,e_colorize:100,co_rgb:0d0e12/l_text:Arial_36_bold:DRINKS%20%26%20WINS,co_rgb:ffd100,g_north,y_40/l_fetch:${b64A},w_320,g_west,x_100/l_fetch:${b64B},w_320,g_east,x_100/l_text:Arial_72_bold:VS,co_rgb:ffd100,g_center/sample.jpg`;
 
   const gameTitle = title || (game === 'firstgoal' 
     ? `⚽ ${away} vs ${home} — Primer Gol` 
