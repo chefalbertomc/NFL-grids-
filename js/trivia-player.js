@@ -247,7 +247,7 @@
               🚀 Entrar con Google
             </button>
           </section>
-          <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v203.0</span></footer>
+          <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v204.0</span></footer>
         `;
       }
       return;
@@ -296,7 +296,7 @@
               ¡Unirme a la Trivia en Vivo! 🔥
             </button>
           </section>
-          <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v203.0</span></footer>
+          <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v204.0</span></footer>
         `;
       }
       return;
@@ -334,20 +334,20 @@
     renderedMobilePhaseKey = phaseKey;
 
     const playerHeroHtml = `
-      <div class="trivia-mobile-hero">
-        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <img src="${myPlayerDoc.photoURL || 'img/logo.jpg'}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:2px solid #ffd100;" onerror="this.src='img/logo.jpg'"/>
-            <div style="text-align:left;">
-              <strong style="color:#ffffff; font-size:14px;">${myPlayerDoc.nickname || myPlayerDoc.playerName}</strong>
-              <div style="font-size:10px; color:var(--text-muted);">Mesa: ${myPlayerDoc.waiter || 'Bar'} • #${myRank} de ${sorted.length}</div>
+      <div class="trivia-mobile-hero" style="padding:10px 14px; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px; min-width:0; flex:1;">
+            <img src="${myPlayerDoc.photoURL || 'img/logo.jpg'}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:2px solid #ffd100; flex-shrink:0;" onerror="this.src='img/logo.jpg'"/>
+            <div style="text-align:left; min-width:0; overflow:hidden;">
+              <strong style="color:#ffffff; font-size:13.5px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${myPlayerDoc.nickname || myPlayerDoc.playerName}</strong>
+              <div style="font-size:10.5px; color:var(--text-muted); white-space:nowrap;">Mesa: ${myPlayerDoc.waiter || 'Bar'} • #${myRank} de ${sorted.length}</div>
             </div>
           </div>
-          <div style="display:flex; align-items:center; gap:8px;">
-            <div id="triviaMobileHeroScore" class="trivia-score-pill">
-              <span>⭐ ${totalScore}</span> <span style="font-size:10px; opacity:0.8;">PTS</span>
+          <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+            <div id="triviaMobileHeroScore" class="trivia-score-pill" style="margin-top:0; padding:4px 10px; font-size:12px;">
+              <span>⭐ ${totalScore}</span> <span style="font-size:9.5px; opacity:0.8;">PTS</span>
             </div>
-            <button type="button" onclick="window.exitTriviaRoom()" style="background:transparent; border:none; color:#ff4d4d; font-size:11px; font-weight:800; cursor:pointer;" title="Salir de Sala">
+            <button type="button" onclick="window.exitTriviaRoom()" style="background:rgba(255,77,77,0.12); border:1px solid rgba(255,77,77,0.3); border-radius:8px; color:#ff4d4d; font-size:11px; font-weight:800; padding:4px 8px; cursor:pointer;" title="Salir de Sala">
               ✕ Salir
             </button>
           </div>
@@ -394,7 +394,7 @@
     container.innerHTML = `
       ${playerHeroHtml}
       ${phaseContentHtml}
-      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v203.0</span></footer>
+      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v204.0</span></footer>
     `;
   }
 

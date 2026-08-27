@@ -52,16 +52,18 @@ body {
   background: var(--accent-color);
 }
 
-/* Container */
+/* Container - Uniform Native App Viewport */
 .container {
-  max-width: 600px; /* Mobile focused */
+  max-width: 500px; /* Perfectly sized standard mobile container */
   margin: 0 auto;
-  padding: 16px;
+  padding: 12px 14px max(30px, env(safe-area-inset-bottom, 24px)) 14px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (min-width: 768px) {
   .container {
-    max-width: 1000px;
+    max-width: 540px; /* Keeps consistent phone aspect on desktop/tablets */
   }
 }
 
@@ -82,27 +84,61 @@ h1, h2, h3, h4 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 0;
+  gap: 8px;
+  padding: 12px 0;
   border-bottom: 1px solid var(--border-color);
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  min-width: 0;
 }
 
 .header-title {
-  font-size: 24px;
+  font-size: clamp(15px, 4.2vw, 19px);
   text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1.15;
 }
 
 .user-badge {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
+  gap: 6px;
+  padding: 5px 10px;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 20px;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   transition: all var(--transition-speed);
+  max-width: 145px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.user-badge #userName {
+  max-width: 85px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: inline-block;
+  vertical-align: middle;
+  font-weight: 700;
+}
+
+@media (max-width: 380px) {
+  .user-badge {
+    max-width: 115px;
+    padding: 4px 8px;
+  }
+  .user-badge #userName {
+    max-width: 62px;
+    font-size: 11px;
+  }
+  .app-brand-logo {
+    width: 38px !important;
+    height: 38px !important;
+  }
 }
 
 .user-badge:hover {
@@ -115,6 +151,7 @@ h1, h2, h3, h4 {
   height: 24px;
   border-radius: 50%;
   object-fit: cover;
+  flex-shrink: 0;
 }
 
 /* User Profile Menu Dropdown */
