@@ -362,7 +362,8 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
   }
 ]`;
 
-    const candidateModels = ['gemini-3.5-flash', 'gemini-flash-latest', 'gemini-2.5-flash', 'gemini-pro-latest'];
+    // Use Flash-Lite models with generous free tier limits and zero quota restrictions
+    const candidateModels = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.5-flash', 'gemini-flash-latest'];
     let lastError = null;
 
     for (const model of candidateModels) {
