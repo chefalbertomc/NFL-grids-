@@ -140,7 +140,7 @@
           <h3 style="color:#ffd100; margin-top:10px;">No hay Trivias en Vivo</h3>
           <p class="hint-text">El mesero o el host iniciará una trivia en las pantallas del bar muy pronto.</p>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v196.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v197.0</span></footer>
       `;
       return;
     }
@@ -203,7 +203,7 @@
             🚀 Entrar con Google
           </button>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v196.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v197.0</span></footer>
       `;
       return;
     }
@@ -233,7 +233,7 @@
             ¡Unirme a la Trivia en Vivo! 🔥
           </button>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v196.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v197.0</span></footer>
       `;
       return;
     }
@@ -299,7 +299,7 @@
     container.innerHTML = `
       ${playerHeroHtml}
       ${phaseContentHtml}
-      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v196.0</span></footer>
+      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v197.0</span></footer>
     `;
 
     // Start live countdown or question progress bar

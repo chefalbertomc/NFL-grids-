@@ -9,6 +9,7 @@
   let timerInterval = null;
   let autoFlowCoordinatorTimer = null;
   let isTransitioningPhase = false;
+  let lastTransitionKey = null;
   let renderedPhaseKey = null;
   let leaderboardLoopPageIndex = 0;
   let leaderboardLoopInterval = null;
@@ -42,6 +43,7 @@
     if (leaderboardLoopInterval) clearInterval(leaderboardLoopInterval);
 
     renderedPhaseKey = null;
+    lastTransitionKey = null;
     const main = document.getElementById('tvMainContent');
     const titleEl = document.getElementById('tvGameTitle');
     const pinEl = document.getElementById('tvPinBadge');
@@ -116,6 +118,7 @@
   window.selectTVGame = function(targetGameId) {
     gameId = targetGameId;
     renderedPhaseKey = null;
+    lastTransitionKey = null;
     const newUrl = `${window.location.pathname}?gameId=${targetGameId}`;
     window.history.pushState({ path: newUrl }, '', newUrl);
     listenToGame(targetGameId);
@@ -227,7 +230,7 @@
   }
 
   // =========================================================================
-  // ROBUST SERVER-SYNCHRONIZED AUTO FLOW COORDINATOR (NO RACE CONDITIONS)
+  // DEFINITIVE TRANSACTION-GUARDED AUTO FLOW COORDINATOR (NO INFINITE LOOPS)
   // =========================================================================
   function runAutoFlowCoordinator() {
     if (autoFlowCoordinatorTimer) clearInterval(autoFlowCoordinatorTimer);
@@ -242,12 +245,17 @@
       const totalQ = (gameData.questions || []).length || 10;
       const timePerQ = gameData.timePerQuestion || 8;
 
-      // 1. Countdown Phase (10 seconds)
+      // 1. Countdown Phase (10 real seconds)
       if (status === 'countdown') {
-        const startTime = gameData.countdownStartTime || now;
+        const startTime = gameData.countdownStartTime;
+        if (!startTime) return;
         const elapsed = (now - startTime) / 1000;
         if (elapsed >= 10) {
+          const tKey = `${gameData.id}_countdown_to_q0`;
+          if (lastTransitionKey === tKey) return;
+          lastTransitionKey = tKey;
           isTransitioningPhase = true;
+
           try {
             await db.collection('trivia_games').doc(gameData.id).update({
               status: 'question',
@@ -255,23 +263,32 @@
               questionStartTime: Date.now()
             });
           } catch (e) {
+            console.error(e);
+          } finally {
             isTransitioningPhase = false;
           }
         }
       }
 
-      // 2. Question Phase (5, 8 or 12 seconds)
+      // 2. Question Phase (timePerQ seconds)
       else if (status === 'question') {
-        const startTime = gameData.questionStartTime || now;
+        const startTime = gameData.questionStartTime;
+        if (!startTime) return;
         const elapsed = (now - startTime) / 1000;
         if (elapsed >= timePerQ) {
+          const tKey = `${gameData.id}_question_to_reveal_${currIdx}`;
+          if (lastTransitionKey === tKey) return;
+          lastTransitionKey = tKey;
           isTransitioningPhase = true;
+
           try {
             await db.collection('trivia_games').doc(gameData.id).update({
               status: 'reveal',
               revealTime: Date.now()
             });
           } catch (e) {
+            console.error(e);
+          } finally {
             isTransitioningPhase = false;
           }
         }
@@ -279,16 +296,23 @@
 
       // 3. Reveal Phase (6 seconds display)
       else if (status === 'reveal') {
-        const revealTime = gameData.revealTime || now;
+        const revealTime = gameData.revealTime;
+        if (!revealTime) return;
         const elapsed = (now - revealTime) / 1000;
         if (elapsed >= 6) {
+          const tKey = `${gameData.id}_reveal_to_lb_${currIdx}`;
+          if (lastTransitionKey === tKey) return;
+          lastTransitionKey = tKey;
           isTransitioningPhase = true;
+
           try {
             await db.collection('trivia_games').doc(gameData.id).update({
               status: 'leaderboard',
               leaderboardTime: Date.now()
             });
           } catch (e) {
+            console.error(e);
+          } finally {
             isTransitioningPhase = false;
           }
         }
@@ -296,10 +320,15 @@
 
       // 4. Leaderboard Phase (6 seconds display -> Next Question or Final Podium)
       else if (status === 'leaderboard') {
-        const lbTime = gameData.leaderboardTime || now;
+        const lbTime = gameData.leaderboardTime;
+        if (!lbTime) return;
         const elapsed = (now - lbTime) / 1000;
         if (elapsed >= 6) {
+          const tKey = `${gameData.id}_lb_to_next_${currIdx}`;
+          if (lastTransitionKey === tKey) return;
+          lastTransitionKey = tKey;
           isTransitioningPhase = true;
+
           if (currIdx + 1 < totalQ) {
             try {
               await db.collection('trivia_games').doc(gameData.id).update({
@@ -308,35 +337,84 @@
                 questionStartTime: Date.now()
               });
             } catch (e) {
+              console.error(e);
+            } finally {
               isTransitioningPhase = false;
             }
           } else {
-            // All questions finished -> Launch Grand Podium
+            // All questions finished -> Podium
             try {
               await db.collection('trivia_games').doc(gameData.id).update({
                 status: 'podium',
                 podiumTime: Date.now()
               });
             } catch (e) {
+              console.error(e);
+            } finally {
               isTransitioningPhase = false;
             }
           }
         }
       }
-    }, 250);
+    }, 200);
   }
 
-  // Remote Start Triggered from TV Screen
+  // Remote Start Triggered from TV Screen (Clean Start with Fresh Timestamps)
   window.startTriviaFromTV = async function() {
     if (!gameData || !db) return;
+    lastTransitionKey = null;
     try {
+      // 1. Reset all player scores/answers
+      const playersSnap = await db.collection('trivia_games').doc(gameData.id).collection('players').get();
+      if (!playersSnap.empty) {
+        const batch = db.batch();
+        playersSnap.forEach(pDoc => {
+          batch.update(pDoc.ref, { totalScore: 0, answers: {} });
+        });
+        await batch.commit();
+      }
+
+      // 2. Set countdown with FRESH timestamp
       await db.collection('trivia_games').doc(gameData.id).update({
         status: 'countdown',
         countdownStartTime: Date.now(),
-        currentQuestionIndex: 0
+        currentQuestionIndex: 0,
+        questionStartTime: null,
+        revealTime: null,
+        leaderboardTime: null,
+        podiumTime: null
       });
     } catch (e) {
-      alert('Error: ' + e.message);
+      alert('Error al iniciar: ' + e.message);
+    }
+  };
+
+  // Reset Game back to Lobby
+  window.resetTriviaToLobby = async function() {
+    if (!gameData || !db) return;
+    lastTransitionKey = null;
+    renderedPhaseKey = null;
+    try {
+      await db.collection('trivia_games').doc(gameData.id).update({
+        status: 'lobby',
+        currentQuestionIndex: 0,
+        countdownStartTime: null,
+        questionStartTime: null,
+        revealTime: null,
+        leaderboardTime: null,
+        podiumTime: null
+      });
+
+      const playersSnap = await db.collection('trivia_games').doc(gameData.id).collection('players').get();
+      if (!playersSnap.empty) {
+        const batch = db.batch();
+        playersSnap.forEach(pDoc => {
+          batch.update(pDoc.ref, { totalScore: 0, answers: {} });
+        });
+        await batch.commit();
+      }
+    } catch (e) {
+      alert('Error al reiniciar sala: ' + e.message);
     }
   };
 
@@ -454,12 +532,16 @@
     `;
 
     const clockEl = document.getElementById('tvCountdownBigNum');
-    timerInterval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const remaining = Math.max(0, 10 - elapsed);
+    function tickCountdown() {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const remaining = Math.max(0, Math.ceil(10 - elapsed));
       if (clockEl) clockEl.textContent = remaining;
-      if (remaining <= 0) clearInterval(timerInterval);
-    }, 150);
+      if (remaining <= 0) {
+        clearInterval(timerInterval);
+      }
+    }
+    tickCountdown();
+    timerInterval = setInterval(tickCountdown, 100);
   }
 
   // 3. Question Phase (Huge 52px Question, 4 High-Contrast 34px Options, Big 95px Clock)
@@ -519,9 +601,9 @@
 
     // Live Clock Countdown
     const clockEl = document.getElementById('tvCountdownClock');
-    timerInterval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      const remaining = Math.max(0, timeLimit - elapsed);
+    function tickQuestionClock() {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const remaining = Math.max(0, Math.ceil(timeLimit - elapsed));
 
       if (clockEl) {
         clockEl.textContent = remaining;
@@ -533,7 +615,9 @@
       }
 
       if (remaining <= 0) clearInterval(timerInterval);
-    }, 150);
+    }
+    tickQuestionClock();
+    timerInterval = setInterval(tickQuestionClock, 100);
   }
 
   // 4. Reveal Phase (Emerald Green Correct Answer + 32px Gold Fact Box)

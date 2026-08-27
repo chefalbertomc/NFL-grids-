@@ -797,14 +797,56 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
   window.startTriviaAutoFlow = async function() {
     if (!selectedTriviaId || !db) return;
     try {
+      // 1. Reset all player answers & scores for a clean run
+      const playersSnap = await db.collection('trivia_games').doc(selectedTriviaId).collection('players').get();
+      if (!playersSnap.empty) {
+        const batch = db.batch();
+        playersSnap.forEach(pDoc => {
+          batch.update(pDoc.ref, { totalScore: 0, answers: {} });
+        });
+        await batch.commit();
+      }
+
+      // 2. Set fresh countdown starting from NOW
       await db.collection('trivia_games').doc(selectedTriviaId).update({
         status: 'countdown',
         countdownStartTime: Date.now(),
-        currentQuestionIndex: 0
+        currentQuestionIndex: 0,
+        questionStartTime: null,
+        revealTime: null,
+        leaderboardTime: null,
+        podiumTime: null
       });
       alert('🚀 ¡Trivia Automática Iniciada con Éxito!\n\nCuenta regresiva de 10s activada en pantallas y celulares.\nEl juego avanzará solo de forma automática.');
     } catch (err) {
       alert('Error al iniciar trivia automática: ' + err.message);
+    }
+  };
+
+  window.resetCurrentTriviaToLobby = async function() {
+    if (!selectedTriviaId || !db) return;
+    try {
+      await db.collection('trivia_games').doc(selectedTriviaId).update({
+        status: 'lobby',
+        currentQuestionIndex: 0,
+        countdownStartTime: null,
+        questionStartTime: null,
+        revealTime: null,
+        leaderboardTime: null,
+        podiumTime: null
+      });
+
+      const playersSnap = await db.collection('trivia_games').doc(selectedTriviaId).collection('players').get();
+      if (!playersSnap.empty) {
+        const batch = db.batch();
+        playersSnap.forEach(pDoc => {
+          batch.update(pDoc.ref, { totalScore: 0, answers: {} });
+        });
+        await batch.commit();
+      }
+      alert('⏹️ Sala reiniciada al Lobby con éxito.');
+    } catch (err) {
+      alert('Error al reiniciar sala: ' + err.message);
     }
   };
 
