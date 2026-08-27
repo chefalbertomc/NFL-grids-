@@ -35,7 +35,7 @@
         <img src="img/logo.jpg" alt="Drinks & Wins by Beto" class="app-brand-logo" />
         <div>
           <h1 class="header-title gradient-text">Panel de Administración</h1>
-          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v192.0</span></p>
+          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v193.0</span></p>
         </div>
       </div>
       <a href="index.html" class="btn btn-secondary" style="width: auto; padding: 8px 14px; text-decoration: none; font-size: 13px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;">
@@ -209,7 +209,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v192.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v193.0</span>
       </footer>
     </main>
 
@@ -332,7 +332,7 @@
       </section>
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v192.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v193.0</span>
       </footer>
     </main>
 
@@ -492,7 +492,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v192.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v193.0</span>
       </footer>
     </main>
 
@@ -756,7 +756,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v192.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v193.0</span>
       </footer>
     </main>
 
@@ -841,7 +841,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v192.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v193.0</span>
       </footer>
     </main>
 
@@ -912,21 +912,26 @@
             <div id="trivAdminCurrentQText" style="margin-bottom:14px;"></div>
 
             <!-- Host Action Buttons -->
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap:8px;">
-              <button type="button" class="btn btn-primary" onclick="window.startTriviaQuestion()" style="font-size:12px; font-weight:900; background:#00e676; color:#000; border-color:#00e676;">
+            <div style="margin-bottom:10px;">
+              <button type="button" class="btn btn-primary" onclick="window.startTriviaAutoFlow()" style="font-size:14px; font-weight:950; background:linear-gradient(135deg, #00e676, #00b0ff); color:#000; border:none; padding:12px 20px; width:100%; border-radius:12px; box-shadow:0 0 20px rgba(0,230,118,0.5);">
+                ▶️ Empezar Trivia Automática (Cuenta 10s ➡️ Flujo Completo) 🔥
+              </button>
+            </div>
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:6px;">
+              <button type="button" class="btn btn-secondary" onclick="window.startTriviaQuestion()" style="font-size:11px; font-weight:800;">
                 ▶️ Iniciar Pregunta
               </button>
-              <button type="button" class="btn btn-secondary" onclick="window.revealTriviaAnswer()" style="font-size:12px; font-weight:900; border-color:#ffd100; color:#ffd100;">
+              <button type="button" class="btn btn-secondary" onclick="window.revealTriviaAnswer()" style="font-size:11px; font-weight:800; color:#ffd100; border-color:#ffd100;">
                 ⏱️ Revelar Respuesta
               </button>
-              <button type="button" class="btn btn-secondary" onclick="window.showTriviaLeaderboard()" style="font-size:12px; font-weight:900;">
+              <button type="button" class="btn btn-secondary" onclick="window.showTriviaLeaderboard()" style="font-size:11px; font-weight:800;">
                 📊 Ver Posiciones
               </button>
-              <button type="button" class="btn btn-primary" onclick="window.nextTriviaQuestion()" style="font-size:12px; font-weight:900;">
+              <button type="button" class="btn btn-secondary" onclick="window.nextTriviaQuestion()" style="font-size:11px; font-weight:800;">
                 ⏩ Siguiente Pregunta
               </button>
-              <button type="button" class="btn btn-primary" onclick="window.showTriviaFinalPodium()" style="font-size:12px; font-weight:900; background:linear-gradient(135deg, #ffd700, #ff8800); color:#000; border:none; grid-column:1/-1;">
-                🏆 Revelar Podio Final Top 5
+              <button type="button" class="btn btn-primary" onclick="window.showTriviaFinalPodium()" style="font-size:11.5px; font-weight:900; background:linear-gradient(135deg, #ffd700, #ff8800); color:#000; border:none; grid-column:1/-1;">
+                🏆 Revelar Podio Final y Tabla General
               </button>
             </div>
           </div>
@@ -946,91 +951,36 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v192.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v193.0</span>
       </footer>
     </main>
   </div>
 
-  <!-- Global Modal Create Trivia Room with AI (Outside Tab for High Stacking Context) -->
-  <!-- Global Modal Create Trivia Room with AI (Outside Tab for High Stacking Context) -->
+  <!-- Global Modal Create Trivia Room with AI -->
   <div id="modalCreateTrivia" class="modal-overlay login-modal-overlay" style="display:none; z-index:10005;">
     <div class="login-modal-box" style="background:#14181f; border:1.5px solid #ffd100; border-radius:20px; max-width:560px; width:95%; max-height:92vh; display:flex; flex-direction:column; padding:20px 22px; box-shadow:0 16px 50px rgba(0,0,0,0.85); z-index:10006; position:relative;">
       <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:10px;">
         <div>
           <div style="display:flex; align-items:center; gap:8px;">
-            <h3 style="color:#ffd100; font-size:18px; font-weight:950; margin:0; letter-spacing:0.3px;">✨ Creador de Trivias con Inteligencia Artificial</h3>
-            <span id="geminiApiKeyStatusBadge" class="badge" style="font-size:10px; background:rgba(255,255,255,0.1);">Base Verificada</span>
+            <h3 style="color:#ffd100; font-size:18px; font-weight:950; margin:0; letter-spacing:0.3px;">✨ Creador de Trivia en Vivo</h3>
+            <span id="geminiApiKeyStatusBadge" class="badge success" style="font-size:10px; background:rgba(0,230,118,0.15); color:#00e676; border:1px solid #00e676;">✨ Gemini AI Conectado</span>
           </div>
-          <p class="hint-text" style="font-size:11.5px; margin:3px 0 0 0;">Genera preguntas reales, verificadas y desafiantes para las pantallas del bar.</p>
+          <p class="hint-text" style="font-size:11.5px; margin:3px 0 0 0;">Configura y genera preguntas reales para proyectar en las pantallas del bar.</p>
         </div>
         <button type="button" onclick="window.closeCreateTriviaModal()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; font-size:18px; width:28px; height:28px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">&times;</button>
       </div>
 
       <div style="overflow-y:auto; flex:1; padding-right:6px; margin-bottom:12px;">
-        <!-- Select Template or Custom -->
-        <div class="form-group" style="margin-bottom:10px;">
-          <label style="font-size:11.5px; font-weight:800;">1. Selecciona Plantilla Verificada o Tema Personalizado:</label>
-          <select id="newTrivPresetSelect" onchange="window.onPresetTopicSelectChange(this.value)" style="font-weight:800; font-size:13px;">
-          </select>
-        </div>
-
-        <!-- Custom Topic Box -->
-        <div id="newTrivCustomTopicWrap" class="form-group" style="margin-bottom:12px; background:rgba(255,209,0,0.06); padding:10px; border-radius:10px; border:1px dashed rgba(255,209,0,0.3); display:none;">
-          <label style="font-size:11px; font-weight:800; color:#ffd100;">Escribe el Tema Personalizado para la IA:</label>
-          <div style="display:flex; gap:6px; margin-bottom:8px;">
-            <input type="text" id="newTrivCustomPrompt" placeholder="Ej. Real Madrid, Los Simpson, Boxeo Mexicano, F1 Checo..." style="font-weight:800; font-size:13px; flex:1;"/>
-            <button type="button" id="btnTrivGenAI" class="btn btn-primary" onclick="window.triggerAIGeneration()" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; white-space:nowrap;">
-              <span>✨</span> Generar con IA
-            </button>
-          </div>
-
-          <!-- Quick Topic Chips -->
-          <div style="font-size:10.5px; color:var(--text-muted); margin-bottom:4px; font-weight:700;">💡 Sugerencias Rápidas con Datos Verificados:</div>
-          <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px;">
-            <button type="button" onclick="window.applyQuickTopicChip('Club América')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 8px; border-radius:12px; cursor:pointer; font-weight:800;">⚽ Club América</button>
-            <button type="button" onclick="window.applyQuickTopicChip('Chivas de Guadalajara')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 8px; border-radius:12px; cursor:pointer; font-weight:800;">🐐 Chivas</button>
-            <button type="button" onclick="window.applyQuickTopicChip('Real Madrid & Champions')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 8px; border-radius:12px; cursor:pointer; font-weight:800;">👑 Real Madrid</button>
-            <button type="button" onclick="window.applyQuickTopicChip('Copa del Mundo FIFA')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 8px; border-radius:12px; cursor:pointer; font-weight:800;">🌍 Mundial FIFA</button>
-            <button type="button" onclick="window.applyQuickTopicChip('NFL & Super Bowl')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 8px; border-radius:12px; cursor:pointer; font-weight:800;">🏈 NFL Super Bowl</button>
-            <button type="button" onclick="window.applyQuickTopicChip('F1 & Checo Pérez')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 8px; border-radius:12px; cursor:pointer; font-weight:800;">🏎️ Checo Pérez</button>
-            <button type="button" onclick="window.applyQuickTopicChip('Boxeo Mexicano & Canelo')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 8px; border-radius:12px; cursor:pointer; font-weight:800;">🥊 Canelo & Chávez</button>
-            <button type="button" onclick="window.applyQuickTopicChip('NBA & Michael Jordan')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 8px; border-radius:12px; cursor:pointer; font-weight:800;">🏀 NBA Jordan</button>
-            <button type="button" onclick="window.applyQuickTopicChip('Alitas, Cerveza & Sports Bar')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 8px; border-radius:12px; cursor:pointer; font-weight:800;">🍻 Alitas & Drinks</button>
-            <button type="button" onclick="window.applyQuickTopicChip('Los Simpson')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 8px; border-radius:12px; cursor:pointer; font-weight:800;">🍩 Los Simpson</button>
-            <button type="button" onclick="window.applyQuickTopicChip('Rock en Español')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 8px; border-radius:12px; cursor:pointer; font-weight:800;">🎸 Rock en Español</button>
-            <button type="button" onclick="window.applyQuickTopicChip('México Tradiciones y Comida')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 8px; border-radius:12px; cursor:pointer; font-weight:800;">🇲🇽 México Mágico</button>
-          </div>
-
-          <!-- API Key Section Accordion -->
-          <details style="background:rgba(0,0,0,0.25); border-radius:8px; padding:6px 10px; border:1px solid rgba(255,255,255,0.06); font-size:11px;">
-            <summary style="cursor:pointer; color:#ffd100; font-weight:800;">⚙️ Configurar Gemini AI API Key (Generación Ilimitada)</summary>
-            <div style="margin-top:8px;">
-              <p style="margin:0 0 6px 0; color:var(--text-muted); font-size:10.5px;">
-                Ingresa una API Key gratuita de Google Gemini para redactar trivias con inteligencia artificial sobre cualquier tema en segundos:
-              </p>
-              <div style="display:flex; gap:6px;">
-                <input type="password" id="geminiApiKeyInput" placeholder="Pega tu API Key de Gemini..." style="font-size:11px; padding:4px 8px; flex:1;"/>
-                <button type="button" class="btn btn-secondary" onclick="window.saveGeminiApiKey(document.getElementById('geminiApiKeyInput').value)" style="font-size:11px; padding:4px 10px; font-weight:800;">Guardar</button>
-              </div>
-              <div style="margin-top:4px; font-size:9.5px; color:#aaa;">
-                ¿No tienes una? <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#00e676; text-decoration:underline;">Obtén tu API Key gratuita en Google AI Studio aquí</a>.
-              </div>
-            </div>
-          </details>
-        </div>
-
-        <div id="trivGenStatusMsg" style="display:none; font-size:11px; margin-bottom:10px; padding:8px 10px; background:rgba(0,230,118,0.1); border:1px solid #00e676; border-radius:8px; color:#00e676;"></div>
-
-        <!-- Title & Configs -->
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+        <!-- 1. Título de la Sala & 2. Sucursal -->
+        <div style="display:grid; grid-template-columns:1.3fr 1fr; gap:10px; margin-bottom:10px;">
           <div class="form-group" style="margin-bottom:0;">
-            <label style="font-size:11px; font-weight:800;">Título de la Sala*</label>
-            <input type="text" id="newTrivTitle" placeholder="Ej. Trivia Club América" style="font-weight:800; font-size:12.5px;"/>
+            <label style="font-size:11px; font-weight:800; color:#ffd100;">1. Título de la Sala*</label>
+            <input type="text" id="newTrivTitle" placeholder="Ej. Gran Trivia Sports Bar" value="🧠 Gran Trivia Drinks & Wins" style="font-weight:800; font-size:12.5px;"/>
           </div>
           <div class="form-group" style="margin-bottom:0;">
-            <label style="font-size:11px; font-weight:800;">Sucursal</label>
+            <label style="font-size:11px; font-weight:800; color:#ffd100;">2. Sucursal*</label>
             <select id="newTrivStore" style="font-weight:800; font-size:12.5px;">
-              <option value="Juriquilla">Juriquilla</option>
+              <option value="Juriquilla" selected>Juriquilla</option>
               <option value="Álamos">Álamos</option>
               <option value="Paseo Qro">Paseo Qro</option>
               <option value="Todas las Sucursales">Todas las Sucursales</option>
@@ -1038,54 +988,104 @@
           </div>
         </div>
 
+        <!-- 3. Cantidad de Preguntas & 4. Tiempo por Pregunta -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
           <div class="form-group" style="margin-bottom:0;">
-            <label style="font-size:11px; font-weight:800;">Cantidad de Preguntas</label>
-            <select id="newTrivQCount" onchange="window.triggerAIGeneration()" style="font-weight:800; font-size:12.5px;">
-              <option value="10" selected>10 Preguntas (Recomendado)</option>
+            <label style="font-size:11px; font-weight:800; color:#ffd100;">3. Cantidad de Preguntas</label>
+            <select id="newTrivQCount" onchange="window.syncTriviaQCount(this.value)" style="font-weight:800; font-size:12.5px;">
+              <option value="1">1 Pregunta</option>
+              <option value="2">2 Preguntas</option>
+              <option value="3">3 Preguntas</option>
+              <option value="4">4 Preguntas</option>
               <option value="5">5 Preguntas (Rápida)</option>
-              <option value="15">15 Preguntas (Maratón)</option>
+              <option value="6">6 Preguntas</option>
+              <option value="7">7 Preguntas</option>
+              <option value="8">8 Preguntas</option>
+              <option value="9">9 Preguntas</option>
+              <option value="10" selected>10 Preguntas (Recomendado)</option>
             </select>
           </div>
           <div class="form-group" style="margin-bottom:0;">
-            <label style="font-size:11px; font-weight:800;">Tiempo por Pregunta</label>
+            <label style="font-size:11px; font-weight:800; color:#ffd100;">4. Tiempo por Pregunta</label>
             <select id="newTrivTime" style="font-weight:800; font-size:12.5px;">
-              <option value="15" selected>15 Segundos (Óptimo)</option>
-              <option value="20">20 Segundos (Tranquilo)</option>
-              <option value="10">10 Segundos (Ultra Rápido)</option>
+              <option value="5">5 Segundos (Ultra Rápido)</option>
+              <option value="8" selected>8 Segundos (Dinámico / Recomendado)</option>
+              <option value="12">12 Segundos (Normal)</option>
             </select>
           </div>
         </div>
 
-        <!-- Live Questions Preview -->
-        <div style="margin-top:10px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <label style="font-size:11.5px; font-weight:900; color:#ffd100; margin:0;">📋 Preguntas de la Trivia:</label>
-              <span id="trivPreviewCountBadge" class="badge" style="background:rgba(255,209,0,0.15); color:#ffd100; font-size:10px; font-weight:800;">10 Preguntas Listas</span>
+        <!-- 5. Escribir tema para generar preguntas con Gemini AI -->
+        <div class="form-group" style="margin-bottom:12px; background:rgba(255,209,0,0.06); padding:12px; border-radius:12px; border:1px solid rgba(255,209,0,0.25);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+            <label style="font-size:11.5px; font-weight:900; color:#ffd100; margin:0;">5. Generar Preguntas con Google Gemini AI:</label>
+            <span class="badge" style="font-size:9.5px; background:rgba(0,230,118,0.15); color:#00e676;">IA Flash Lite</span>
+          </div>
+
+          <!-- AI Generation Controls: Theme, Count, Difficulty -->
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:6px; margin-bottom:8px;">
+            <div>
+              <label style="font-size:10px; font-weight:800; color:var(--text-muted);">Dificultad:</label>
+              <select id="newTrivDifficulty" style="font-size:11.5px; font-weight:800; padding:5px 8px;">
+                <option value="Intermedia" selected>Intermedia / Bar</option>
+                <option value="Fácil">Fácil / Principiante</option>
+                <option value="Difícil / Experto">Difícil / Experto</option>
+              </select>
             </div>
-            <div style="display:flex; gap:6px;">
-              <button type="button" class="btn btn-secondary" onclick="window.openPasteQuestionsModal()" style="font-size:10.5px; padding:3px 8px; font-weight:800; background:rgba(30,136,229,0.15); border-color:#42a5f5; color:#42a5f5;">
-                📋 Pegar de Gemini / ChatGPT
-              </button>
-              <button type="button" class="btn btn-secondary" onclick="window.addNewManualQuestion()" style="font-size:10.5px; padding:3px 8px; font-weight:800; background:rgba(0,230,118,0.1); border-color:#00e676; color:#00e676;">
-                ➕ Agregar Manual
-              </button>
+            <div>
+              <label style="font-size:10px; font-weight:800; color:var(--text-muted);">Generar en este lote:</label>
+              <select id="newTrivAIGenCount" style="font-size:11.5px; font-weight:800; padding:5px 8px;">
+                <option value="1">1 Pregunta</option>
+                <option value="2">2 Preguntas</option>
+                <option value="3">3 Preguntas</option>
+                <option value="4">4 Preguntas</option>
+                <option value="5">5 Preguntas</option>
+                <option value="6">6 Preguntas</option>
+                <option value="7">7 Preguntas</option>
+                <option value="8">8 Preguntas</option>
+                <option value="9">9 Preguntas</option>
+                <option value="10" selected>10 Preguntas</option>
+              </select>
             </div>
           </div>
 
-          <!-- Paste Box -->
-          <div id="trivPasteQuestionsBox" style="display:none; background:#18202c; border:1.5px solid #42a5f5; border-radius:10px; padding:10px; margin-bottom:8px;">
-            <div style="font-size:11px; font-weight:800; color:#42a5f5; margin-bottom:4px;">
-              📋 Pega aquí la lista de preguntas generada en gemini.google.com o ChatGPT:
+          <div style="display:flex; gap:6px; margin-bottom:8px;">
+            <input type="text" id="newTrivCustomPrompt" placeholder="Ej. Real Madrid, F1 Checo Pérez, Boxeo Mexicano, Los Simpson..." style="font-weight:800; font-size:12.5px; flex:1;"/>
+            <button type="button" id="btnTrivGenAI" class="btn btn-primary" onclick="window.triggerAIGeneration()" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; white-space:nowrap; box-shadow:0 0 12px rgba(255,209,0,0.3);">
+              <span>✨</span> Generar con IA
+            </button>
+          </div>
+
+          <!-- Quick Topic Chips -->
+          <div style="font-size:10px; color:var(--text-muted); margin-bottom:4px; font-weight:700;">💡 Sugerencias Rápidas con 1 Clic:</div>
+          <div style="display:flex; flex-wrap:wrap; gap:4px;">
+            <button type="button" onclick="window.applyQuickTopicChip('Club América')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 7px; border-radius:12px; cursor:pointer; font-weight:800;">⚽ Club América</button>
+            <button type="button" onclick="window.applyQuickTopicChip('Chivas de Guadalajara')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 7px; border-radius:12px; cursor:pointer; font-weight:800;">🐐 Chivas</button>
+            <button type="button" onclick="window.applyQuickTopicChip('Real Madrid & Champions')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 7px; border-radius:12px; cursor:pointer; font-weight:800;">👑 Real Madrid</button>
+            <button type="button" onclick="window.applyQuickTopicChip('Copa del Mundo FIFA')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 7px; border-radius:12px; cursor:pointer; font-weight:800;">🌍 Mundial FIFA</button>
+            <button type="button" onclick="window.applyQuickTopicChip('NFL & Super Bowl')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 7px; border-radius:12px; cursor:pointer; font-weight:800;">🏈 NFL Super Bowl</button>
+            <button type="button" onclick="window.applyQuickTopicChip('F1 & Checo Pérez')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 7px; border-radius:12px; cursor:pointer; font-weight:800;">🏎️ Checo Pérez</button>
+            <button type="button" onclick="window.applyQuickTopicChip('Boxeo Canelo & Chávez')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 7px; border-radius:12px; cursor:pointer; font-weight:800;">🥊 Boxeo</button>
+            <button type="button" onclick="window.applyQuickTopicChip('NBA & Michael Jordan')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 7px; border-radius:12px; cursor:pointer; font-weight:800;">🏀 NBA Jordan</button>
+            <button type="button" onclick="window.applyQuickTopicChip('Alitas, Cerveza & Sports Bar')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 7px; border-radius:12px; cursor:pointer; font-weight:800;">🍻 Alitas & Bar</button>
+            <button type="button" onclick="window.applyQuickTopicChip('Los Simpson')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 7px; border-radius:12px; cursor:pointer; font-weight:800;">🍩 Los Simpson</button>
+            <button type="button" onclick="window.applyQuickTopicChip('Rock en Español')" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#ffd100; font-size:10px; padding:3px 7px; border-radius:12px; cursor:pointer; font-weight:800;">🎸 Rock en Español</button>
+          </div>
+        </div>
+
+        <div id="trivGenStatusMsg" style="display:none; font-size:11px; margin-bottom:10px; padding:8px 10px; background:rgba(0,230,118,0.1); border:1px solid #00e676; border-radius:8px; color:#00e676;"></div>
+
+        <!-- 6. Preguntas de la Trivia -->
+        <div style="margin-top:10px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; flex-wrap:wrap; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <label style="font-size:11.5px; font-weight:900; color:#ffd100; margin:0;">6. Preguntas de la Trivia:</label>
+              <span id="trivPreviewCountBadge" class="badge" style="background:rgba(255,209,0,0.15); color:#ffd100; font-size:10px; font-weight:800;">10 Preguntas Listas</span>
             </div>
-            <p style="font-size:10px; color:var(--text-muted); margin:0 0 6px 0;">
-              Acepta formato texto con opciones A), B), C), D) y respuesta, o formato JSON.
-            </p>
-            <textarea id="trivPasteTextInput" rows="5" placeholder="1. ¿En qué año...?&#10;A) Opción 1&#10;B) Opción 2&#10;C) Opción 3&#10;D) Opción 4&#10;Respuesta: B&#10;Dato: ..." style="width:100%; font-size:11px; padding:8px; border-radius:6px; background:#0e131a; color:#fff; border:1px solid rgba(255,255,255,0.1); font-family:monospace;"></textarea>
-            <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:6px;">
-              <button type="button" class="btn btn-secondary" onclick="window.openPasteQuestionsModal()" style="font-size:10.5px; padding:4px 10px;">Cerrar</button>
-              <button type="button" class="btn btn-primary" onclick="window.applyPastedQuestions()" style="font-size:10.5px; padding:4px 12px; font-weight:900;">⚡ Importar Preguntas</button>
+            <div>
+              <button type="button" class="btn btn-secondary" onclick="window.addNewManualQuestion()" style="font-size:10.5px; padding:4px 10px; font-weight:800; background:rgba(0,230,118,0.1); border-color:#00e676; color:#00e676;">
+                ➕ Agregar Manual
+              </button>
             </div>
           </div>
 
@@ -1095,6 +1095,7 @@
         </div>
       </div>
 
+      <!-- 7. Cancelar & Publicar y Abrir Sala -->
       <div style="display:flex; gap:8px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.1);">
         <button type="button" class="btn btn-secondary" onclick="window.closeCreateTriviaModal()" style="flex:1;">Cancelar</button>
         <button type="button" class="btn btn-primary" onclick="window.generateAndCreateTrivia()" style="flex:1.5; font-weight:900; font-size:13.5px; box-shadow:0 0 15px rgba(255,209,0,0.4);">
@@ -1109,15 +1110,15 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  <!-- Firebase Logic (v192.0) -->
-  <script src="js/firebase-config.js?v=192.0"></script>
-  <script src="js/auth.js?v=192.0"></script>
-  <script src="js/team-logos.js?v=192.0"></script>
-  <script src="js/admin.js?v=192.0"></script>
-  <script src="js/quiniela-admin.js?v=192.0"></script>
-  <script src="js/survivor-admin.js?v=192.0"></script>
-  <script src="js/bingo-admin.js?v=192.0"></script>
-  <script src="js/trivia-admin.js?v=192.0"></script>
+  <!-- Firebase Logic (v193.0) -->
+  <script src="js/firebase-config.js?v=193.0"></script>
+  <script src="js/auth.js?v=193.0"></script>
+  <script src="js/team-logos.js?v=193.0"></script>
+  <script src="js/admin.js?v=193.0"></script>
+  <script src="js/quiniela-admin.js?v=193.0"></script>
+  <script src="js/survivor-admin.js?v=193.0"></script>
+  <script src="js/bingo-admin.js?v=193.0"></script>
+  <script src="js/trivia-admin.js?v=193.0"></script>
 
   <!-- Admin Tab Switching for Top Tabs -->
   <script>

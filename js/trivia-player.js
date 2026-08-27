@@ -52,7 +52,17 @@
         // In-memory sort
         activeGames.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
+        // Check if there is a PIN specified in URL hash or query params
+        const hashPinMatch = window.location.hash.match(/pin=(\d+)/);
+        const queryPinMatch = new URLSearchParams(window.location.search).get('pin');
+        const targetPin = queryPinMatch || (hashPinMatch ? hashPinMatch[1] : null);
+
         if (activeGames.length > 0) {
+          if (targetPin) {
+            const found = activeGames.find(g => String(g.pin) === String(targetPin));
+            if (found) currentTriviaId = found.id;
+          }
+
           if (!currentTriviaId || !activeGames.some(g => g.id === currentTriviaId)) {
             // Select the most recent active game
             currentTriviaId = activeGames[0].id;
@@ -124,7 +134,7 @@
           <h3 style="color:#ffd100; margin-top:10px;">No hay Trivias en Vivo</h3>
           <p class="hint-text">El mesero o el host iniciará una trivia en las pantallas del bar muy pronto.</p>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v192.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v193.0</span></footer>
       `;
       return;
     }
@@ -164,7 +174,7 @@
             🚀 Entrar con Google
           </button>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v192.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v193.0</span></footer>
       `;
       return;
     }
@@ -195,7 +205,7 @@
             ¡Unirme a la Trivia en Vivo! 🔥
           </button>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v192.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v193.0</span></footer>
       `;
       return;
     }
@@ -233,11 +243,25 @@
           <span style="font-size:36px; animation: tvGlowPulse 1.5s infinite;">⏳</span>
           <h4 style="color:#ffd100; margin-top:10px;">¡Estás Conectado a la Trivia!</h4>
           <p class="hint-text" style="font-size:13px; line-height:1.4;">
-            Mira la pantalla del restaurante. En cuanto el host lance la primera pregunta, aparecerán tus 4 botones de respuesta aquí.
+            Mira la pantalla del restaurante. En cuanto inicie la trivia, aparecerá la cuenta regresiva y tus 4 botones de respuesta aquí.
           </p>
           <div style="font-size:12px; color:#00e676; font-weight:800; margin-top:12px;">
-            ✓ Esperando la Pregunta 1...
+            ✓ Sala Lista • Esperando Inicio...
           </div>
+        </section>
+      `;
+    } else if (status === 'countdown') {
+      const startTime = g.countdownStartTime || Date.now();
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      const remaining = Math.max(0, 10 - elapsed);
+      phaseContentHtml = `
+        <section class="card text-center py-4" style="border:2px solid #ffd100; background:rgba(0,0,0,0.6); box-shadow:0 0 25px rgba(255,209,0,0.3);">
+          <div style="font-size:13px; font-weight:900; color:#ffd100; text-transform:uppercase; letter-spacing:1.5px;">⚡ ¡PREPÁRATE! ⚡</div>
+          <h3 style="color:#ffffff; margin:6px 0 10px 0; font-size:20px; font-weight:950;">LA TRIVIA COMIENZA EN:</h3>
+          <div id="mobileCountdownNum" style="font-size:72px; font-weight:950; color:#ffd100; line-height:1; font-family:'Outfit', sans-serif;">${remaining}</div>
+          <p class="hint-text" style="font-size:12.5px; margin-top:10px; color:#00e676; font-weight:800;">
+            ¡Tus 4 botones de respuesta aparecerán al llegar a 0! 🚀
+          </p>
         </section>
       `;
     } else if (status === 'question') {
@@ -254,7 +278,7 @@
       ${selectorHtml}
       ${playerHeroHtml}
       ${phaseContentHtml}
-      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v192.0</span></footer>
+      <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v193.0</span></footer>
     `;
 
     // Start mobile timer bar if question is active

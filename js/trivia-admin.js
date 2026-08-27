@@ -336,18 +336,19 @@
   // =========================================================================
   // REAL GOOGLE GEMINI AI GENERATION ENGINE
   // =========================================================================
-  async function generateWithRealGeminiAPI(topic, count, apiKey) {
+  async function generateWithRealGeminiAPI(topic, count, apiKey, difficulty = 'Intermedia') {
     const activeKey = (apiKey || getBuiltinKey()).trim();
     const promptText = `Eres el generador oficial de trivias y preguntas tipo Kahoot / Crowdpurr para un concurrido Sports Bar & Restaurant en México ("Drinks & Wins").
 
-Genera EXACTAMENTE ${count} preguntas de opción múltiple de alta calidad, divertidas, desafiantes y 100% VERÍDICAS sobre el tema: "${topic}".
+Genera EXACTAMENTE ${count} preguntas de opción múltiple de alta calidad, divertidas, con nivel de dificultad "${difficulty}" y 100% VERÍDICAS sobre el tema: "${topic}".
 
 REGLAS ESTRICTAS:
 1. PRECISIÓN FACTUAL TOTAL: Todas las preguntas, datos, fechas, nombres y respuestas deben ser 100% REALES, VERIFICABLES Y EXACTAS. No inventes respuestas, no inventes estadísticas ni alucines datos.
-2. Cada pregunta debe tener 4 opciones (A, B, C, D) donde SOLO UNA opción sea la correcta. Las otras 3 opciones deben ser alternativas lógicas del mismo ámbito pero claramente erróneas.
-3. El campo 'correct' debe ser obligatoriamente la letra mayúscula: "A", "B", "C" o "D".
-4. El campo 'exp' debe ser una explicación real, breve (1 o 2 oraciones) y con datos reales de por qué esa es la respuesta correcta o un dato curioso verificado.
-5. El idioma debe ser Español mexicano neutro, claro y ameno para un bar.
+2. Nivel de dificultad: ${difficulty}.
+3. Cada pregunta debe tener 4 opciones (A, B, C, D) donde SOLO UNA opción sea la correcta. Las otras 3 opciones deben ser alternativas lógicas del mismo ámbito pero claramente erróneas.
+4. El campo 'correct' debe ser obligatoriamente la letra mayúscula: "A", "B", "C" o "D".
+5. El campo 'exp' debe ser una explicación real, breve (1 o 2 oraciones) y con datos reales de por qué esa es la respuesta correcta o un dato curioso verificado.
+6. El idioma debe ser Español mexicano neutro, claro y ameno para un bar.
 
 RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (sin texto introductorio, sin formato markdown extra):
 [
@@ -791,8 +792,22 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
   }
 
   // =========================================================================
-  // HOST CONTROLS
+  // HOST CONTROLS & AUTO-FLOW MASTER
   // =========================================================================
+  window.startTriviaAutoFlow = async function() {
+    if (!selectedTriviaId || !db) return;
+    try {
+      await db.collection('trivia_games').doc(selectedTriviaId).update({
+        status: 'countdown',
+        countdownStartTime: Date.now(),
+        currentQuestionIndex: 0
+      });
+      alert('🚀 ¡Trivia Automática Iniciada con Éxito!\n\nCuenta regresiva de 10s activada en pantallas y celulares.\nEl juego avanzará solo de forma automática.');
+    } catch (err) {
+      alert('Error al iniciar trivia automática: ' + err.message);
+    }
+  };
+
   window.startTriviaQuestion = async function() {
     if (!selectedTriviaId || !db) return;
     try {
@@ -821,7 +836,8 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     if (!selectedTriviaId || !db) return;
     try {
       await db.collection('trivia_games').doc(selectedTriviaId).update({
-        status: 'leaderboard'
+        status: 'leaderboard',
+        leaderboardTime: Date.now()
       });
     } catch (err) {
       alert('Error: ' + err.message);
@@ -853,9 +869,10 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     if (!selectedTriviaId || !db) return;
     try {
       await db.collection('trivia_games').doc(selectedTriviaId).update({
-        status: 'podium'
+        status: 'podium',
+        podiumTime: Date.now()
       });
-      alert('🏆 ¡Podio Final revelado en la pantalla de TV!');
+      alert('🏆 ¡Podio Final y Tabla General revelados en la pantalla de TV!');
     } catch (err) {
       alert('Error: ' + err.message);
     }
@@ -874,7 +891,7 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
 
   window.openTriviaTVWindow = function() {
     if (!selectedTriviaId) return;
-    window.open(`trivia-tv.html?gameId=${selectedTriviaId}`, '_blank');
+    window.open(`tv.html?gameId=${selectedTriviaId}`, '_blank');
   };
 
   window.shareTriviaWhatsApp = function() {
@@ -1059,40 +1076,57 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     window.triggerAIGeneration();
   };
 
+  window.syncTriviaQCount = function(val) {
+    const targetCount = parseInt(val, 10) || 10;
+    if (generatedQuestionsBuffer.length > targetCount) {
+      generatedQuestionsBuffer = generatedQuestionsBuffer.slice(0, targetCount);
+    } else if (generatedQuestionsBuffer.length < targetCount) {
+      const topic = document.getElementById('newTrivCustomPrompt')?.value || 'Deportes';
+      const pool = findBestCuratedQuestions(topic, targetCount);
+      while (generatedQuestionsBuffer.length < targetCount && pool.length > 0) {
+        const nextQ = pool[generatedQuestionsBuffer.length % pool.length];
+        generatedQuestionsBuffer.push(JSON.parse(JSON.stringify(nextQ)));
+      }
+    }
+    renderQuestionsPreview(generatedQuestionsBuffer);
+  };
+
   window.triggerAIGeneration = async function() {
     const customPromptInp = document.getElementById('newTrivCustomPrompt');
     const titleInp = document.getElementById('newTrivTitle');
-    const qCountSel = document.getElementById('newTrivQCount');
+    const qCountSel = document.getElementById('newTrivAIGenCount') || document.getElementById('newTrivQCount');
+    const diffSel = document.getElementById('newTrivDifficulty');
     const btnGen = document.getElementById('btnTrivGenAI');
     const statusMsg = document.getElementById('trivGenStatusMsg');
 
-    const topic = (customPromptInp?.value || titleInp?.value || 'Trivia Deportes').trim();
+    const topic = (customPromptInp?.value || titleInp?.value || 'Deportes y Cultura Pop').trim();
     const count = parseInt(qCountSel?.value || '10', 10) || 10;
+    const difficulty = diffSel?.value || 'Intermedia';
     const apiKey = window.getGeminiApiKey();
 
     if (btnGen) {
       btnGen.disabled = true;
-      btnGen.innerHTML = `<span>⏳</span> Generando preguntas reales...`;
+      btnGen.innerHTML = `<span>⏳</span> Generando con Gemini...`;
     }
     if (statusMsg) {
       statusMsg.style.display = 'block';
-      statusMsg.innerHTML = `🧠 <em>${apiKey ? 'Consultando Google Gemini AI en vivo...' : 'Buscando en Base Verificada...'}</em>`;
+      statusMsg.innerHTML = `🧠 <em>${apiKey ? 'Consultando Google Gemini AI en vivo (' + difficulty + ')...' : 'Buscando en Base Verificada...'}</em>`;
     }
 
     try {
       if (apiKey) {
-        // Real Gemini AI Generation
-        const aiQuestions = await generateWithRealGeminiAPI(topic, count, apiKey);
+        // Real Gemini AI Generation with Difficulty
+        const aiQuestions = await generateWithRealGeminiAPI(topic, count, apiKey, difficulty);
         generatedQuestionsBuffer = aiQuestions;
         if (statusMsg) {
-          statusMsg.innerHTML = `✨ <strong>¡Generadas ${aiQuestions.length} preguntas con Gemini AI!</strong> 100% verificadas para "${topic}".`;
+          statusMsg.innerHTML = `✨ <strong>¡Generadas ${aiQuestions.length} preguntas con Gemini AI!</strong> Nivel: ${difficulty} • Tema: "${topic}".`;
         }
       } else {
         // Use verified knowledge database
         const curated = findBestCuratedQuestions(topic, count);
         generatedQuestionsBuffer = JSON.parse(JSON.stringify(curated));
         if (statusMsg) {
-          statusMsg.innerHTML = `📚 <strong>¡Cargadas ${generatedQuestionsBuffer.length} preguntas verificadas!</strong> <br/><span style="font-size:10px; color:#ffd100;">💡 Para generar temas libres con IA ilimitada, abre "⚙️ Configurar Gemini AI API Key" abajo e ingresa tu clave de Google.</span>`;
+          statusMsg.innerHTML = `📚 <strong>¡Cargadas ${generatedQuestionsBuffer.length} preguntas verificadas!</strong>`;
         }
       }
 
@@ -1107,7 +1141,7 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
       generatedQuestionsBuffer = JSON.parse(JSON.stringify(fallback));
       renderQuestionsPreview(generatedQuestionsBuffer);
       if (statusMsg) {
-        statusMsg.innerHTML = `⚠️ <strong>Aviso de conexión Gemini:</strong> ${err.message}.<br/><span style="font-size:10px; color:#ffd100;">Se cargaron ${generatedQuestionsBuffer.length} preguntas verificadas de respaldo. Puedes editar cualquier pregunta abajo.</span>`;
+        statusMsg.innerHTML = `⚠️ <strong>Aviso de conexión Gemini:</strong> ${err.message}.<br/><span style="font-size:10px; color:#ffd100;">Se cargaron ${generatedQuestionsBuffer.length} preguntas de respaldo. Puedes editarlas abajo.</span>`;
       }
     } finally {
       if (btnGen) {
@@ -1343,7 +1377,7 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     }
 
     const store = storeSel ? storeSel.value : 'Juriquilla';
-    const timePerQ = parseInt(timeInp?.value || '15', 10) || 15;
+    const timePerQ = parseInt(timeInp?.value || '8', 10) || 8;
     const pin = Math.floor(1000 + Math.random() * 9000).toString();
     const id = 'triv_' + Date.now();
 
@@ -1364,7 +1398,7 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
       await db.collection('trivia_games').doc(id).set(newGame);
       selectedTriviaId = id;
       window.closeCreateTriviaModal();
-      alert(`🎉 ¡Sala de Trivia "${title}" creada con éxito!\n\n📌 PIN de Acceso: ${pin}\n👥 Sucursal: ${store}\n\n👉 Puedes proyectarla en las TVs haciendo clic en "🖥️ Abrir Pantalla de TV" y compartir el link por WhatsApp.`);
+      alert(`🎉 ¡Sala de Trivia "${title}" creada con éxito!\n\n📌 PIN de Acceso: ${pin}\n👥 Sucursal: ${store}\n⏱️ Tiempo por pregunta: ${timePerQ}s\n\n👉 Para proyectarla en las pantallas del bar o Fire TV Stick, abre "tv.html" o haz clic en "🖥️ Abrir Pantalla de TV".`);
     } catch (err) {
       console.error('[TriviaAdmin] Error creating trivia:', err);
       alert('Error al crear sala de trivia: ' + err.message);
