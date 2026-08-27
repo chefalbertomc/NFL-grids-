@@ -347,6 +347,8 @@
 
   window.sortMatchesChronologically = sortMatchesChronologically;
   window.parseMatchTimestamp = parseMatchTimestamp;
+  window.openQuiniela = openQuiniela;
+  window.backToQuinielasCatalog = showCatalogView;
 
   // Intelligent Lock Check: Lock if manual lock is on, or if first game started / kickoff date has passed
   function checkQuinielaLockStatus(q) {
