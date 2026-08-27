@@ -745,7 +745,7 @@
         ` : ''}
 
         <!-- Looping Full Ranking Carousel Container -->
-        <div id="tvFullRankingLoopWrap" style="margin-top:30px; display:none;"></div>
+        <div id="tvFullRankingLoopWrap" style="margin-top:30px; display:block;"></div>
       </div>
     `;
 
@@ -758,10 +758,8 @@
       }, 600);
     }
 
-    // Start Looping Full Leaderboard after 18 seconds
-    setTimeout(() => {
-      startLeaderboardLoop(players);
-    }, 18000);
+    // Start Full Leaderboard Table Immediately
+    startLeaderboardLoop(players);
   }
 
   // Looping paginated leaderboard for all tables in restaurant
