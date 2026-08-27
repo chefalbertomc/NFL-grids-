@@ -376,5 +376,178 @@
   window.getTeamInfo = function(teamName) {
     return window.resolveTeamStyle(teamName);
   };
+
+  /**
+   * Generates a 1200x630 HD Diagonal Split Matchup Card for WhatsApp and Social Media
+   * @param {string|Object} teamA - Away / First team
+   * @param {string|Object} teamB - Home / Second team
+   * @param {Object} [options] - Optional custom labels, gameType, title
+   * @returns {Promise<string>} Data URL (JPEG)
+   */
+  window.generateMatchupCard = function(teamA, teamB, options) {
+    options = options || {};
+    const gameType = options.gameType || 'NFL GRID';
+    const subTitle = options.subTitle || '¡JUEGA Y GANA EN EL BAR!';
+
+    const infoA = window.resolveTeamStyle(teamA);
+    const infoB = window.resolveTeamStyle(teamB);
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200;
+    canvas.height = 630;
+    const ctx = canvas.getContext('2d');
+
+    return new Promise((resolve) => {
+      // Background Left Team A
+      const gradA = ctx.createLinearGradient(0, 0, 600, 630);
+      gradA.addColorStop(0, infoA.color || '#1b1b1b');
+      gradA.addColorStop(1, '#090a0f');
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(680, 0);
+      ctx.lineTo(520, 630);
+      ctx.lineTo(0, 630);
+      ctx.closePath();
+      ctx.fillStyle = gradA;
+      ctx.fill();
+      ctx.restore();
+
+      // Background Right Team B
+      const gradB = ctx.createLinearGradient(600, 0, 1200, 630);
+      gradB.addColorStop(0, infoB.color || '#2b2b2b');
+      gradB.addColorStop(1, '#090a0f');
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(680, 0);
+      ctx.lineTo(1200, 0);
+      ctx.lineTo(1200, 630);
+      ctx.lineTo(520, 630);
+      ctx.closePath();
+      ctx.fillStyle = gradB;
+      ctx.fill();
+      ctx.restore();
+
+      // Diagonal Dividing Line (Golden Glow)
+      ctx.save();
+      ctx.shadowColor = '#ffd100';
+      ctx.shadowBlur = 25;
+      ctx.strokeStyle = '#ffd100';
+      ctx.lineWidth = 8;
+      ctx.beginPath();
+      ctx.moveTo(680, 0);
+      ctx.lineTo(520, 630);
+      ctx.stroke();
+      ctx.restore();
+
+      // Dark Overlay Vignette
+      const darkGrad = ctx.createRadialGradient(600, 315, 200, 600, 315, 650);
+      darkGrad.addColorStop(0, 'rgba(0,0,0,0)');
+      darkGrad.addColorStop(1, 'rgba(0,0,0,0.65)');
+      ctx.fillStyle = darkGrad;
+      ctx.fillRect(0, 0, 1200, 630);
+
+      // Top Banner
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
+      ctx.fillRect(0, 0, 1200, 75);
+      ctx.fillStyle = '#ffd100';
+      ctx.font = '900 24px Outfit, Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.letterSpacing = '3px';
+      ctx.fillText('DRINKS & WINS BY BETO', 600, 48);
+
+      // Load and draw logos
+      let loadedCount = 0;
+      const imgA = new Image();
+      const imgB = new Image();
+      imgA.crossOrigin = 'anonymous';
+      imgB.crossOrigin = 'anonymous';
+
+      function finishDrawing() {
+        // Draw Team A Logo
+        try {
+          ctx.save();
+          ctx.shadowColor = 'rgba(0,0,0,0.8)';
+          ctx.shadowBlur = 20;
+          ctx.drawImage(imgA, 190, 150, 240, 240);
+          ctx.restore();
+        } catch (e) {
+          // Fallback text
+        }
+
+        // Draw Team B Logo
+        try {
+          ctx.save();
+          ctx.shadowColor = 'rgba(0,0,0,0.8)';
+          ctx.shadowBlur = 20;
+          ctx.drawImage(imgB, 770, 150, 240, 240);
+          ctx.restore();
+        } catch (e) {
+          // Fallback text
+        }
+
+        // Team Names
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '900 32px Outfit, Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#000000';
+        ctx.shadowBlur = 10;
+        ctx.fillText(infoA.name.toUpperCase(), 310, 440);
+        ctx.fillText(infoB.name.toUpperCase(), 890, 440);
+
+        // Center VS Badge
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.9)';
+        ctx.shadowBlur = 30;
+        ctx.beginPath();
+        ctx.arc(600, 315, 68, 0, Math.PI * 2);
+        ctx.fillStyle = '#111318';
+        ctx.fill();
+        ctx.lineWidth = 5;
+        ctx.strokeStyle = '#ffd100';
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffd100';
+        ctx.font = '900 42px Outfit, Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('VS', 600, 315);
+        ctx.restore();
+
+        // Bottom Game Type Ribbon
+        ctx.save();
+        ctx.fillStyle = '#ffd100';
+        ctx.shadowColor = '#ffd100';
+        ctx.shadowBlur = 15;
+        ctx.fillRect(400, 520, 400, 60);
+        ctx.restore();
+
+        ctx.fillStyle = '#000000';
+        ctx.font = '900 28px Outfit, Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🔥 ' + gameType.toUpperCase() + ' 🔥', 600, 550);
+
+        resolve(canvas.toDataURL('image/jpeg', 0.92));
+      }
+
+      function checkDone() {
+        loadedCount++;
+        if (loadedCount >= 2) {
+          finishDrawing();
+        }
+      }
+
+      imgA.onload = checkDone;
+      imgA.onerror = checkDone;
+      imgB.onload = checkDone;
+      imgB.onerror = checkDone;
+
+      imgA.src = infoA.logo || 'img/logo.jpg';
+      imgB.src = infoB.logo || 'img/logo.jpg';
+    });
+  };
 })();
 

@@ -502,7 +502,9 @@
     const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
     if (!tourn) return;
 
-    const shareUrl = `${window.location.origin}${window.location.pathname}#tab-survivor`;
+    const origin = window.location.origin;
+    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    const shareUrl = `${origin}${path}share-survivor.html?s=${encodeURIComponent(tourn.id)}`;
     const msg = `🏆 *¡ÚNETE AL SURVIVOR EN DRINKS & WINS!* 🔥\n\n` +
       `📌 *Torneo:* ${tourn.name}\n` +
       `📍 *Sucursal:* ${tourn.store || 'Juriquilla'}\n` +

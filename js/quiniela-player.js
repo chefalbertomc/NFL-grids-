@@ -1555,8 +1555,9 @@
 
   // Sharing features
   function getShareUrl(quinielaId) {
-    const base = window.location.origin + window.location.pathname;
-    return `${base}?q=${quinielaId}#tab-pools`;
+    const origin = window.location.origin;
+    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    return `${origin}${path}share-quiniela.html?q=${encodeURIComponent(quinielaId)}`;
   }
 
   function shareQuinielaWhatsAppDirect(q) {

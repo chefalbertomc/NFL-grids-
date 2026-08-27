@@ -954,8 +954,10 @@
     const date = decodeURIComponent(encDate || '');
     const time = decodeURIComponent(encTime || '');
 
-    const shareUrl = `${window.location.origin}${window.location.pathname}#tab-firstgoal`;
-    const msg = `🏆 *¡ÚNETE A FIRST STRIKER WINS EN DRINK & WIN!* ⚽🔥\n\n` +
+    const origin = window.location.origin;
+    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    const shareUrl = `${origin}${path}share-firstgoal.html?code=${encodeURIComponent(gameId)}`;
+    const msg = `🏆 *¡ÚNETE A FIRST STRIKER WINS EN DRINKS & WINS!* ⚽🔥\n\n` +
       `🥊 *${away} vs ${home}*\n` +
       `🗓️ *Fecha:* ${date || 'Próximo partido'} ${time ? '• ' + time + ' hrs' : ''}\n\n` +
       `🎯 ¡Aparta tu bloque de 5 minutos del 1er gol y gana premios en tu mesa!\n\n` +

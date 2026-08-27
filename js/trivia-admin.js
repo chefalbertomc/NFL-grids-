@@ -933,7 +933,9 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
   window.shareTriviaWhatsApp = function() {
     if (!selectedTriviaId || !currentTriviaData) return;
     const g = currentTriviaData;
-    const shareUrl = `${window.location.origin}${window.location.pathname.replace('admin.html', 'index.html')}#tab-trivia`;
+    const origin = window.location.origin;
+    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    const shareUrl = `${origin}${path}share-trivia.html?pin=${encodeURIComponent(g.pin || g.id)}`;
     const msg = `🧠 *¡TRIVIA EN VIVO EN DRINKS & WINS!* 🔥\n\n` +
       `📌 *Tema:* ${g.title}\n` +
       `📍 *Sucursal:* ${g.store || 'Juriquilla'}\n` +
