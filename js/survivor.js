@@ -99,39 +99,53 @@
 
   function loadTournaments() {
     if (!db) return;
-    db.collection('survivors').where('status', '==', 'active').onSnapshot(snap => {
+    db.collection('survivors').orderBy('createdAt', 'desc').onSnapshot(snap => {
       activeTournaments = [];
       snap.forEach(doc => {
         activeTournaments.push({ id: doc.id, ...doc.data() });
       });
 
+      // Check URL query param for tournament code or ID
+      const urlParams = new URLSearchParams(window.location.search);
+      const paramCode = (urlParams.get('code') || urlParams.get('s') || '').trim().toUpperCase();
+
+      if (paramCode) {
+        const foundByCode = activeTournaments.find(t => (t.code && t.code.toUpperCase() === paramCode) || t.id === paramCode);
+        if (foundByCode) {
+          currentTournamentId = foundByCode.id;
+        }
+      }
+
       if (activeTournaments.length > 0) {
         if (!currentTournamentId || !activeTournaments.some(t => t.id === currentTournamentId)) {
           currentTournamentId = activeTournaments[0].id;
         }
-        loadSelectedTournament(currentTournamentId);
+        selectTournament(currentTournamentId);
       } else {
-        currentTournamentId = null;
         currentTournament = null;
         renderSurvivorApp();
       }
-    }, err => console.error('[Survivor] Error loading active tournaments:', err));
+    }, err => {
+      console.error('[Survivor] Error loading tournaments:', err);
+    });
   }
 
-  function loadSelectedTournament(tournId) {
-    if (!db || !tournId) return;
+  function selectTournament(tournId) {
+    currentTournamentId = tournId;
+    currentTournament = activeTournaments.find(t => t.id === tournId) || null;
 
     if (unsubTournament) unsubTournament();
     if (unsubPlayers) unsubPlayers();
 
-    // 1. Listen to tournament doc
+    if (!tournId || !db) return;
+
     unsubTournament = db.collection('survivors').doc(tournId).onSnapshot(doc => {
-      if (!doc.exists) return;
-      currentTournament = { id: doc.id, ...doc.data() };
-      renderSurvivorApp();
+      if (doc.exists) {
+        currentTournament = { id: doc.id, ...doc.data() };
+        renderSurvivorApp();
+      }
     });
 
-    // 2. Listen to players
     unsubPlayers = db.collection('survivors').doc(tournId).collection('players').onSnapshot(snap => {
       tournamentPlayers = {};
       snap.forEach(pDoc => {
@@ -142,8 +156,24 @@
   }
 
   window.selectSurvivorTournament = function(tournId) {
-    currentTournamentId = tournId;
-    loadSelectedTournament(tournId);
+    selectTournament(tournId);
+  };
+
+  // Join Tournament with Private Code Prompt
+  window.promptJoinWithCode = function() {
+    const code = prompt('🔑 Ingresa el Código de Acceso del Torneo Survivor (Ej. SURV26):');
+    if (!code) return;
+    const cleanCode = code.trim().toUpperCase();
+    const found = activeTournaments.find(t => (t.code && t.code.toUpperCase() === cleanCode) || t.id === cleanCode);
+    if (found) {
+      window.selectSurvivorTournament(found.id);
+      setTimeout(() => {
+        const joinBox = document.getElementById('survJoinSection');
+        if (joinBox) joinBox.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else {
+      alert(`❌ No se encontró ningún torneo con el código "${cleanCode}". Verifica con tu mesero.`);
+    }
   };
 
   window.setSurvFilter = function(filter) {
@@ -169,7 +199,7 @@
           <h3 style="color:#ffd100; margin-top:10px;">No hay Torneos Survivor Activos</h3>
           <p class="hint-text">Pide a tu mesero o administrador que inicie un nuevo torneo Survivor para participar.</p>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v213.0</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v214.0</span></footer>
       `;
       return;
     }
@@ -179,7 +209,9 @@
     const myPlayer = u ? tournamentPlayers[u.uid] : null;
     const isJoined = !!myPlayer;
     const isApproved = myPlayer ? (myPlayer.status === 'approved' || myPlayer.approved === true) : false;
-    const isAlive = myPlayer ? (myPlayer.isAlive !== false) : false;
+    const maxLives = t.maxLives || 3;
+    const myLives = myPlayer ? (myPlayer.lives !== undefined ? myPlayer.lives : (myPlayer.isAlive !== false ? maxLives : 0)) : maxLives;
+    const isAlive = myPlayer ? (myPlayer.isAlive !== false && myLives > 0) : false;
     const activeWeek = t.activeWeek || 1;
     const totalWeeks = t.totalWeeks || 18;
 
@@ -196,40 +228,58 @@
 
     const currentPick = myPlayer?.picks?.[activeWeek];
 
-    // Tournament Selector Header
+    // Tournament Selector Header & Private Code Button
     let selectorHtml = '';
-    if (activeTournaments.length > 1) {
-      const opts = activeTournaments.map(trn => `
-        <option value="${trn.id}" ${trn.id === t.id ? 'selected' : ''}>
-          ${trn.name} [${trn.store || 'General'}] • Sem. ${trn.activeWeek || 1}/${trn.totalWeeks || 18}
-        </option>
-      `).join('');
-      selectorHtml = `
-        <div style="margin-bottom:12px; background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:12px; border:1px solid rgba(255,255,255,0.08);">
-          <label style="font-size:11px; font-weight:800; color:#ffd100; display:block; margin-bottom:4px;">Cambiar Torneo Survivor:</label>
-          <select onchange="window.selectSurvivorTournament(this.value)" style="font-size:13px; font-weight:800; width:100%;">
+    const opts = activeTournaments.map(trn => `
+      <option value="${trn.id}" ${trn.id === t.id ? 'selected' : ''}>
+        ${trn.name} [${trn.store || 'General'}] • Sem. ${trn.activeWeek || 1}/${trn.totalWeeks || 18} (Código: ${trn.code || 'SURV'})
+      </option>
+    `).join('');
+
+    selectorHtml = `
+      <div style="margin-bottom:12px; background:rgba(0,0,0,0.3); padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.08); display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+        <div style="flex:1; min-width:200px;">
+          <label style="font-size:11px; font-weight:800; color:#ffd100; display:block; margin-bottom:3px;">Torneo Survivor Seleccionado:</label>
+          <select onchange="window.selectSurvivorTournament(this.value)" style="font-size:13px; font-weight:800; width:100%; margin:0;">
             ${opts}
           </select>
         </div>
-      `;
-    }
+        <button type="button" class="btn btn-secondary" onclick="window.promptJoinWithCode()" style="width:auto; padding:8px 12px; font-size:11.5px; font-weight:900; border-color:#ffd100; color:#ffd100; display:inline-flex; align-items:center; gap:5px; height:40px; margin-top:auto;">
+          <span>🔑</span> Unirme con Código
+        </button>
+      </div>
+    `;
 
     // Hero Status Card
+    const heartIcons = '❤️'.repeat(myLives) + '🖤'.repeat(Math.max(0, maxLives - myLives));
     let heroBadgeHtml = '';
+
     if (!u) {
       heroBadgeHtml = `<span class="badge" style="background:rgba(255,255,255,0.1); color:#fff;">👤 Inicia Sesión para Jugar</span>`;
     } else if (!isJoined) {
       heroBadgeHtml = `<span class="badge accent">📝 Sin Registrar</span>`;
     } else if (!isApproved) {
-      heroBadgeHtml = `<span class="badge" style="background:rgba(255,193,7,0.2); color:#ffc107; border:1px solid #ffc107;">⌛ Solicitud Pendiente</span>`;
+      heroBadgeHtml = `<span class="badge" style="background:rgba(255,193,7,0.2); color:#ffc107; border:1px solid #ffc107; font-weight:900;">⌛ Solicitud Pendiente</span>`;
     } else if (isAlive) {
-      heroBadgeHtml = `<span class="surv-live-badge"><span class="pulse-dot" style="background:#00e676;"></span> VIVO EN SEMANA ${activeWeek}</span>`;
+      heroBadgeHtml = `<span class="surv-live-badge"><span class="pulse-dot" style="background:#00e676;"></span> ${heartIcons} ${myLives}/${maxLives} VIDAS</span>`;
     } else {
-      heroBadgeHtml = `<span class="surv-elim-badge">🔴 ELIMINADO (Sem. ${myPlayer.eliminatedWeek || activeWeek})</span>`;
+      heroBadgeHtml = `<span class="surv-elim-badge">💀 ELIMINADO (0 Vidas)</span>`;
     }
 
     let pickHeroHtml = '';
-    if (isJoined && isApproved && isAlive) {
+    if (isJoined && !isApproved) {
+      pickHeroHtml = `
+        <div class="surv-hero-current-pick" style="border-color:#ffc107; background:rgba(255,193,7,0.08);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:22px;">⏳</span>
+            <div>
+              <div style="font-size:12px; color:#ffc107; font-weight:800;">Solicitud enviada a ${t.name}</div>
+              <p style="margin:2px 0 0 0; font-size:11px; color:#ddd;">Tu registro está esperando aprobación del administrador o mesero. En cuanto seas aceptado recibirás tus ${maxLives} vidas ❤️.</p>
+            </div>
+          </div>
+        </div>
+      `;
+    } else if (isJoined && isApproved && isAlive) {
       if (currentPick && currentPick.team) {
         pickHeroHtml = `
           <div class="surv-hero-current-pick">
@@ -248,11 +298,20 @@
           <div class="surv-hero-current-pick" style="border-color:#ffd100; background:rgba(255,209,0,0.06);">
             <div style="display:flex; align-items:center; gap:8px;">
               <span style="font-size:18px;">⚠️</span>
-              <div style="font-size:12px; color:#ffd100; font-weight:800;">¡Aún no seleccionas tu equipo para la Semana ${activeWeek}!</div>
+              <div style="font-size:12px; color:#ffd100; font-weight:800;">¡Aún no seleccionas tu equipo para la Semana ${activeWeek}! Tienes ${myLives} vidas ❤️</div>
             </div>
           </div>
         `;
       }
+    } else if (isJoined && isApproved && !isAlive) {
+      pickHeroHtml = `
+        <div class="surv-hero-current-pick" style="border-color:#ff0033; background:rgba(255,0,51,0.08);">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:18px;">💀</span>
+            <div style="font-size:12px; color:#ff4444; font-weight:800;">Has perdido tus ${maxLives} vidas. ¡Suerte en el próximo torneo!</div>
+          </div>
+        </div>
+      `;
     }
 
     // Join Section (if not yet joined)
@@ -260,11 +319,18 @@
     if (u && !isJoined) {
       const defaultName = u.displayName || '';
       joinSectionHtml = `
-        <section class="card" style="border:1.5px solid #ffd100; background:linear-gradient(135deg, rgba(255,209,0,0.08) 0%, rgba(10,15,24,0.95) 100%); margin-bottom:16px;">
-          <h4 style="color:#ffd100; font-weight:950; font-size:15px; margin-bottom:4px; display:flex; align-items:center; gap:6px;">
-            <span>🎟️</span> Unirme a ${t.name}
-          </h4>
-          <p class="hint-text" style="font-size:11.5px; margin-bottom:12px;">Ingresa tu apodo y el mesero que te atiende para registrarte en el torneo.</p>
+        <section id="survJoinSection" class="card" style="border:1.5px solid #ffd100; background:linear-gradient(135deg, rgba(255,209,0,0.08) 0%, rgba(10,15,24,0.95) 100%); margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <h4 style="color:#ffd100; font-weight:950; font-size:15px; margin:0; display:flex; align-items:center; gap:6px;">
+              <span>🎟️</span> Unirme a ${t.name}
+            </h4>
+            <span class="badge" style="background:rgba(255,209,0,0.15); color:#ffd100; font-size:10px; font-weight:900;">
+              ❤️ ${maxLives} Vidas Iniciales
+            </span>
+          </div>
+          <p class="hint-text" style="font-size:11.5px; margin-bottom:12px;">
+            Ingresa tu apodo y mesa para registrarte en el torneo. Código del Torneo: <strong style="color:#fff;">${t.code || 'SURV'}</strong>
+          </p>
 
           <div class="form-group" style="margin-bottom:10px;">
             <label style="font-size:11px;">Tu Apodo / Nombre de Jugador</label>
@@ -277,7 +343,7 @@
           </div>
 
           <button type="button" class="btn btn-primary" onclick="window.joinSurvivorTournament('${t.id}')" style="font-weight:900; font-size:13.5px;">
-            ¡Entrar al Torneo Survivor! 🔥
+            ¡Entrar al Torneo (${maxLives} Vidas)! 🔥
           </button>
         </section>
       `;
@@ -302,7 +368,7 @@
 
         teamCardsHtml += `
           <div class="${cardClass}" style="--team-bg: ${tm.color}33;" ${clickAttr}>
-            ${isUsed ? `<span class="surv-used-badge">🚫 Usado Sem. ${usedInWeek}</span>` : ''}
+            ${isUsed ? `<span class="surv-used-badge">🔒 Usado Sem. ${usedInWeek}</span>` : ''}
             ${isSelected ? `<span class="surv-selected-check">✓</span>` : ''}
             <img src="${tm.logo}" class="surv-team-logo" alt="${tm.name}" onerror="this.src='img/logo.jpg'"/>
             <span class="surv-team-name">${tm.name}</span>
@@ -318,7 +384,7 @@
             </h4>
             <span class="badge" style="background:rgba(255,255,255,0.08); font-size:10px; color:#bbb;">Regla: 1 Solo Equipo por Torneo</span>
           </div>
-          <p class="hint-text" style="font-size:11.5px; margin-bottom:8px;">Toca un equipo para elegirlo. Los equipos que ya elegiste en semanas anteriores están bloqueados en gris.</p>
+          <p class="hint-text" style="font-size:11.5px; margin-bottom:8px;">Toca un equipo para elegirlo. Los equipos que ya elegiste en semanas anteriores están bloqueados con candado 🔒.</p>
 
           <div class="surv-team-picker-grid">
             ${teamCardsHtml}
@@ -339,7 +405,7 @@
           <div>
             <h3 style="margin:0; font-size:18px; font-weight:950; color:#ffffff; letter-spacing:-0.3px;">${t.name}</h3>
             <div style="font-size:11.5px; color:#ffd100; font-weight:800; margin-top:2px;">
-              📍 Sucursal: ${t.store || 'General'} • 📅 Semana ${activeWeek} de ${totalWeeks}
+              🔑 Código: <strong>${t.code || 'SURV'}</strong> • 📍 Sucursal: ${t.store || 'General'} • 📅 Sem. ${activeWeek}/${totalWeeks}
             </div>
           </div>
           <div>${heroBadgeHtml}</div>
@@ -357,7 +423,7 @@
             <h4 style="margin:0; font-size:15px; font-weight:950; color:#ffffff; display:flex; align-items:center; gap:6px;">
               <span>📊</span> Tabla de Resultados Survivor
             </h4>
-            <p class="hint-text" style="margin:0; font-size:11px;">Celdas verdes = Victoria (Vivo) • Celdas rojas = Derrota (Eliminado)</p>
+            <p class="hint-text" style="margin:0; font-size:11px;">Celdas verdes = Victoria • Celdas rojas = Derrota (Pierde 1 Vida ❤️) • Con 0 Vidas = 💀 Eliminado</p>
           </div>
 
           <!-- Controls: Filters & Display Mode -->
@@ -383,13 +449,14 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v213.0</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v214.0</span>
       </footer>
     `;
   }
 
-  // Build the Survivor Matrix Table HTML (Matching user's reference image)
+  // Build the Survivor Matrix Table HTML (Matching user's reference image with Lives)
   function buildSurvivorMatrixHtml(tourn, activeWeek, totalWeeks, currentUser) {
+    const maxLives = tourn.maxLives || 3;
     const players = Object.values(tournamentPlayers).filter(p => p.status === 'approved' || p.approved === true);
 
     if (players.length === 0) {
@@ -399,14 +466,16 @@
     // Apply Filter
     let filteredPlayers = players;
     if (matrixStatusFilter === 'alive') {
-      filteredPlayers = players.filter(p => p.isAlive !== false);
+      filteredPlayers = players.filter(p => p.isAlive !== false && (p.lives === undefined || p.lives > 0));
     } else if (matrixStatusFilter === 'elim') {
-      filteredPlayers = players.filter(p => p.isAlive === false);
+      filteredPlayers = players.filter(p => p.isAlive === false || p.lives === 0);
     }
 
-    // Sort: alive first, then by totalPoints desc
+    // Sort: most lives first, then points desc
     filteredPlayers.sort((a, b) => {
-      if (a.isAlive !== b.isAlive) return a.isAlive !== false ? -1 : 1;
+      const livesA = a.lives !== undefined ? a.lives : (a.isAlive !== false ? maxLives : 0);
+      const livesB = b.lives !== undefined ? b.lives : (b.isAlive !== false ? maxLives : 0);
+      if (livesB !== livesA) return livesB - livesA;
       return (b.totalPoints || 0) - (a.totalPoints || 0);
     });
 
@@ -420,8 +489,10 @@
     let rowsHtml = '';
     filteredPlayers.forEach(p => {
       const isMe = currentUser && p.id === currentUser.uid;
-      const isAlive = p.isAlive !== false;
+      const lives = p.lives !== undefined ? p.lives : (p.isAlive !== false ? maxLives : 0);
+      const isAlive = p.isAlive !== false && lives > 0;
       const photoSrc = p.photoURL || p.userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nickname || p.playerName || 'J')}&background=ffd100&color=000&bold=true`;
+      const heartIcons = '❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, maxLives - lives));
 
       let cellsHtml = '';
       for (let w = 1; w <= displayWeeksCount; w++) {
@@ -445,13 +516,7 @@
             </td>
           `;
         } else {
-          if (w < activeWeek && isAlive) {
-            cellsHtml += `<td><div class="surv-pick-cell empty">—</div></td>`;
-          } else if (w < activeWeek && !isAlive) {
-            cellsHtml += `<td><div class="surv-pick-cell empty" style="opacity:0.2;">—</div></td>`;
-          } else {
-            cellsHtml += `<td><div class="surv-pick-cell empty">—</div></td>`;
-          }
+          cellsHtml += `<td><div class="surv-pick-cell empty">—</div></td>`;
         }
       }
 
@@ -466,7 +531,10 @@
       } else if (matrixDisplayMode === 'names') {
         playerDisplayHtml = `
           <div class="surv-player-badge">
-            <span class="surv-player-name ${isMe ? 'me' : ''}">${p.nickname || p.playerName} ${isMe ? '(TÚ)' : ''}</span>
+            <div style="display:flex; flex-direction:column;">
+              <span class="surv-player-name ${isMe ? 'me' : ''}">${p.nickname || p.playerName} ${isMe ? '(TÚ)' : ''}</span>
+              <span style="font-size:9.5px; margin-top:2px;">${isAlive ? heartIcons : '💀 Eliminado'}</span>
+            </div>
           </div>
         `;
       } else {
@@ -474,7 +542,10 @@
         playerDisplayHtml = `
           <div class="surv-player-badge">
             <img src="${photoSrc}" class="surv-player-avatar ${isAlive ? 'alive' : 'elim'}" onerror="this.src='img/logo.jpg'" alt="${p.nickname}"/>
-            <span class="surv-player-name ${isMe ? 'me' : ''}">${p.nickname || p.playerName} ${isMe ? '(TÚ)' : ''}</span>
+            <div style="display:flex; flex-direction:column; text-align:left;">
+              <span class="surv-player-name ${isMe ? 'me' : ''}">${p.nickname || p.playerName} ${isMe ? '(TÚ)' : ''}</span>
+              <span style="font-size:9.5px; margin-top:2px;">${isAlive ? `${heartIcons} ${lives}/${maxLives}` : '💀 Eliminado'}</span>
+            </div>
           </div>
         `;
       }
@@ -495,7 +566,7 @@
         <table class="surv-matrix-table">
           <thead>
             <tr>
-              <th class="surv-th-player">Jugador</th>
+              <th class="surv-th-player">Participante</th>
               ${weekThs}
               <th style="width:70px; color:#ffd100;">Pts / Dif</th>
             </tr>
@@ -516,6 +587,9 @@
       return;
     }
 
+    const t = currentTournament || activeTournaments.find(trn => trn.id === tournId);
+    const maxLives = t ? (t.maxLives || 3) : 3;
+
     const nickInp = document.getElementById('survJoinNickname');
     const waiterInp = document.getElementById('survJoinWaiter');
 
@@ -527,7 +601,7 @@
       return;
     }
 
-    const autoApprove = currentTournament ? currentTournament.autoApprove !== false : true;
+    const autoApprove = t ? t.autoApprove !== false : true;
     const photoURL = u.photoURL || localStorage.getItem('user_custom_avatar') || 'img/logo.jpg';
 
     try {
@@ -544,13 +618,14 @@
         status: autoApprove ? 'approved' : 'pending',
         approved: autoApprove,
         isAlive: true,
+        lives: maxLives,
         eliminatedWeek: null,
         totalPoints: 0,
         picks: {},
         joinedAt: Date.now()
       }, { merge: true });
 
-      alert(autoApprove ? '🎉 ¡Te has unido al torneo Survivor exitosamente! Selecciona tu equipo.' : '⌛ Solicitud enviada al mesero para aprobación.');
+      alert(autoApprove ? `🎉 ¡Te has unido a ${t.name} con ${maxLives} Vidas! Ya puedes seleccionar tu equipo.` : '⌛ Solicitud enviada al mesero o administrador para su aprobación.');
     } catch (err) {
       alert('Error al unirse: ' + err.message);
     }

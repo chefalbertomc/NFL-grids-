@@ -35,7 +35,7 @@
         <img src="img/logo.jpg" alt="Drinks & Wins by Beto" class="app-brand-logo" />
         <div>
           <h1 class="header-title gradient-text">Panel de Administración</h1>
-          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v213.0</span></p>
+          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v214.0</span></p>
         </div>
       </div>
       <a href="index.html" class="btn btn-secondary" style="width: auto; padding: 8px 14px; text-decoration: none; font-size: 13px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;">
@@ -211,7 +211,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v213.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v214.0</span>
       </footer>
     </main>
 
@@ -334,7 +334,7 @@
       </section>
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v213.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v214.0</span>
       </footer>
     </main>
 
@@ -373,8 +373,14 @@
         <section class="card" style="border:1.5px solid rgba(255,209,0,0.3); background:linear-gradient(135deg, rgba(18,24,38,0.9) 0%, rgba(10,14,22,0.95) 100%); margin-bottom:14px;">
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
             <div>
-              <h3 id="survAdminSelectedTitle" style="margin:0; font-size:17px; font-weight:950; color:#ffffff;">Torneo Survivor</h3>
-              <span id="survAdminStatusBadge" class="badge success" style="font-size:10px; margin-top:4px;">🟢 EN CURSO</span>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <h3 id="survAdminSelectedTitle" style="margin:0; font-size:17px; font-weight:950; color:#ffffff;">Torneo Survivor</h3>
+                <span id="survAdminStatusBadge" class="badge success" style="font-size:10px;">🟢 EN CURSO</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap;">
+                <span id="survAdminCodeBadge" class="badge" style="background:#ffd100; color:#000; font-weight:900; font-size:11px;">🔑 CÓDIGO: SURV26</span>
+                <span id="survAdminLivesBadge" class="badge" style="background:rgba(255,255,255,0.1); color:#fff; font-weight:800; font-size:11px;">❤️ 3 Vidas Iniciales</span>
+              </div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button type="button" id="btnEvaluateSurvivorESPN" class="btn btn-primary" onclick="window.evaluateSurvivorESPN()" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; background:#00e676; color:#000; border-color:#00e676; display:inline-flex; align-items:center; gap:5px;">
@@ -443,7 +449,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v213.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v214.0</span>
       </footer>
     </main>
 
@@ -707,7 +713,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v213.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v214.0</span>
       </footer>
     </main>
 
@@ -792,7 +798,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v213.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v214.0</span>
       </footer>
     </main>
 
@@ -905,7 +911,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v213.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v214.0</span>
       </footer>
     </main>
 
@@ -960,7 +966,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v213.0</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v214.0</span>
       </footer>
     </main>
   </div>
@@ -1150,9 +1156,32 @@
       </div>
       <p class="hint-text" style="font-size:11.5px; margin-bottom:14px;">Configura un nuevo torneo semanal de eliminación directa.</p>
 
-      <div class="form-group" style="margin-bottom:10px;">
-        <label style="font-size:11px; font-weight:800; color:#ffd100;">Nombre del Torneo*</label>
-        <input type="text" id="newSurvName" placeholder="Ej. Survivor NFL 2026 Juriquilla" style="font-weight:800; font-size:13px;"/>
+      <div style="display:grid; grid-template-columns: 1.4fr 1fr; gap:10px; margin-bottom:10px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11px; font-weight:800; color:#ffd100;">Nombre del Torneo*</label>
+          <input type="text" id="newSurvName" placeholder="Ej. Survivor NFL 2026 Juriquilla" style="font-weight:800; font-size:13px;"/>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11px; font-weight:800; color:#ffd100;">Código de Acceso*</label>
+          <input type="text" id="newSurvCode" placeholder="Ej. SURV26" style="font-weight:900; font-size:13px; text-transform:uppercase;"/>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11px; font-weight:800; color:#ffd100;">Vidas por Participante</label>
+          <select id="newSurvLives" style="font-weight:800; font-size:13px;">
+            <option value="3" selected>❤️❤️❤️ 3 Vidas (Recomendado)</option>
+            <option value="1">❤️ 1 Vida (Muerte Súbita)</option>
+            <option value="2">❤️❤️ 2 Vidas</option>
+            <option value="4">❤️❤️❤️❤️ 4 Vidas</option>
+            <option value="5">❤️❤️❤️❤️❤️ 5 Vidas</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11px; font-weight:800; color:#ffd100;">Número Total Semanas</label>
+          <input type="number" id="newSurvWeeks" value="18" min="1" max="40" style="font-weight:800; font-size:13px;"/>
+        </div>
       </div>
 
       <div class="form-group" style="margin-bottom:10px;">
@@ -1167,7 +1196,7 @@
         </select>
       </div>
 
-      <div class="form-group" style="margin-bottom:10px;">
+      <div class="form-group" style="margin-bottom:12px;">
         <label style="font-size:11px; font-weight:800; color:#ffd100;">Sucursal / Ubicación</label>
         <select id="newSurvStore" style="font-weight:800; font-size:13px;">
           <option value="Juriquilla" selected>Juriquilla</option>
@@ -1177,16 +1206,12 @@
         </select>
       </div>
 
-      <div class="form-group" style="margin-bottom:10px;">
-        <label style="font-size:11px; font-weight:800; color:#ffd100;">Número Total de Semanas</label>
-        <input type="number" id="newSurvWeeks" value="18" min="1" max="40" style="font-weight:800; font-size:13px;"/>
-      </div>
-
-      <div class="form-group" style="margin-bottom:16px;">
-        <label style="font-size:11.5px; font-weight:800; color:#e0e0e0; display:flex; align-items:center; gap:8px; cursor:pointer;">
+      <div class="form-group" style="margin-bottom:16px; background:rgba(255,209,0,0.06); padding:10px 12px; border-radius:12px; border:1px solid rgba(255,209,0,0.2);">
+        <label style="font-size:11.5px; font-weight:800; color:#e0e0e0; display:flex; align-items:center; gap:8px; cursor:pointer; margin:0;">
           <input type="checkbox" id="newSurvAutoApprove" checked style="width:18px; height:18px;"/>
-          <span>Auto-aprobar registro de participantes</span>
+          <span>⚡ Auto-aprobar participantes al ingresar código</span>
         </label>
+        <div class="hint-text" style="font-size:10px; margin-top:3px;">Si lo desmarcas, deberás autorizarlos manualmente desde el panel de control.</div>
       </div>
 
       <div style="display:flex; gap:8px;">
@@ -1201,16 +1226,16 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  <!-- Firebase Logic (v213.0) -->
-  <script src="js/firebase-config.js?v=213.0"></script>
-  <script src="js/auth.js?v=213.0"></script>
-  <script src="js/team-logos.js?v=213.0"></script>
-  <script src="js/admin.js?v=213.0"></script>
-  <script src="js/quiniela-admin.js?v=213.0"></script>
-  <script src="js/survivor-admin.js?v=213.0"></script>
-  <script src="js/bingo-admin.js?v=213.0"></script>
-  <script src="js/trivia-admin.js?v=213.0"></script>
-  <script src="js/promotional-cards.js?v=213.0"></script>
+  <!-- Firebase Logic (v214.0) -->
+  <script src="js/firebase-config.js?v=214.0"></script>
+  <script src="js/auth.js?v=214.0"></script>
+  <script src="js/team-logos.js?v=214.0"></script>
+  <script src="js/admin.js?v=214.0"></script>
+  <script src="js/quiniela-admin.js?v=214.0"></script>
+  <script src="js/survivor-admin.js?v=214.0"></script>
+  <script src="js/bingo-admin.js?v=214.0"></script>
+  <script src="js/trivia-admin.js?v=214.0"></script>
+  <script src="js/promotional-cards.js?v=214.0"></script>
 
   <!-- Admin Tab Switching for Top Tabs -->
   <script>

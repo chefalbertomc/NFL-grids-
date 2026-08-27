@@ -104,8 +104,13 @@
     const weekInp = document.getElementById('survAdminActiveWeek');
     const autoApproveChk = document.getElementById('survAdminAutoApprove');
     const statusBadge = document.getElementById('survAdminStatusBadge');
+    const codeBadge = document.getElementById('survAdminCodeBadge');
+    const livesBadge = document.getElementById('survAdminLivesBadge');
 
     if (titleEl) titleEl.textContent = `🏆 ${tourn.name} (${tourn.store || 'Todas'})`;
+    if (codeBadge) codeBadge.textContent = `🔑 CÓDIGO: ${tourn.code || tourn.id.substring(0, 8).toUpperCase()}`;
+    if (livesBadge) livesBadge.textContent = `❤️ ${tourn.maxLives || 3} Vidas Iniciales`;
+
     if (weekInp) {
       weekInp.value = tourn.activeWeek || 1;
       weekInp.max = tourn.totalWeeks || 18;
@@ -170,6 +175,8 @@
       return;
     }
     const nameInp = document.getElementById('newSurvName');
+    const codeInp = document.getElementById('newSurvCode');
+    const livesSel = document.getElementById('newSurvLives');
     const leagueSel = document.getElementById('newSurvLeague');
     const storeSel = document.getElementById('newSurvStore');
     const weeksInp = document.getElementById('newSurvWeeks');
@@ -181,6 +188,8 @@
       return;
     }
 
+    const code = (codeInp ? codeInp.value.trim().toUpperCase() : '') || ('SURV' + Math.floor(100 + Math.random() * 900));
+    const maxLives = parseInt(livesSel?.value || '3', 10) || 3;
     const leagueIdx = parseInt(leagueSel?.value || '0', 10);
     const leagueObj = LEAGUES[leagueIdx] || LEAGUES[0];
     const store = storeSel ? storeSel.value : 'Juriquilla';
@@ -191,7 +200,9 @@
 
     const newTournament = {
       id: id,
+      code: code,
       name: name,
+      maxLives: maxLives,
       sport: leagueObj.sport,
       leagueSlug: leagueObj.slug,
       leagueLabel: leagueObj.label,
@@ -207,7 +218,7 @@
       await db.collection('survivors').doc(id).set(newTournament);
       selectedTournamentId = id;
       window.closeCreateSurvivorModal();
-      alert(`🎉 ¡Torneo Survivor "${name}" creado exitosamente!`);
+      alert(`🎉 ¡Torneo Survivor "${name}" creado exitosamente!\n🔑 Código de Acceso: ${code}\n❤️ Vidas por jugador: ${maxLives}`);
     } catch (err) {
       console.error('[SurvivorAdmin] Create tournament error:', err);
       alert('Error al crear torneo: ' + err.message);
@@ -222,6 +233,10 @@
     const totalElimEl = document.getElementById('survAdminTotalElim');
 
     if (!pendingListEl || !approvedListEl) return;
+
+    const currentTourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const maxLives = currentTourn ? (currentTourn.maxLives || 3) : 3;
+    const activeWeek = currentTourn ? (currentTourn.activeWeek || 1) : 1;
 
     const players = Object.values(tournamentPlayers);
     const pending = players.filter(p => p.status === 'pending' || p.approved === false);
@@ -251,7 +266,7 @@
             </div>
           </div>
           <div style="display:flex; gap:6px;">
-            <button class="btn btn-primary" onclick="window.approveSurvivorPlayer('${p.id}')" style="padding:4px 10px; font-size:11px; width:auto;">Aprobar</button>
+            <button class="btn btn-primary" onclick="window.approveSurvivorPlayer('${p.id}')" style="padding:4px 10px; font-size:11px; width:auto; background:#00e676; color:#000; border-color:#00e676; font-weight:900;">Aprobar</button>
             <button class="btn btn-danger" onclick="window.deleteSurvivorPlayer('${p.id}')" style="padding:4px 10px; font-size:11px; width:auto;">Rechazar</button>
           </div>
         `;
@@ -266,39 +281,42 @@
     } else {
       approved.sort((a, b) => {
         if (a.isAlive !== b.isAlive) return a.isAlive !== false ? -1 : 1;
+        const livesA = a.lives !== undefined ? a.lives : maxLives;
+        const livesB = b.lives !== undefined ? b.lives : maxLives;
+        if (livesB !== livesA) return livesB - livesA;
         return (b.totalPoints || 0) - (a.totalPoints || 0);
       });
 
-      const currentTourn = activeTournaments.find(t => t.id === selectedTournamentId);
-      const activeWeek = currentTourn ? (currentTourn.activeWeek || 1) : 1;
-
       approved.forEach(p => {
         const isAlive = p.isAlive !== false;
+        const lives = p.lives !== undefined ? p.lives : (isAlive ? maxLives : 0);
         const currentPick = p.picks?.[activeWeek];
         const pickTeamText = currentPick ? `${currentPick.teamName || currentPick.team}` : 'Sin pick';
+
+        const heartIcons = '❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, maxLives - lives));
 
         const item = document.createElement('div');
         item.className = 'flex-between py-2';
         item.style.borderBottom = '1px solid rgba(255,255,255,0.05)';
         item.innerHTML = `
           <div style="display:flex; align-items:center; gap:8px;">
-            <img src="${p.photoURL || 'img/logo.jpg'}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; border:1.5px solid ${isAlive ? '#00e676' : '#ff0033'};" onerror="this.src='img/logo.jpg'"/>
+            <img src="${p.photoURL || 'img/logo.jpg'}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1.5px solid ${isAlive ? '#00e676' : '#ff0033'};" onerror="this.src='img/logo.jpg'"/>
             <div>
               <div style="display:flex; align-items:center; gap:6px;">
                 <strong style="color:#ffffff; font-size:13.5px;">${p.nickname || p.playerName}</strong>
-                <span class="badge ${isAlive ? 'success' : 'danger'}" style="font-size:9.5px; padding:1px 5px;">
-                  ${isAlive ? `🟢 VIVO` : `🔴 ELIMINADO (Sem. ${p.eliminatedWeek || '?'})`}
+                <span class="badge ${isAlive ? 'success' : 'danger'}" style="font-size:9.5px; padding:1px 6px;">
+                  ${isAlive ? `${heartIcons} ${lives}/${maxLives}` : `💀 ELIMINADO`}
                 </span>
               </div>
               <div style="font-size:11px; color:#ffd100; font-weight:700;">
-                Sem. ${activeWeek}: <span style="color:#fff;">${pickTeamText}</span> • Pts Totales: ${p.totalPoints || 0}
+                Sem. ${activeWeek}: <span style="color:#fff;">${pickTeamText}</span> • Pts: ${p.totalPoints || 0}
               </div>
             </div>
           </div>
           <div style="display:flex; gap:6px; align-items:center;">
             ${!isAlive ? `
               <button class="btn btn-secondary" onclick="window.reviveSurvivorPlayer('${p.id}')" style="padding:4px 8px; font-size:10.5px; width:auto; border-color:#00e676; color:#00e676;" title="Devolver vida a este jugador">
-                💚 Revivir
+                💚 Revivir (3 Vidas)
               </button>
             ` : `
               <button class="btn btn-danger" onclick="window.eliminateSurvivorPlayer('${p.id}')" style="padding:4px 8px; font-size:10.5px; width:auto;" title="Marcar como eliminado">
@@ -318,11 +336,15 @@
   // Player action handlers
   window.approveSurvivorPlayer = async function(pId) {
     if (!selectedTournamentId || !db) return;
+    const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const maxLives = tourn ? (tourn.maxLives || 3) : 3;
+
     try {
       await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(pId).update({
         status: 'approved',
         approved: true,
-        isAlive: true
+        isAlive: true,
+        lives: maxLives
       });
     } catch (err) {
       alert('Error: ' + err.message);
@@ -331,10 +353,14 @@
 
   window.reviveSurvivorPlayer = async function(pId) {
     if (!selectedTournamentId || !db) return;
-    if (!confirm('¿Deseas reactivar la vida de este jugador en el torneo?')) return;
+    const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const maxLives = tourn ? (tourn.maxLives || 3) : 3;
+
+    if (!confirm(`¿Deseas reactivar a este jugador con ${maxLives} vidas completas?`)) return;
     try {
       await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(pId).update({
         isAlive: true,
+        lives: maxLives,
         eliminatedWeek: null
       });
     } catch (err) {
@@ -346,10 +372,11 @@
     if (!selectedTournamentId || !db) return;
     const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
     const currWeek = tourn ? (tourn.activeWeek || 1) : 1;
-    if (!confirm(`¿Deseas marcar a este jugador como ELIMINADO en la Semana ${currWeek}?`)) return;
+    if (!confirm(`¿Deseas marcar a este jugador como ELIMINADO (0 Vidas)?`)) return;
     try {
       await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(pId).update({
         isAlive: false,
+        lives: 0,
         eliminatedWeek: currWeek
       });
     } catch (err) {
@@ -367,7 +394,7 @@
     }
   };
 
-  // 1-Click Auto-Evaluation with ESPN Official API
+  // 1-Click Auto-Evaluation with ESPN Official API (Multi-Life Support)
   window.evaluateSurvivorESPN = async function() {
     if (!selectedTournamentId || !db) return;
     const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
@@ -379,6 +406,7 @@
     const activeWeek = tourn.activeWeek || 1;
     const sport = tourn.sport || 'football';
     const slug = tourn.leagueSlug || 'nfl';
+    const maxLives = tourn.maxLives || 3;
 
     try {
       // Fetch scoreboard from ESPN
@@ -397,7 +425,7 @@
       }
 
       // Map team results
-      const teamResults = {}; // { 'KC': { result: 'win', diff: 7, score: 27 }, 'BAL': { result: 'loss', diff: -7 } }
+      const teamResults = {};
       events.forEach(ev => {
         const comp = ev.competitions?.[0] || {};
         const isFinished = ev.status?.type?.completed === true;
@@ -438,9 +466,10 @@
         }
       });
 
-      // Grade players
+      // Grade players with Multi-Life logic
       const players = Object.values(tournamentPlayers).filter(p => p.status === 'approved' || p.approved === true);
       let survivedCount = 0;
+      let lostLifeCount = 0;
       let eliminatedCount = 0;
 
       const batch = db.batch();
@@ -449,18 +478,25 @@
       players.forEach(p => {
         if (p.isAlive === false) return; // already eliminated previously
 
+        const currentLives = p.lives !== undefined ? p.lives : maxLives;
         const pick = p.picks?.[activeWeek];
         const pRef = tournRef.collection('players').doc(p.id);
 
         if (!pick || !pick.team) {
-          // No pick registered -> eliminated!
+          // No pick registered -> Lose 1 life
+          const newLives = Math.max(0, currentLives - 1);
+          const isAlive = newLives > 0;
+
           batch.update(pRef, {
-            isAlive: false,
-            eliminatedWeek: activeWeek,
+            lives: newLives,
+            isAlive: isAlive,
+            eliminatedWeek: isAlive ? null : activeWeek,
             [`picks.${activeWeek}.result`]: 'no_pick',
             [`picks.${activeWeek}.diff`]: -10
           });
-          eliminatedCount++;
+
+          if (!isAlive) eliminatedCount++;
+          else lostLifeCount++;
           return;
         }
 
@@ -481,21 +517,27 @@
             });
             survivedCount++;
           } else {
-            // Loss or Tie -> Eliminated
+            // Loss or Tie -> Lose 1 Life
+            const newLives = Math.max(0, currentLives - 1);
+            const isAlive = newLives > 0;
+
             batch.update(pRef, {
-              isAlive: false,
-              eliminatedWeek: activeWeek,
+              lives: newLives,
+              isAlive: isAlive,
+              eliminatedWeek: isAlive ? null : activeWeek,
               [`picks.${activeWeek}.result`]: matchRes.result,
               [`picks.${activeWeek}.diff`]: matchRes.diff,
               [`picks.${activeWeek}.score`]: matchRes.score
             });
-            eliminatedCount++;
+
+            if (!isAlive) eliminatedCount++;
+            else lostLifeCount++;
           }
         }
       });
 
       await batch.commit();
-      alert(`🎯 Calificación ESPN Semana ${activeWeek} completada:\n• Sobrevivieron: ${survivedCount}\n• Eliminados esta semana: ${eliminatedCount}`);
+      alert(`🎯 Calificación ESPN Semana ${activeWeek} completada:\n• Victorias (Vivos sin daño): ${survivedCount}\n• Perdieron 1 Vida: ${lostLifeCount}\n• Eliminados esta semana (0 vidas): ${eliminatedCount}`);
     } catch (err) {
       alert('Error en evaluación ESPN: ' + err.message);
     } finally {
@@ -511,13 +553,15 @@
 
     const origin = window.location.origin;
     const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    const shareUrl = `${origin}${path}share-survivor.html?s=${encodeURIComponent(tourn.id)}`;
+    const shareUrl = `${origin}${path}index.html?tab=tab-survivor&code=${encodeURIComponent(tourn.code || tourn.id)}`;
     const msg = `🏆 *¡ÚNETE AL SURVIVOR EN DRINKS & WINS!* 🔥\n\n` +
       `📌 *Torneo:* ${tourn.name}\n` +
+      `🔑 *Código de Acceso:* ${tourn.code || 'SURV26'}\n` +
+      `❤️ *Vidas:* ${tourn.maxLives || 3} Vidas por jugador\n` +
       `📍 *Sucursal:* ${tourn.store || 'Juriquilla'}\n` +
       `📅 *Semana Activa:* Semana ${tourn.activeWeek || 1}\n\n` +
-      `🎯 Regla de Oro: Elige un equipo por semana, si gana sigues VIVO. ¡No puedes repetir equipo!\n\n` +
-      `📲 *Entra y registra tu pick aquí:* ${shareUrl}`;
+      `🎯 Regla de Oro: Elige un equipo por semana, si pierde o empata pierdes 1 vida. ¡No puedes repetir equipo!\n\n` +
+      `📲 *Entra y regístrate con tu código aquí:* ${shareUrl}`;
 
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
   };
