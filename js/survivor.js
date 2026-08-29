@@ -51,24 +51,23 @@
   ];
 
   const LIGAMX_TEAMS = [
-    { abbr: 'AME', name: 'América', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/223.png', color: '#ffd100' },
-    { abbr: 'GDL', name: 'Guadalajara', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/225.png', color: '#c70000' },
-    { abbr: 'CAZ', name: 'Cruz Azul', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/224.png', color: '#0044aa' },
-    { abbr: 'PUM', name: 'Pumas UNAM', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/232.png', color: '#152438' },
-    { abbr: 'TIG', name: 'Tigres UANL', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/234.png', color: '#f39c12' },
-    { abbr: 'MTY', name: 'Monterrey', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/228.png', color: '#0f2042' },
-    { abbr: 'TOL', name: 'Toluca', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/235.png', color: '#c0392b' },
-    { abbr: 'SAN', name: 'Santos Laguna', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/233.png', color: '#27ae60' },
-    { abbr: 'PAC', name: 'Pachuca', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/229.png', color: '#2980b9' },
-    { abbr: 'LEO', name: 'León', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/227.png', color: '#1e824c' },
-    { abbr: 'ATL', name: 'Atlas', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/221.png', color: '#b71c1c' },
-    { abbr: 'PUE', name: 'Puebla', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/230.png', color: '#2980b9' },
-    { abbr: 'QRO', name: 'Querétaro', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/231.png', color: '#2c3e50' },
-    { abbr: 'TIJ', name: 'Tijuana', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/10462.png', color: '#96281b' },
-    { abbr: 'NEC', name: 'Necaxa', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/226.png', color: '#d35400' },
-    { abbr: 'MAZ', name: 'Mazatlán', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/20698.png', color: '#8e44ad' },
-    { abbr: 'ASL', name: 'Atlético San Luis', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/17851.png', color: '#c0392b' },
-    { abbr: 'JUA', name: 'Juárez', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/17852.png', color: '#27ae60' }
+    { abbr: 'AME', name: 'América', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/227.png', color: '#ff6600' },
+    { abbr: 'GDL', name: 'Guadalajara', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/219.png', color: '#c70000' },
+    { abbr: 'CAZ', name: 'Cruz Azul', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/218.png', color: '#0044aa' },
+    { abbr: 'PUM', name: 'Pumas UNAM', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/233.png', color: '#152438' },
+    { abbr: 'TIG', name: 'Tigres UANL', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/232.png', color: '#f39c12' },
+    { abbr: 'MTY', name: 'Monterrey', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/220.png', color: '#0f2042' },
+    { abbr: 'TOL', name: 'Toluca', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/223.png', color: '#c0392b' },
+    { abbr: 'SAN', name: 'Santos Laguna', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/225.png', color: '#27ae60' },
+    { abbr: 'PAC', name: 'Pachuca', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/234.png', color: '#2980b9' },
+    { abbr: 'LEO', name: 'León', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/228.png', color: '#1e824c' },
+    { abbr: 'ATL', name: 'Atlas', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/216.png', color: '#b71c1c' },
+    { abbr: 'PUE', name: 'Puebla', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/231.png', color: '#2980b9' },
+    { abbr: 'QRO', name: 'Querétaro', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/222.png', color: '#2c3e50' },
+    { abbr: 'TIJ', name: 'Tijuana', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/10125.png', color: '#96281b' },
+    { abbr: 'NEC', name: 'Necaxa', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/229.png', color: '#d35400' },
+    { abbr: 'ASL', name: 'Atlético San Luis', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/15720.png', color: '#c0392b' },
+    { abbr: 'JUA', name: 'Juárez', logo: 'https://a.espncdn.com/i/teamlogos/soccer/500/17851.png', color: '#27ae60' }
   ];
 
   function getCurrentUser() {

@@ -73,9 +73,13 @@ const TEAM_MAP = {
 };
 
 const SOCCER_ID_MAP = {
-  'ame': '221', 'gdl': '227', 'caz': '224', 'pum': '233', 'tig': '235', 'mty': '230',
-  'tol': '236', 'san': '234', 'pac': '231', 'leo': '9489', 'atl_mx': '222', 'pue': '232',
-  'qro': '2960', 'tij': '11142', 'nec': '229', 'maz': '21775', 'asl': '18247', 'jua': '17852',
+  // Liga MX (Official ESPN IDs)
+  'ame': '227', 'gdl': '219', 'caz': '218', 'pum': '233', 'tig': '232', 'mty': '220',
+  'tol': '223', 'san': '225', 'pac': '234', 'leo': '228', 'atl_mx': '216', 'pue': '231',
+  'qro': '222', 'tij': '10125', 'nec': '229', 'asl': '15720', 'jua': '17851', 'atlante': '226',
+  // MLS & International
+  'mia_mls': '20232', 'lafc': '18966', 'lag': '187', 'clb': '183',
+  // European Soccer
   'rma': '86', 'bar': '83', 'atm': '1068', 'rso': '89', 'ath': '93', 'ars': '359',
   'che': '363', 'liv': '364', 'mci': '382', 'mun': '360', 'bay': '132', 'dor': '124',
   'psg': '160', 'juv': '111', 'int': '110', 'acm': '103'

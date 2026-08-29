@@ -250,26 +250,51 @@
     'wsh': 'Commanders Field'
   };
 
+  const SOCCER_ID_MAP = {
+    // Liga MX (Official ESPN IDs)
+    'ame': '227', 'gdl': '219', 'caz': '218', 'pum': '233', 'tig': '232', 'mty': '220',
+    'tol': '223', 'san': '225', 'pac': '234', 'leo': '228', 'atl_mx': '216', 'pue': '231',
+    'qro': '222', 'tij': '10125', 'nec': '229', 'asl': '15720', 'jua': '17851', 'atlante': '226',
+    // MLS & International
+    'mia_mls': '20232', 'lafc': '18966', 'lag': '187', 'clb': '183',
+    // European Soccer
+    'rma': '86', 'bar': '83', 'atm': '1068', 'rso': '89', 'ath': '93', 'ars': '359',
+    'che': '363', 'liv': '364', 'mci': '382', 'mun': '360', 'bay': '132', 'dor': '124',
+    'psg': '160', 'juv': '111', 'int': '110', 'acm': '103'
+  };
+
   function resolve(teamName) {
     if (!teamName) return null;
     const clean = teamName.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    // 1) Exact match
+    if (TEAM_MAP[clean]) return TEAM_MAP[clean];
+
+    // 2) Substring match only for keys with 4+ characters (prevent 'ne', 'tb', 'la' false matches)
     for (const [key, val] of Object.entries(TEAM_MAP)) {
       const normKey = key.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      if (clean === normKey || clean.includes(normKey)) return val;
+      if (normKey.length >= 4 && clean.includes(normKey)) return val;
     }
+
+    // 3) Word-by-word match
+    for (const word of clean.split(/\s+/)) {
+      if (TEAM_MAP[word]) return TEAM_MAP[word];
+    }
+
     return null;
   }
 
   window.getTeamLogoURL = function(teamName) {
     const abbr = resolve(teamName);
     if (abbr) {
-      if (['ame','gdl','caz','pum','tig','mty','tol','san','pac','leo','atl_mx','pue','qro','tij','nec','maz','asl','jua','atlante','rma','bar','atm','rso','ath','lil','psg'].includes(abbr)) {
-        return `https://a.espncdn.com/i/teamlogos/soccer/500/${abbr.replace('_mx','')}.png`;
+      if (SOCCER_ID_MAP[abbr]) {
+        return `https://a.espncdn.com/i/teamlogos/soccer/500/${SOCCER_ID_MAP[abbr]}.png`;
       }
       return 'https://a.espncdn.com/i/teamlogos/nfl/500/' + abbr + '.png';
     }
     return 'img/logo.jpg';
   };
+
 
   window.getTeamColor = function(teamName) {
     const abbr = resolve(teamName);
