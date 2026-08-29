@@ -84,13 +84,26 @@ const SOCCER_ID_MAP = {
 function resolveLogo(name, sport) {
   if (!name) return 'https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png';
   const clean = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-  
-  // Direct match or partial match in dictionary
+
+  // 1) Direct exact match
   let code = TEAM_MAP[clean];
+
+  // 2) Substring match — only for keys of 4+ chars to avoid false positives
+  //    (e.g. 'ne' appearing inside 'tennessee', 'no' inside 'broncos', etc.)
   if (!code) {
     for (const k in TEAM_MAP) {
-      if (clean.includes(k) || k.includes(clean)) {
+      if (k.length >= 4 && clean.includes(k)) {
         code = TEAM_MAP[k];
+        break;
+      }
+    }
+  }
+
+  // 3) Word-by-word match as last resort
+  if (!code) {
+    for (const word of clean.split(/\s+/)) {
+      if (TEAM_MAP[word]) {
+        code = TEAM_MAP[word];
         break;
       }
     }
@@ -104,6 +117,7 @@ function resolveLogo(name, sport) {
   }
   return `https://a.espncdn.com/i/teamlogos/nfl/500/${code}.png`;
 }
+
 
 export default function handler(req, res) {
   const {
@@ -165,8 +179,8 @@ export default function handler(req, res) {
   <!-- Instant Browser Redirect for Real Users -->
   <meta http-equiv="refresh" content="0;url=${redirectUrl}">
   <style>
-    body { background: #0d0e12; color: #ffd100; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-    .spin { width: 44px; height: 44px; border: 4px solid rgba(255,209,0,0.2); border-top-color: #ffd100; border-radius: 50%; animation: s .8s linear infinite; }
+    body { background: #0d0e12; color: #ff6600; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+    .spin { width: 44px; height: 44px; border: 4px solid rgba(255,209,0,0.2); border-top-color: #ff6600; border-radius: 50%; animation: s .8s linear infinite; }
     @keyframes s { to { transform: rotate(360deg); } }
   </style>
 </head>

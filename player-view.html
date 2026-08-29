@@ -13,7 +13,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
-  <meta name="theme-color" content="#ffd100" />
+  <meta name="theme-color" content="#ff6600" />
   <title>Tablero NFL Grid — Drinks & Wins</title>
   <link rel="stylesheet" href="css/styles.css?v=172.0"/>
   <style>
@@ -44,7 +44,7 @@
       </div>
 
       <div style="display:flex; gap:6px;">
-        <button type="button" class="btn btn-secondary" onclick="window.openHowToPlayModal()" style="width: auto; padding: 7px 12px; font-size: 12px; background: rgba(255,209,0,0.15); border: 1px solid #ffd100; color: #ffd100; display: inline-flex; align-items: center; gap: 4px; font-weight: 800; border-radius:10px;" title="Ver reglas e instructivo">
+        <button type="button" class="btn btn-secondary" onclick="window.openHowToPlayModal()" style="width: auto; padding: 7px 12px; font-size: 12px; background: rgba(255,102,0,0.15); border: 1px solid #ff6600; color: #ff6600; display: inline-flex; align-items: center; gap: 4px; font-weight: 800; border-radius:10px;" title="Ver reglas e instructivo">
           ❓ ¿Cómo Jugar?
         </button>
         <button id="btnSharePlayerWhatsApp" class="btn btn-secondary" style="width: auto; padding: 7px 13px; font-size: 12px; background: rgba(37,211,102,0.15); border: 1px solid #25D366; color: #25D366; display: inline-flex; align-items: center; gap: 6px; font-weight: 800; border-radius:10px;" title="Compartir este Grid por WhatsApp">
@@ -54,15 +54,15 @@
     </div>
 
     <!-- Header Hero Card (Ultra-Slim Single-Row Layout) -->
-    <div class="card" style="margin-bottom: 10px; background: linear-gradient(135deg, rgba(20, 28, 42, 0.95), rgba(10, 14, 22, 0.98)); border: 1px solid rgba(255, 209, 0, 0.25); border-radius: 14px; padding: 8px 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.6);">
+    <div class="card" style="margin-bottom: 10px; background: linear-gradient(135deg, rgba(20, 28, 42, 0.95), rgba(10, 14, 22, 0.98)); border: 1px solid rgba(255, 102, 0, 0.25); border-radius: 14px; padding: 8px 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.6);">
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
         <!-- Left: Logo + Title + Code + Store + Lock + Status -->
         <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-          <img src="img/logo.jpg" alt="Drinks & Wins" style="width: 34px; height: 34px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,209,0,0.4); flex-shrink: 0;" />
+          <img src="img/logo.jpg" alt="Drinks & Wins" style="width: 34px; height: 34px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,102,0,0.4); flex-shrink: 0;" />
           
           <h2 id="gameTitle" style="font-size: 16px; margin:0; line-height: 1; display: inline-flex; align-items: center; gap: 4px;">
             <span style="color:#ffffff; font-weight:900; letter-spacing:0.03em;">FOOTBALL GRIDS</span>
-            <span id="gameCodeDisplay" style="color:#ffd100; font-weight:900;">...</span>
+            <span id="gameCodeDisplay" style="color:#ff6600; font-weight:900;">...</span>
             <span class="app-version-badge" style="margin-left:4px;">v214.0</span>
           </h2>
 
@@ -74,8 +74,8 @@
         </div>
 
         <!-- Right: Current Player Identity (Clickable to open profile menu / logout) -->
-        <div id="playerIdentityBadge" onclick="window.toggleUserMenu(event)" style="cursor:pointer; display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 8px; border: 1px solid rgba(255,209,0,0.3);" title="Toca para ver tu perfil o cerrar sesión">
-          <span style="font-size: 12px; font-weight: 900; color: #ffd100;" id="playerNicknameDisplay">👤 Cargando...</span>
+        <div id="playerIdentityBadge" onclick="window.toggleUserMenu(event)" style="cursor:pointer; display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.06); padding: 3px 8px; border-radius: 8px; border: 1px solid rgba(255,102,0,0.3);" title="Toca para ver tu perfil o cerrar sesión">
+          <span style="font-size: 12px; font-weight: 900; color: #ff6600;" id="playerNicknameDisplay">👤 Cargando...</span>
         </div>
       </div>
       <div id="gridMsg" style="display:none;"></div>
@@ -154,7 +154,7 @@
                 <img class="axis-logo" id="homeLogo" src="" alt="" style="display:none;"/>
                 <span class="axis-text" id="homeTeamName">Local</span>
               </div>
-              <button type="button" class="btn btn-secondary" id="btnToggleViewMode" onclick="window.toggleGridDisplayMode()" style="width:auto; padding:4px 10px; font-size:11px; font-weight:900; border-radius:8px; background:rgba(255,209,0,0.18); border:1px solid #ffd100; color:#ffd100; white-space:nowrap; flex-shrink:0;">
+              <button type="button" class="btn btn-secondary" id="btnToggleViewMode" onclick="window.toggleGridDisplayMode()" style="width:auto; padding:4px 10px; font-size:11px; font-weight:900; border-radius:8px; background:rgba(255,102,0,0.18); border:1px solid #ff6600; color:#ff6600; white-space:nowrap; flex-shrink:0;">
                 🖼️ Fotos
               </button>
             </div>
@@ -209,31 +209,12 @@
     </div>
   </div>
 
-  <!-- Mobile Bottom Navigation Bar with Full-Height Game Badges (Swipeable) -->
-  <nav class="mobile-nav">
-    <a href="index.html" class="nav-item active" title="NFL Grids">
-      <img src="img/games/badge_grids.png" alt="NFL Grids" class="nav-game-badge" />
-    </a>
-    <a href="index.html#tab-pools" class="nav-item" title="Quiniela / Pick'em">
-      <img src="img/games/badge_quiniela.png" alt="Quiniela" class="nav-game-badge" />
-    </a>
-    <a href="index.html#tab-survivor" class="nav-item" title="Survivor">
-      <img src="img/games/badge_survivor.png" alt="Survivor" class="nav-game-badge" />
-    </a>
-    <a href="index.html#tab-firstgoal" class="nav-item" title="Primer Gol">
-      <img src="img/games/badge_firstgoal.png" alt="Primer Gol" class="nav-game-badge" />
-    </a>
-    <a href="index.html#tab-trivia" class="nav-item" title="Trivia">
-      <img src="img/games/badge_trivia.png" alt="Trivia" class="nav-game-badge" />
-    </a>
-    <a href="index.html#tab-bingo" class="nav-item" title="Game Day Bingo">
-      <img src="img/games/badge_bingo.png" alt="Bingo" class="nav-game-badge" />
-    </a>
-  </nav>
+
+
 
   <!-- App Footer Version Indicator -->
-  <footer class="tab-footer-version" style="padding-bottom: 90px;">
-    <span>DRINKS & WINS</span> • <span class="ver">v214.0</span>
+  <footer class="tab-footer-version" style="padding-bottom: 20px;">
+    <span>DRINKS & WINS</span> • <span class="ver">v215.0</span>
   </footer>
 
   <!-- Firebase v8 SDKs -->
@@ -254,7 +235,7 @@
       
       <!-- Current Photo Preview -->
       <div style="position:relative; width:90px; height:90px; margin: 0 auto 12px auto;">
-        <img id="userModalPhotoPreview" src="img/logo.jpg" alt="Foto de Perfil" style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:3px solid #ffd100; box-shadow:0 0 16px rgba(255,209,0,0.4);" />
+        <img id="userModalPhotoPreview" src="img/logo.jpg" alt="Foto de Perfil" style="width:90px; height:90px; border-radius:50%; object-fit:cover; border:3px solid #ff6600; box-shadow:0 0 16px rgba(255,102,0,0.4);" />
       </div>
       
       <h3 style="margin: 0 0 4px 0; font-size:17px; font-weight:900; color:#ffffff;" id="userModalDisplayName">Usuario</h3>

@@ -954,9 +954,19 @@
     const date = decodeURIComponent(encDate || '');
     const time = decodeURIComponent(encTime || '');
 
-    const origin = window.location.origin;
-    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    const shareUrl = `${origin}${path}share-firstgoal.html?code=${encodeURIComponent(gameId)}`;
+    // Use Vercel bridge for dynamic team logos preview if available
+    let shareUrl;
+    const bridge = window.DW_BRIDGE_URL || localStorage.getItem('dw_bridge_url');
+    if (bridge) {
+      const base = bridge.replace(/\/+$/, '');
+      const qs = new URLSearchParams({ game: 'firstgoal', code: gameId, away, home, sport: 'soccer' });
+      shareUrl = `${base}/share?${qs.toString()}`;
+    } else {
+      const origin = window.location.origin;
+      const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+      shareUrl = `${origin}${path}share-firstgoal.html?code=${encodeURIComponent(gameId)}&away=${encodeURIComponent(away)}&home=${encodeURIComponent(home)}`;
+    }
+
     const msg = `🏆 *¡ÚNETE A FIRST STRIKER WINS EN DRINKS & WINS!* ⚽🔥\n\n` +
       `🥊 *${away} vs ${home}*\n` +
       `🗓️ *Fecha:* ${date || 'Próximo partido'} ${time ? '• ' + time + ' hrs' : ''}\n\n` +
@@ -965,6 +975,7 @@
 
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
   };
+
 
   // Live ESPN score & minute auto-sync
   let liveSyncInterval = null;
