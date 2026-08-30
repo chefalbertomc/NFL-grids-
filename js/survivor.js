@@ -455,7 +455,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.5</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.6</span>
       </footer>
     `;
   }
@@ -494,7 +494,7 @@
 
     let rowsHtml = '';
     filteredPlayers.forEach(p => {
-      const isMe = currentUser && p.id === currentUser.uid;
+      const isMe = currentUser && (p.id === currentUser.uid || p.uid === currentUser.uid || p.docId === currentUser.uid);
       const lives = p.lives !== undefined ? p.lives : (p.isAlive !== false ? maxLives : 0);
       const isAlive = p.isAlive !== false && lives > 0;
       const photoSrc = p.photoURL || p.userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nickname || p.playerName || 'J')}&background=ffd100&color=000&bold=true`;
@@ -506,8 +506,9 @@
           const res = pick.result || (w < activeWeek ? 'loss' : (w === activeWeek ? 'live' : 'pending'));
           const diffText = pick.diff !== undefined ? (pick.diff > 0 ? `+${pick.diff}` : `${pick.diff}`) : '';
           
-          // Ocultar la elección de la semana activa a otros jugadores (privacidad)
-          const isHiddenPick = (w === activeWeek && !isMe && !pick.result);
+          // Ocultar la elección de la semana activa a otros jugadores (privacidad) mientras no esté evaluada ni bloqueada
+          const isEvaluated = (pick.result === 'win' || pick.result === 'loss' || pick.result === 'no_pick');
+          const isHiddenPick = (w === activeWeek && !isMe && !isEvaluated && !isWeekLocked);
 
           if (isHiddenPick) {
             cellsHtml += `
