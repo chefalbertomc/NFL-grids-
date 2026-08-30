@@ -448,7 +448,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.3</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.4</span>
       </footer>
     `;
   }
@@ -498,21 +498,34 @@
         if (pick && pick.team) {
           const res = pick.result || (w < activeWeek ? 'loss' : (w === activeWeek ? 'live' : 'pending'));
           const diffText = pick.diff !== undefined ? (pick.diff > 0 ? `+${pick.diff}` : `${pick.diff}`) : '';
+          
+          // Ocultar la elección de la semana activa a otros jugadores (privacidad)
+          const isHiddenPick = (w === activeWeek && !isMe && !pick.result);
 
-          let cellClass = 'surv-pick-cell';
-          if (res === 'win') cellClass += ' win';
-          else if (res === 'loss' || res === 'no_pick') cellClass += ' loss';
-          else if (res === 'live') cellClass += ' live';
-          else cellClass += ' pending';
+          if (isHiddenPick) {
+            cellsHtml += `
+              <td>
+                <div class="surv-pick-cell live" title="Pick registrado (Oculto para los demás)">
+                  <span style="font-size:13px;" title="Pick Oculto">🔒</span>
+                </div>
+              </td>
+            `;
+          } else {
+            let cellClass = 'surv-pick-cell';
+            if (res === 'win') cellClass += ' win';
+            else if (res === 'loss' || res === 'no_pick') cellClass += ' loss';
+            else if (res === 'live') cellClass += ' live';
+            else cellClass += ' pending';
 
-          cellsHtml += `
-            <td>
-              <div class="${cellClass}">
-                <img src="${pick.logo || 'img/logo.jpg'}" class="surv-pick-logo" alt="${pick.team}" onerror="this.src='img/logo.jpg'"/>
-                ${diffText ? `<span class="surv-pick-pts">${diffText}</span>` : ''}
-              </div>
-            </td>
-          `;
+            cellsHtml += `
+              <td>
+                <div class="${cellClass}">
+                  <img src="${pick.logo || 'img/logo.jpg'}" class="surv-pick-logo" alt="${pick.team}" onerror="this.src='img/logo.jpg'"/>
+                  ${diffText ? `<span class="surv-pick-pts">${diffText}</span>` : ''}
+                </div>
+              </td>
+            `;
+          }
         } else {
           cellsHtml += `<td><div class="surv-pick-cell empty">—</div></td>`;
         }
