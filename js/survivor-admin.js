@@ -328,7 +328,16 @@
               </div>
             </div>
           </div>
-          <div style="display:flex; gap:6px; align-items:center;">
+          <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            ${p.isHost ? `
+              <button class="btn btn-warning" onclick="window.toggleSurvivorHost('${p.id}', false)" style="padding:4px 8px; font-size:10.5px; width:auto; border-color:#ffd100; color:#ffd100; background:rgba(255,209,0,0.15);" title="Quitar permisos de Admin de este Torneo">
+                ⭐ Co-Admin (Quitar)
+              </button>
+            ` : `
+              <button class="btn btn-secondary" onclick="window.toggleSurvivorHost('${p.id}', true)" style="padding:4px 8px; font-size:10.5px; width:auto; border-color:#ffd100; color:#ffd100;" title="Nombrar Admin de este Torneo">
+                👑 Nombrar Admin
+              </button>
+            `}
             ${!isAlive ? `
               <button class="btn btn-secondary" onclick="window.reviveSurvivorPlayer('${p.id}')" style="padding:4px 8px; font-size:10.5px; width:auto; border-color:#00e676; color:#00e676;" title="Devolver vida a este jugador">
                 💚 Revivir (3 Vidas)
@@ -581,6 +590,20 @@
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
+  // Toggle Host / Co-Admin Role for Player
+  window.toggleSurvivorHost = async function(playerId, makeHost) {
+    if (!selectedTournamentId || !db) return;
+    try {
+      await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(playerId).update({
+        isHost: makeHost,
+        updatedAt: Date.now()
+      });
+      alert(makeHost ? `👑 ¡Jugador nombrado Co-Admin del Torneo!` : `⭐ Permisos de Co-Admin removidos.`);
+    } catch (err) {
+      alert('Error al actualizar permisos de admin: ' + err.message);
+    }
+  };
+
   // Initialize
-  window.initSurvivorAdmin();
+  initSurvivorAdmin();
 })();

@@ -208,6 +208,7 @@
     const myPlayer = u ? (tournamentPlayers[u.uid] || Object.values(tournamentPlayers).find(p => p.id === u.uid || p.uid === u.uid)) : null;
     const isJoined = !!myPlayer;
     const isApproved = myPlayer ? (myPlayer.status !== 'rejected' && myPlayer.approved !== false) : false;
+    const isHost = myPlayer ? (myPlayer.isHost === true || myPlayer.role === 'admin' || myPlayer.isCoAdmin === true) : false;
     const maxLives = t.maxLives || 3;
     const myLives = myPlayer ? (myPlayer.lives !== undefined ? myPlayer.lives : (myPlayer.isAlive !== false ? maxLives : 0)) : maxLives;
     const isAlive = myPlayer ? (myPlayer.isAlive !== false && myLives > 0) : false;
@@ -405,11 +406,56 @@
       `;
     }
 
+    // Co-Admin / Host Management Panel
+    let coAdminPanelHtml = '';
+    if (isHost) {
+      const isWeekLocked = !!t.locked;
+      const pendingPlayers = Object.values(tournamentPlayers).filter(p => p.status === 'pending' || p.approved === false);
+
+      let pendingListHtml = '';
+      if (pendingPlayers.length > 0) {
+        pendingListHtml = `
+          <div style="margin-top:10px; background:rgba(255,193,7,0.1); border:1px solid rgba(255,193,7,0.3); border-radius:10px; padding:10px 12px;">
+            <div style="font-size:12px; font-weight:900; color:#ffc107; margin-bottom:6px;">⌛ Solicitudes Pendientes (${pendingPlayers.length}):</div>
+            ${pendingPlayers.map(p => `
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:12px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:4px;">
+                <span>👤 <strong>${p.nickname || p.playerName}</strong> (${p.waiter || 'Mesa Directa'})</span>
+                <div style="display:flex; gap:6px;">
+                  <button onclick="window.coAdminApprovePlayer('${t.id}', '${p.id}', true)" class="btn btn-primary" style="padding:4px 10px; font-size:10.5px; width:auto; background:#00e676; color:#000; border:none; font-weight:900;">✓ Aprobar</button>
+                  <button onclick="window.coAdminApprovePlayer('${t.id}', '${p.id}', false)" class="btn btn-danger" style="padding:4px 10px; font-size:10.5px; width:auto;">✕ Rechazar</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      coAdminPanelHtml = `
+        <section class="card" style="border:1.5px solid #ffd100; background:linear-gradient(135deg, rgba(255,209,0,0.15) 0%, rgba(18,24,38,0.98) 100%); margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div>
+              <h4 style="margin:0; font-size:15px; font-weight:950; color:#ffd100; display:flex; align-items:center; gap:6px;">
+                <span>👑</span> Panel de Anfitrión (Co-Admin)
+              </h4>
+              <span class="hint-text" style="font-size:11px;">Tienes permisos especiales para gestionar este torneo desde tu celular.</span>
+            </div>
+            <div>
+              <button type="button" onclick="window.coAdminToggleLock('${t.id}', ${!isWeekLocked})" class="btn ${isWeekLocked ? 'btn-secondary' : 'btn-primary'}" style="width:auto; padding:7px 14px; font-size:12px; font-weight:900; ${isWeekLocked ? 'border-color:#00e676; color:#00e676;' : 'background:#ffd100; color:#000; border:none;'}">
+                ${isWeekLocked ? '🔓 Desbloquear Picks' : '🔒 Bloquear Picks (Inició Partido)'}
+              </button>
+            </div>
+          </div>
+          ${pendingListHtml}
+        </section>
+      `;
+    }
+
     // Leaderboard Matrix Grid (The exact reference image visual table!)
     const matrixHtml = buildSurvivorMatrixHtml(t, activeWeek, totalWeeks, u);
 
     container.innerHTML = `
       ${selectorHtml}
+      ${coAdminPanelHtml}
 
       <!-- Hero Card -->
       <section class="surv-hero-card">
@@ -461,7 +507,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.10</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.11</span>
       </footer>
     `;
   }
@@ -684,6 +730,30 @@
       console.log(`[Survivor] Pick guardado: ${teamName} para Semana ${activeWeek}`);
     } catch (err) {
       alert('Error al guardar pick: ' + err.message);
+    }
+  // Co-Admin Control Functions
+  window.coAdminToggleLock = async function(tournId, newLocked) {
+    try {
+      await db.collection('survivors').doc(tournId).update({
+        locked: newLocked,
+        updatedAt: Date.now()
+      });
+      alert(newLocked ? '🔒 Picks bloqueados para este torneo. Todos los logos son ahora visibles en la tabla.' : '🔓 Picks desbloqueados para modificaciones.');
+    } catch (err) {
+      alert('Error al cambiar bloqueo: ' + err.message);
+    }
+  };
+
+  window.coAdminApprovePlayer = async function(tournId, playerId, approve) {
+    try {
+      await db.collection('survivors').doc(tournId).collection('players').doc(playerId).update({
+        status: approve ? 'approved' : 'rejected',
+        approved: approve,
+        updatedAt: Date.now()
+      });
+      alert(approve ? '✅ Participante aprobado.' : '❌ Solicitud rechazada.');
+    } catch (err) {
+      alert('Error al actualizar participante: ' + err.message);
     }
   };
 
