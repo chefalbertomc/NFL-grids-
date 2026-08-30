@@ -461,7 +461,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.9</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.10</span>
       </footer>
     `;
   }
