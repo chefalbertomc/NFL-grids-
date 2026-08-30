@@ -524,21 +524,31 @@
     const loadingEl = document.getElementById('promoCardLoading');
     const titleEl = document.getElementById('promoCardModalTitle');
 
-    if (modal) modal.style.display = 'flex';
+    if (modal) {
+      modal.classList.add('active');
+      modal.style.display = 'flex';
+      modal.style.opacity = '1';
+      modal.style.pointerEvents = 'auto';
+    }
     if (loadingEl) loadingEl.style.display = 'block';
     if (imgEl) imgEl.style.display = 'none';
     if (titleEl) titleEl.textContent = `📸 ${card.title}`;
 
-    const store = (document.getElementById('promoSelectStore') || {}).value || 'Todas las Sucursales';
-    const dataUrl = await window.drawPromotionalCard(card, { store, ...customOptions });
+    try {
+      const store = (document.getElementById('promoSelectStore') || {}).value || 'Todas las Sucursales';
+      const dataUrl = await window.drawPromotionalCard(card, { store, ...customOptions });
 
-    currentGeneratedDataUrl = dataUrl;
-    currentCardTitle = `DW-Promo-${card.id}`;
+      currentGeneratedDataUrl = dataUrl;
+      currentCardTitle = `DW-Promo-${card.id}`;
 
-    if (loadingEl) loadingEl.style.display = 'none';
-    if (imgEl) {
-      imgEl.src = dataUrl;
-      imgEl.style.display = 'block';
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (imgEl) {
+        imgEl.src = dataUrl;
+        imgEl.style.display = 'block';
+      }
+    } catch (err) {
+      console.error('[PromoCards] Error generating card:', err);
+      if (loadingEl) loadingEl.innerHTML = `<span style="color:#ff5252;">⚠️ Error al generar tarjeta: ${err.message}</span>`;
     }
   };
 
@@ -551,75 +561,50 @@
     const loadingEl = document.getElementById('promoCardLoading');
     const titleEl = document.getElementById('promoCardModalTitle');
 
-    if (modal) modal.style.display = 'flex';
-    if (loadingEl) loadingEl.style.display = 'block';
+    if (modal) {
+      modal.classList.add('active');
+      modal.style.display = 'flex';
+      modal.style.opacity = '1';
+      modal.style.pointerEvents = 'auto';
+    }
+    if (loadingEl) {
+      loadingEl.style.display = 'block';
+      loadingEl.innerHTML = '<div class="spin" style="margin:0 auto 12px auto;"></div>Generando imagen en alta resolución 1080x1920...';
+    }
     if (imgEl) imgEl.style.display = 'none';
     if (titleEl) titleEl.textContent = '📸 Historia del Partido';
 
-    let g = gameData;
-    if (!g && window.currentGame) {
-      g = window.currentGame;
-    }
-    if (!g) {
-      g = {
-        away: 'Pittsburgh Steelers',
-        home: 'Buffalo Bills',
-        code: 'DW2024',
-        store: 'Juriquilla'
-      };
-    }
-
-    const dataUrl = await window.drawMatchupStoryCard(g, {
-      gameType: g.gameType || '🏈 NFL FOOTBALL GRID'
-    });
-
-    currentGeneratedDataUrl = dataUrl;
-    currentCardTitle = `DW-Matchup-${g.code || 'Grid'}`;
-
-    if (loadingEl) loadingEl.style.display = 'none';
-    if (imgEl) {
-      imgEl.src = dataUrl;
-      imgEl.style.display = 'block';
-    }
-  };
-
-  /**
-   * Downloads the generated card PNG to gallery
-   */
-  window.downloadCurrentPromoCard = function() {
-    if (!currentGeneratedDataUrl) return;
-    const a = document.createElement('a');
-    a.href = currentGeneratedDataUrl;
-    a.download = `${currentCardTitle}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  };
-
-  /**
-   * Native Share to WhatsApp Status / Instagram Stories
-   */
-  window.shareCurrentPromoCard = async function() {
-    if (!currentGeneratedDataUrl) return;
-
     try {
-      const res = await fetch(currentGeneratedDataUrl);
-      const blob = await res.blob();
-      const file = new File([blob], `${currentCardTitle}.png`, { type: 'image/png' });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: 'Drinks & Wins',
-          text: '¡Únete y juega en Drinks & Wins! 🍻🏈'
-        });
-      } else {
-        // Fallback to download
-        window.downloadCurrentPromoCard();
-        alert('📥 Tarjeta guardada en tu galería. ¡Ya puedes subirla a tu Estado de WhatsApp!');
+      let g = gameData;
+      if (!g && window.currentGame) {
+        g = window.currentGame;
       }
-    } catch(err) {
-      window.downloadCurrentPromoCard();
+      if (!g) {
+        const storeSel = document.getElementById('promoSelectStore');
+        const selStore = storeSel ? storeSel.value : 'Juriquilla';
+        g = {
+          away: 'Pittsburgh Steelers',
+          home: 'Buffalo Bills',
+          code: 'DW2026',
+          store: selStore
+        };
+      }
+
+      const dataUrl = await window.drawMatchupStoryCard(g, {
+        gameType: g.gameType || '🏈 NFL FOOTBALL GRID'
+      });
+
+      currentGeneratedDataUrl = dataUrl;
+      currentCardTitle = `DW-Matchup-${g.code || 'Grid'}`;
+
+      if (loadingEl) loadingEl.style.display = 'none';
+      if (imgEl) {
+        imgEl.src = dataUrl;
+        imgEl.style.display = 'block';
+      }
+    } catch (err) {
+      console.error('[PromoCards] Error generating matchup story:', err);
+      if (loadingEl) loadingEl.innerHTML = `<span style="color:#ff5252;">⚠️ Error al generar historia: ${err.message}</span>`;
     }
   };
 
@@ -628,7 +613,12 @@
    */
   window.closePromoCardModal = function() {
     const modal = document.getElementById('modalPromoCardPreview');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+      modal.style.opacity = '0';
+      modal.style.pointerEvents = 'none';
+    }
   };
 
   /**

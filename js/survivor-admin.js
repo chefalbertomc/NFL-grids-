@@ -158,12 +158,22 @@
   // Create new Survivor Tournament Modal
   window.openCreateSurvivorModal = function() {
     const modal = document.getElementById('modalCreateSurvivor');
-    if (modal) modal.style.display = 'flex';
+    if (modal) {
+      modal.classList.add('active');
+      modal.style.display = 'flex';
+      modal.style.opacity = '1';
+      modal.style.pointerEvents = 'auto';
+    }
   };
 
   window.closeCreateSurvivorModal = function() {
     const modal = document.getElementById('modalCreateSurvivor');
-    if (modal) modal.style.display = 'none';
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+      modal.style.opacity = '0';
+      modal.style.pointerEvents = 'none';
+    }
   };
 
   window.createSurvivorTournament = async function() {
