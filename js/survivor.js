@@ -205,9 +205,9 @@
 
     const t = currentTournament || activeTournaments[0];
     const u = getCurrentUser();
-    const myPlayer = u ? tournamentPlayers[u.uid] : null;
+    const myPlayer = u ? (tournamentPlayers[u.uid] || Object.values(tournamentPlayers).find(p => p.id === u.uid || p.uid === u.uid)) : null;
     const isJoined = !!myPlayer;
-    const isApproved = myPlayer ? (myPlayer.status === 'approved' || myPlayer.approved === true) : false;
+    const isApproved = myPlayer ? (myPlayer.status !== 'rejected' && myPlayer.approved !== false) : false;
     const maxLives = t.maxLives || 3;
     const myLives = myPlayer ? (myPlayer.lives !== undefined ? myPlayer.lives : (myPlayer.isAlive !== false ? maxLives : 0)) : maxLives;
     const isAlive = myPlayer ? (myPlayer.isAlive !== false && myLives > 0) : false;
@@ -455,7 +455,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.6</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.7</span>
       </footer>
     `;
   }
@@ -463,7 +463,7 @@
   // Build the Survivor Matrix Table HTML (Matching user's reference image with Lives)
   function buildSurvivorMatrixHtml(tourn, activeWeek, totalWeeks, currentUser) {
     const maxLives = tourn.maxLives || 3;
-    const players = Object.values(tournamentPlayers).filter(p => p.status === 'approved' || p.approved === true);
+    const players = Object.values(tournamentPlayers).filter(p => p.status !== 'rejected' && p.approved !== false);
 
     if (players.length === 0) {
       return `<div class="hint-text text-center py-4">Aún no hay participantes aprobados en este torneo.</div>`;
