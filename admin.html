@@ -402,12 +402,15 @@
               </div>
             </div>
 
-            <div style="display:flex; flex-direction:column; justify-content:center;">
+            <div style="display:flex; flex-direction:column; justify-content:center; gap:6px;">
+              <label style="font-size:11px; font-weight:800; color:#ffd100; display:flex; align-items:center; gap:8px; cursor:pointer;">
+                <input type="checkbox" id="survAdminLocked" onchange="window.saveSurvivorWeekSettings()" style="width:18px; height:18px;"/>
+                <span>🔒 Bloquear Picks (Inició partido / Revelar logos)</span>
+              </label>
               <label style="font-size:11px; font-weight:800; color:#e0e0e0; display:flex; align-items:center; gap:8px; cursor:pointer;">
                 <input type="checkbox" id="survAdminAutoApprove" onchange="window.saveSurvivorWeekSettings()" style="width:18px; height:18px;"/>
                 <span>Auto-Aprobar solicitudes de participantes</span>
               </label>
-              <span class="hint-text" style="font-size:10.5px; margin-top:2px;">Si está activo, los jugadores entran directo sin esperar mesero.</span>
             </div>
 
             <div style="display:flex; align-items:center; justify-content:space-around; background:rgba(255,255,255,0.03); border-radius:8px; padding:6px;">

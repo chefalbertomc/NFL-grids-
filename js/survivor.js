@@ -351,6 +351,7 @@
     // Pick Selector Grid (if player is alive and approved)
     let pickSectionHtml = '';
     if (isJoined && isApproved && isAlive) {
+      const isWeekLocked = !!t.locked;
       const teamsList = t.sport === 'soccer' ? LIGAMX_TEAMS : NFL_TEAMS;
       
       let teamCardsHtml = '';
@@ -360,10 +361,10 @@
         const isSelected = currentPick && (currentPick.team === tm.abbr || currentPick.team === tm.name);
 
         let cardClass = 'surv-team-card';
-        if (isUsed) cardClass += ' used-team';
+        if (isUsed || isWeekLocked) cardClass += ' used-team';
         if (isSelected) cardClass += ' selected';
 
-        const clickAttr = isUsed ? '' : `onclick="window.selectWeeklySurvivorTeam('${t.id}', '${tm.abbr}', '${tm.name}', '${tm.logo}', '${tm.color}')"`;
+        const clickAttr = (isUsed || isWeekLocked) ? '' : `onclick="window.selectWeeklySurvivorTeam('${t.id}', '${tm.abbr}', '${tm.name}', '${tm.logo}', '${tm.color}')"`;
 
         teamCardsHtml += `
           <div class="${cardClass}" style="--team-bg: ${tm.color}33;" ${clickAttr}>
@@ -383,7 +384,13 @@
             </h4>
             <span class="badge" style="background:rgba(255,255,255,0.08); font-size:10px; color:#bbb;">Regla: 1 Solo Equipo por Torneo</span>
           </div>
-          <p class="hint-text" style="font-size:11.5px; margin-bottom:8px;">Toca un equipo para elegirlo. Los equipos que ya elegiste en semanas anteriores están bloqueados con candado 🔒.</p>
+          ${isWeekLocked ? `
+            <div style="font-size:12px; color:#ffd100; font-weight:900; padding:10px 14px; background:rgba(255,209,0,0.12); border-radius:10px; border:1px solid rgba(255,209,0,0.3); margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+              <span>🔒</span> <span>Picks BLOQUEADOS para la Semana ${activeWeek}. ¡El primer partido ya ha iniciado! Todos los logos de los participantes son ahora visibles en la tabla.</span>
+            </div>
+          ` : `
+            <p class="hint-text" style="font-size:11.5px; margin-bottom:8px;">Toca un equipo para elegirlo. Tus elecciones son privadas con 🔒 hasta que inicie el primer partido de la semana.</p>
+          `}
 
           <div class="surv-team-picker-grid">
             ${teamCardsHtml}
@@ -448,7 +455,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.4</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.5</span>
       </footer>
     `;
   }
@@ -649,6 +656,11 @@
 
     if (!currentTournament) return;
     const activeWeek = currentTournament.activeWeek || 1;
+
+    if (currentTournament.locked) {
+      alert(`🔒 La Semana ${activeWeek} está bloqueada porque ya iniciaron los partidos. No se pueden modificar selecciones.`);
+      return;
+    }
 
     try {
       await db.collection('survivors').doc(tournId).collection('players').doc(u.uid).update({

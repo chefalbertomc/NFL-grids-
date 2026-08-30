@@ -103,6 +103,7 @@
     const titleEl = document.getElementById('survAdminSelectedTitle');
     const weekInp = document.getElementById('survAdminActiveWeek');
     const autoApproveChk = document.getElementById('survAdminAutoApprove');
+    const lockedChk = document.getElementById('survAdminLocked');
     const statusBadge = document.getElementById('survAdminStatusBadge');
     const codeBadge = document.getElementById('survAdminCodeBadge');
     const livesBadge = document.getElementById('survAdminLivesBadge');
@@ -116,6 +117,7 @@
       weekInp.max = tourn.totalWeeks || 18;
     }
     if (autoApproveChk) autoApproveChk.checked = tourn.autoApprove !== false;
+    if (lockedChk) lockedChk.checked = !!tourn.locked;
     if (statusBadge) {
       statusBadge.textContent = tourn.status === 'active' ? '🟢 EN CURSO' : '🔴 CERRADO';
       statusBadge.className = `badge ${tourn.status === 'active' ? 'success' : 'danger'}`;
@@ -139,17 +141,20 @@
     if (!selectedTournamentId || !db) return;
     const weekInp = document.getElementById('survAdminActiveWeek');
     const autoApproveChk = document.getElementById('survAdminAutoApprove');
+    const lockedChk = document.getElementById('survAdminLocked');
 
     const newWeek = parseInt(weekInp.value, 10) || 1;
     const autoApprove = autoApproveChk ? autoApproveChk.checked : true;
+    const isLocked = lockedChk ? lockedChk.checked : false;
 
     try {
       await db.collection('survivors').doc(selectedTournamentId).update({
         activeWeek: newWeek,
         autoApprove: autoApprove,
+        locked: isLocked,
         updatedAt: Date.now()
       });
-      alert(`✅ Configuración actualizada: Semana ${newWeek} activa.`);
+      console.log(`[Survivor Admin] Configuración actualizada: Semana ${newWeek}, Bloqueado: ${isLocked}`);
     } catch (err) {
       alert('Error al guardar: ' + err.message);
     }
