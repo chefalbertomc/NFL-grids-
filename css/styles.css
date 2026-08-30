@@ -4164,10 +4164,10 @@ tr.fg-live-active-row {
 }
 
 .surv-team-card.used-team {
-  opacity: 0.35;
-  filter: grayscale(60%);
+  opacity: 0.3;
+  filter: grayscale(100%);
   cursor: not-allowed;
-  border-color: rgba(255, 0, 51, 0.3);
+  border-color: rgba(255, 0, 51, 0.4);
   pointer-events: none;
 }
 

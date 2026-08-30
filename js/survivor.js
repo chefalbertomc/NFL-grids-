@@ -217,12 +217,16 @@
     // Get previous picked teams for no-repeat rule
     const previousUsedTeams = {};
     if (myPlayer && myPlayer.picks) {
-      for (let w = 1; w < activeWeek; w++) {
-        const p = myPlayer.picks[w];
-        if (p && p.team) {
-          previousUsedTeams[p.team.toUpperCase()] = w;
+      Object.keys(myPlayer.picks).forEach(wKey => {
+        const wNum = parseInt(wKey, 10);
+        if (wNum < activeWeek) {
+          const p = myPlayer.picks[wKey];
+          if (p) {
+            if (p.team) previousUsedTeams[p.team.toUpperCase()] = wNum;
+            if (p.teamName) previousUsedTeams[p.teamName.toUpperCase()] = wNum;
+          }
         }
-      }
+      });
     }
 
     const currentPick = myPlayer?.picks?.[activeWeek];
@@ -356,8 +360,10 @@
       
       let teamCardsHtml = '';
       teamsList.forEach(tm => {
-        const isUsed = previousUsedTeams[tm.abbr.toUpperCase()] !== undefined;
-        const usedInWeek = previousUsedTeams[tm.abbr.toUpperCase()];
+        const keyAbbr = (tm.abbr || '').toUpperCase();
+        const keyName = (tm.name || '').toUpperCase();
+        const usedInWeek = previousUsedTeams[keyAbbr] || previousUsedTeams[keyName];
+        const isUsed = usedInWeek !== undefined;
         const isSelected = currentPick && (currentPick.team === tm.abbr || currentPick.team === tm.name);
 
         let cardClass = 'surv-team-card';
@@ -367,8 +373,8 @@
         const clickAttr = (isUsed || isWeekLocked) ? '' : `onclick="window.selectWeeklySurvivorTeam('${t.id}', '${tm.abbr}', '${tm.name}', '${tm.logo}', '${tm.color}')"`;
 
         teamCardsHtml += `
-          <div class="${cardClass}" style="--team-bg: ${tm.color}33;" ${clickAttr}>
-            ${isUsed ? `<span class="surv-used-badge">🔒 Usado Sem. ${usedInWeek}</span>` : ''}
+          <div class="${cardClass}" style="--team-bg: ${tm.color}33; ${isUsed ? 'opacity: 0.35; filter: grayscale(100%); pointer-events: none;' : ''}" ${clickAttr}>
+            ${isUsed ? `<span class="surv-used-badge" style="background:#ff3333; color:#ffffff; font-weight:900;">🔒 Usado Sem. ${usedInWeek}</span>` : ''}
             ${isSelected ? `<span class="surv-selected-check">✓</span>` : ''}
             <img src="${tm.logo}" class="surv-team-logo" alt="${tm.name}" onerror="this.src='img/logo.jpg'"/>
             <span class="surv-team-name">${tm.name}</span>
@@ -455,7 +461,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.8</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.9</span>
       </footer>
     `;
   }
