@@ -448,7 +448,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.1</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.2</span>
       </footer>
     `;
   }
@@ -555,7 +555,7 @@
             ${playerDisplayHtml}
           </td>
           ${cellsHtml}
-          <td class="surv-td-total">${p.totalPoints || 0}</td>
+          <td class="surv-td-total" style="font-size:12px; font-weight:800;">${isAlive ? `${heartIcons}` : '💀 0'}</td>
         </tr>
       `;
     });
@@ -567,7 +567,7 @@
             <tr>
               <th class="surv-th-player">Participante</th>
               ${weekThs}
-              <th style="width:70px; color:#ffd100;">Pts / Dif</th>
+              <th style="width:85px; color:#ffd100;">Vidas</th>
             </tr>
           </thead>
           <tbody>
