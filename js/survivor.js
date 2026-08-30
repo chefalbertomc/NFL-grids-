@@ -555,7 +555,7 @@
             ${playerDisplayHtml}
           </td>
           ${cellsHtml}
-          <td class="surv-td-total" style="font-size:12px; font-weight:800;">${isAlive ? `${heartIcons}` : '💀 0'}</td>
+          <td class="surv-td-total" style="font-size:13px; font-weight:900; color:#ffd100;">${isAlive ? `❤️ ${lives}/${maxLives}` : '💀 0'}</td>
         </tr>
       `;
     });
