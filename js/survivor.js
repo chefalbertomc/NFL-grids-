@@ -98,7 +98,8 @@
 
   function loadTournaments() {
     if (!db) return;
-    db.collection('survivors').orderBy('createdAt', 'desc').onSnapshot(snap => {
+
+    function processSnap(snap) {
       activeTournaments = [];
       snap.forEach(doc => {
         activeTournaments.push({ id: doc.id, ...doc.data() });
@@ -124,8 +125,15 @@
         currentTournament = null;
         renderSurvivorApp();
       }
-    }, err => {
-      console.error('[Survivor] Error loading tournaments:', err);
+    }
+
+    db.collection('survivors').orderBy('createdAt', 'desc').onSnapshot(processSnap, err => {
+      console.warn('[Survivor] orderBy createdAt failed, trying plain query:', err);
+      db.collection('survivors').onSnapshot(processSnap, err2 => {
+        console.error('[Survivor] Error loading tournaments:', err2);
+        currentTournament = null;
+        renderSurvivorApp();
+      });
     });
   }
 
@@ -198,7 +206,7 @@
           <h3 style="color:#ffd100; margin-top:10px;">No hay Torneos Survivor Activos</h3>
           <p class="hint-text">Pide a tu mesero o administrador que inicie un nuevo torneo Survivor para participar.</p>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.1</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.12</span></footer>
       `;
       return;
     }
@@ -507,7 +515,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.11</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.12</span>
       </footer>
     `;
   }
@@ -731,6 +739,8 @@
     } catch (err) {
       alert('Error al guardar pick: ' + err.message);
     }
+  };
+
   // Co-Admin Control Functions
   window.coAdminToggleLock = async function(tournId, newLocked) {
     try {
