@@ -448,7 +448,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.2</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.3</span>
       </footer>
     `;
   }
@@ -491,7 +491,6 @@
       const lives = p.lives !== undefined ? p.lives : (p.isAlive !== false ? maxLives : 0);
       const isAlive = p.isAlive !== false && lives > 0;
       const photoSrc = p.photoURL || p.userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nickname || p.playerName || 'J')}&background=ffd100&color=000&bold=true`;
-      const heartIcons = '❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, maxLives - lives));
 
       let cellsHtml = '';
       for (let w = 1; w <= displayWeeksCount; w++) {
@@ -532,7 +531,7 @@
           <div class="surv-player-badge">
             <div style="display:flex; flex-direction:column;">
               <span class="surv-player-name ${isMe ? 'me' : ''}">${p.nickname || p.playerName} ${isMe ? '(TÚ)' : ''}</span>
-              <span style="font-size:9.5px; margin-top:2px;">${isAlive ? heartIcons : '💀 Eliminado'}</span>
+              ${!isAlive ? '<span style="font-size:9.5px; color:#ff3333; margin-top:2px;">💀 Eliminado</span>' : ''}
             </div>
           </div>
         `;
@@ -543,7 +542,7 @@
             <img src="${photoSrc}" class="surv-player-avatar ${isAlive ? 'alive' : 'elim'}" onerror="this.src='img/logo.jpg'" alt="${p.nickname}"/>
             <div style="display:flex; flex-direction:column; text-align:left;">
               <span class="surv-player-name ${isMe ? 'me' : ''}">${p.nickname || p.playerName} ${isMe ? '(TÚ)' : ''}</span>
-              <span style="font-size:9.5px; margin-top:2px;">${isAlive ? `${heartIcons} ${lives}/${maxLives}` : '💀 Eliminado'}</span>
+              ${!isAlive ? '<span style="font-size:9.5px; color:#ff3333; margin-top:2px;">💀 Eliminado</span>' : ''}
             </div>
           </div>
         `;
