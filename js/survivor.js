@@ -455,7 +455,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.7</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.8</span>
       </footer>
     `;
   }
@@ -463,6 +463,7 @@
   // Build the Survivor Matrix Table HTML (Matching user's reference image with Lives)
   function buildSurvivorMatrixHtml(tourn, activeWeek, totalWeeks, currentUser) {
     const maxLives = tourn.maxLives || 3;
+    const isWeekLocked = !!tourn.locked;
     const players = Object.values(tournamentPlayers).filter(p => p.status !== 'rejected' && p.approved !== false);
 
     if (players.length === 0) {
