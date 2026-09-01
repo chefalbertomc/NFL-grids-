@@ -929,9 +929,20 @@
       renderLiveStandings(snap, currentMatches);
     }, err => console.error('[QPlayer] standings error:', err));
 
-    // Instant sync & background loop every 12s
+    // Initial sync
     syncESPNLiveScores(quinielaId);
-    autoSyncInterval = setInterval(() => syncESPNLiveScores(quinielaId), 12000);
+
+    // Only run background polling if tournament has unfinished / live matches
+    const currentLock = checkQuinielaLockStatus(activeQuiniela);
+    if (!currentLock.isFinished) {
+      autoSyncInterval = setInterval(() => {
+        if (activeQuiniela && checkQuinielaLockStatus(activeQuiniela).isFinished) {
+          if (autoSyncInterval) { clearInterval(autoSyncInterval); autoSyncInterval = null; }
+          return;
+        }
+        syncESPNLiveScores(quinielaId);
+      }, 30000);
+    }
 
     // Initial render
     updateQuinielaView(activeQuiniela);
@@ -1869,7 +1880,11 @@
 
     // 6. Render Authentic Quiniela Table
     standingsListEl.innerHTML = '';
+    const existingScrollWrap = standingsListEl.querySelector('.q-standings-scroll-wrap');
+    const savedScrollLeft = existingScrollWrap ? existingScrollWrap.scrollLeft : 0;
+
     const wrap = document.createElement('div');
+    wrap.className = 'q-standings-scroll-wrap';
     wrap.style.cssText = 'overflow-x:auto; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:#0e131d; box-shadow:0 8px 30px rgba(0,0,0,0.6); position:relative;';
 
     const table = document.createElement('table');
@@ -2017,7 +2032,7 @@
             }
           } else {
             if (winnerSide === realWin) {
-              cells += `<td class="q-s-cell q-cell-final-hit" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="Final: Acertado (+1 pt)">${logoHtml}</td>`;
+              cells += `<td class="q-s-cell q-cell-winner-hit" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="Final: Acertado (+1 pt)">${logoHtml}</td>`;
             } else {
               cells += `<td class="q-s-cell q-cell-final-miss" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="Final: Fallado (0 pts)">${logoHtml}</td>`;
             }
@@ -2033,6 +2048,9 @@
 
     wrap.appendChild(table);
     standingsListEl.appendChild(wrap);
+    if (savedScrollLeft > 0) {
+      wrap.scrollLeft = savedScrollLeft;
+    }
   }
 
   function norm(str) {

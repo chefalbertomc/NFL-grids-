@@ -1491,17 +1491,28 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 10px rgba(255, 102, 0, 0.35);
 }
 
-/* 5. Final Won (Solid Green) */
-.q-cell-final-hit {
-  background: rgba(27, 94, 32, 0.5) !important;
+/* Exact Hit (+3 pts) - Vivid Emerald Green */
+.q-cell-exact-hit {
+  background: linear-gradient(135deg, rgba(0, 230, 118, 0.28) 0%, rgba(0, 200, 83, 0.15) 100%) !important;
   border: 1.5px solid #00e676 !important;
-  color: #69f0ae !important;
+  color: #00e676 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 0 10px rgba(0, 230, 118, 0.35);
 }
 
-/* 6. Final Lost (Solid Dark Red) */
+/* Winner Hit (+1 pt) - Bright Gold / Yellow */
+.q-cell-winner-hit, .q-cell-final-hit {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.25) 0%, rgba(255, 171, 0, 0.15) 100%) !important;
+  border: 1.5px solid #ffd100 !important;
+  color: #ffd100 !important;
+  font-weight: 900 !important;
+  box-shadow: 0 0 10px rgba(255, 209, 0, 0.3);
+}
+
+/* Miss / Error (0 pts) - Subdued Dark Red */
 .q-cell-final-miss {
-  background: rgba(183, 28, 28, 0.4) !important;
-  border: 1.5px solid #ff5252 !important;
+  background: rgba(183, 28, 28, 0.25) !important;
+  border: 1.5px solid rgba(255, 82, 82, 0.45) !important;
   color: #ff8a80 !important;
   opacity: 0.75;
 }

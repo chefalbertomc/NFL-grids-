@@ -1058,7 +1058,7 @@
             }
           } else {
             if (winnerSide === realWin) {
-              cells += `<td class="q-s-cell q-cell-final-hit" title="Final: Acertado (+1 pt)">${logoHtml}</td>`;
+              cells += `<td class="q-s-cell q-cell-winner-hit" title="Final: Acertado (+1 pt)">${logoHtml}</td>`;
             } else {
               cells += `<td class="q-s-cell q-cell-final-miss" title="Final: Fallado (0 pts)">${logoHtml}</td>`;
             }
