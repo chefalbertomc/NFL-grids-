@@ -816,6 +816,87 @@
 
   function renderAdminStandings(container, players, matches, isAllSoccer, realTiebreakerValue) {
     container.innerHTML = '';
+
+    // Check if tournament is completely finished
+    const allDone = matches.length > 0 && matches.every(m => m.completed === true || m.status === 'post' || (m.homeScore !== null && m.awayScore !== null && m.status !== 'in'));
+    const approvedPlayers = players.filter(p => p.isApproved);
+
+    // 1. Render Admin Winner Champion Card
+    const adminWinnerEl = document.getElementById('qAdminWinnerBanner');
+    if (adminWinnerEl) {
+      if (allDone && approvedPlayers.length > 0) {
+        const champ = approvedPlayers[0];
+        adminWinnerEl.style.display = 'block';
+        adminWinnerEl.innerHTML = `
+          <div class="q-winner-card" style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+              <div style="display:flex; align-items:center; gap:14px;">
+                <span style="font-size:36px; filter: drop-shadow(0 0 10px rgba(255,209,0,0.6));">👑 🏆</span>
+                <div style="text-align:left;">
+                  <div style="font-size:11px; font-weight:900; letter-spacing:0.12em; color:#ffd100; text-transform:uppercase;">Ganador Oficial de la Quiniela</div>
+                  <div style="font-size:19px; font-weight:900; color:#fff;">${champ.playerName || champ.nickname || champ.name || 'Campeón'}</div>
+                  <div style="font-size:13px; font-weight:800; color:#00e676; margin-top:2px;">
+                    🥇 Puntos: ${champ.totalPoints} pts &bull; Aciertos Exactos: ${champ.exactHits || 0} &bull; Desempate: ${champ.tiebreaker ?? 'N/A'} (Dif: ${champ.tiebreakerDiff ?? 'N/A'})
+                  </div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <span class="badge" style="background:rgba(255,215,0,0.2); border:1.5px solid #ffd100; color:#ffd100; font-weight:900; font-size:12px; padding:6px 12px; border-radius:10px;">
+                  🏁 JORNADA FINALIZADA
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+      } else {
+        adminWinnerEl.style.display = 'none';
+        adminWinnerEl.innerHTML = '';
+      }
+    }
+
+    // 2. Render Admin Sleeper Podium
+    const adminPodiumEl = document.getElementById('qAdminSleeperPodium');
+    if (adminPodiumEl) {
+      if (approvedPlayers.length > 0) {
+        adminPodiumEl.style.display = 'flex';
+        const first = approvedPlayers[0];
+        const second = approvedPlayers[1];
+        const third = approvedPlayers[2];
+
+        adminPodiumEl.innerHTML = `
+          ${second ? `
+            <div class="sleeper-podium-card sleeper-podium-2nd animate-fade">
+              <span class="sleeper-podium-medal">🥈</span>
+              <img src="${second.photoURL || 'img/logo.jpg'}" onerror="this.src='img/logo.jpg'" class="sleeper-podium-avatar" alt="${second.playerName || second.name}"/>
+              <div class="sleeper-podium-name">${second.playerName || second.nickname || second.name || 'Jugador'}</div>
+              <div class="sleeper-podium-pts">${second.totalPoints} pts</div>
+            </div>
+          ` : ''}
+
+          ${first ? `
+            <div class="sleeper-podium-card sleeper-podium-1st animate-fade">
+              <span class="sleeper-podium-medal">👑</span>
+              <img src="${first.photoURL || 'img/logo.jpg'}" onerror="this.src='img/logo.jpg'" class="sleeper-podium-avatar" alt="${first.playerName || first.name}"/>
+              <div class="sleeper-podium-name" style="color:#ffd100;">${first.playerName || first.nickname || first.name || 'Jugador'}</div>
+              <div class="sleeper-podium-pts" style="font-size:15px;">${first.totalPoints} pts</div>
+            </div>
+          ` : ''}
+
+          ${third ? `
+            <div class="sleeper-podium-card sleeper-podium-3rd animate-fade">
+              <span class="sleeper-podium-medal">🥉</span>
+              <img src="${third.photoURL || 'img/logo.jpg'}" onerror="this.src='img/logo.jpg'" class="sleeper-podium-avatar" alt="${third.playerName || third.name}"/>
+              <div class="sleeper-podium-name">${third.playerName || third.nickname || third.name || 'Jugador'}</div>
+              <div class="sleeper-podium-pts">${third.totalPoints} pts</div>
+            </div>
+          ` : ''}
+        `;
+      } else {
+        adminPodiumEl.style.display = 'none';
+      }
+    }
+
+    // 3. Render Table
     const wrap = document.createElement('div');
     wrap.style.cssText = 'overflow-x:auto; border-radius:12px;';
 
@@ -857,62 +938,100 @@
           </div>
         </th>`;
       }).join('') +
-      `<th style="text-align:center; padding:10px; min-width:70px; color:#ffd100; font-weight:900;" title="Criterio de Desempate">🎯 DESEMPATE</th>`;
+      `<th style="text-align:center; padding:10px; min-width:70px; color:#ffd100; font-weight:900;" title="Pronóstico Desempate">🎯 DESEMPATE</th>`;
 
     const tbody = table.createTBody();
     players.forEach((p, idx) => {
-      const tr = tbody.insertRow();
+      const isMe = false;
       const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
-      const statusPill = p.isApproved ? '' : ` <span class="badge" style="background:rgba(255,193,7,0.2); color:#ffc107; font-size:9px;">PENDIENTE</span>`;
+      const name = p.nickname || p.name || p.playerName || 'Jugador';
+      const photo = p.photoURL || 'img/logo.jpg';
+      const isApproved = p.approved === true || p.status === 'approved';
 
-      let cells = `
-        <td style="padding:10px 12px; font-weight:700; white-space:nowrap;">${rankEmoji} ${p.playerName || 'Anónimo'}${statusPill}</td>
-        <td style="text-align:center; font-weight:900; color:#ffd100; font-size:15px; padding:8px;">${p.totalPoints}</td>
+      const tr = tbody.insertRow();
+      tr.style.cssText = `border-bottom:1px solid rgba(255,255,255,0.05); ${!isApproved ? 'opacity:0.5;' : ''}`;
+
+      let playerCell = `
+        <td style="padding:8px 12px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:12px; font-weight:900; color:#ffd100; min-width:20px;">${rankEmoji}</span>
+            <img src="${photo}" onerror="this.src='img/logo.jpg'" style="width:24px; height:24px; border-radius:50%; object-fit:cover;" alt="${name}"/>
+            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:110px;">
+              <span style="font-size:12px; font-weight:800; color:#fff;">${name}</span>
+              ${p.waiter ? `<div style="font-size:9px; color:var(--text-muted);">Mesero: ${p.waiter}</div>` : ''}
+              ${!isApproved ? '<div style="font-size:9px; color:#ffc107;">🟡 Pendiente</div>' : ''}
+            </div>
+          </div>
+        </td>
       `;
+
+      let ptsCell = `
+        <td style="text-align:center; padding:8px; font-size:15px; font-weight:900; color:#ffd100; background:rgba(255,255,255,0.02);">
+          ${p.totalPoints}
+        </td>
+      `;
+
+      let cells = playerCell + ptsCell;
+
       matches.forEach(m => {
         const pick = p.picks?.[m.id];
-        if (!pick) { cells += `<td class="q-s-cell q-cell-neutral">—</td>`; return; }
-
         const sport = detectSport(m);
-        const isSoccer = sport === 'soccer';
+        const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
         const isLive = m.status === 'in';
-        const isDone = m.completed || m.status === 'post';
-        const hasScore = m.homeScore !== null && m.homeScore !== undefined && m.awayScore !== null && m.awayScore !== undefined && m.status !== 'pre';
-        const isHybrid = typeof q !== 'undefined' ? (q?.isHybrid === true) : false;
-        if (isSoccer && !isHybrid) {
-          const pickStr = `${pick.awayScore}-${pick.homeScore}`;
+
+        if (!pick) {
+          cells += `<td class="q-s-cell q-cell-neutral" style="color:var(--text-muted); font-size:11px;">—</td>`;
+          return;
+        }
+
+        if (sport === 'soccer') {
+          const rawA = pick.awayScore;
+          const rawH = pick.homeScore;
+          const pickStr = `${rawA ?? '-'}-${rawH ?? '-'}`;
+
           if (!hasScore) {
             cells += `<td class="q-s-cell q-cell-neutral">${pickStr}</td>`;
             return;
           }
 
+          const pickA = parseInt(rawA, 10);
+          const pickH = parseInt(rawH, 10);
+          const exact = pickH === m.homeScore && pickA === m.awayScore;
           const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-          const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
-          const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
+          const pickWin = pickH > pickA ? 'home' : pickA > pickH ? 'away' : 'draw';
 
           if (isLive) {
-            if (exact) cells += `<td class="q-s-cell q-cell-live-winning" title="En Vivo: +3 pts (Exacto)">🎯 ${pickStr}</td>`;
-            else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-live-winning" title="En Vivo: +1 pt (Ganando)">✓ ${pickStr}</td>`;
-            else cells += `<td class="q-s-cell q-cell-live-losing" title="En Vivo: 0 pts (Perdiendo)">✗ ${pickStr}</td>`;
+            if (exact) {
+              cells += `<td class="q-s-cell q-cell-live-winning" title="En Vivo: Exacto (+3 pts)">${pickStr}</td>`;
+            } else if (realWin === pickWin) {
+              cells += `<td class="q-s-cell q-cell-live-tied" title="En Vivo: Ganador (+1 pt)">${pickStr}</td>`;
+            } else {
+              cells += `<td class="q-s-cell q-cell-live-losing" title="En Vivo: Fallado (0 pts)">${pickStr}</td>`;
+            }
           } else {
-            if (exact) cells += `<td class="q-s-cell q-cell-final-hit" title="Final: +3 pts">🎯 ${pickStr}</td>`;
-            else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-final-hit" title="Final: +1 pt">✓ ${pickStr}</td>`;
-            else cells += `<td class="q-s-cell q-cell-final-miss" title="Final: 0 pts">✗ ${pickStr}</td>`;
+            if (exact) {
+              cells += `<td class="q-s-cell q-cell-exact-hit" title="Final: Exacto (+3 pts)">🎯 ${pickStr}</td>`;
+            } else if (realWin === pickWin) {
+              cells += `<td class="q-s-cell q-cell-winner-hit" title="Final: Ganador (+1 pt)">✓ ${pickStr}</td>`;
+            } else {
+              cells += `<td class="q-s-cell q-cell-final-miss" title="Final: Fallado (0 pts)">✗ ${pickStr}</td>`;
+            }
           }
         } else {
-          // US Sports / Pick'em Mode / Hybrid Mode
           const winnerSide = pick.winner ? pick.winner : (Number(pick.homeScore) > Number(pick.awayScore) ? 'home' : 'away');
+
           let logoHtml = '';
           if (winnerSide === 'draw') {
             logoHtml = `
               <div class="q-cell-logo-wrap" title="Empate">
-                <span class="q-cell-team-sub" style="font-weight:900; color:#ffd100; font-size:9px;">EMPATE</span>
+                <span style="font-size:16px;">🤝</span>
+                <span class="q-cell-team-sub">EMPATE</span>
               </div>
             `;
           } else {
             const pickedLogo = winnerSide === 'home' ? m.homeLogo : m.awayLogo;
             const pickedAbbr = winnerSide === 'home' ? (m.homeAbbr || m.home) : (m.awayAbbr || m.away);
-            const shortAbbr = pickedAbbr.length > 4 ? pickedAbbr.substring(0, 3).toUpperCase() : pickedAbbr.toUpperCase();
+            const shortAbbr = pickedAbbr && pickedAbbr.length > 4 ? pickedAbbr.substring(0, 3).toUpperCase() : (pickedAbbr || '').toUpperCase();
 
             logoHtml = `
               <div class="q-cell-logo-wrap" title="${pickedAbbr}">
@@ -957,7 +1076,7 @@
   }
 
   function norm(str) {
-    return (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+    return (str || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]/g, '');
   }
 
   function detectSport(m) {
@@ -981,57 +1100,135 @@
       const snap = await ref.get();
       const q = snap.data() || {};
       const matches = q.matches || [];
+      if (matches.length === 0) { alert('No hay partidos en esta quiniela.'); return; }
 
-      const today = new Date();
-      const start = new Date();
-      start.setDate(today.getDate() - 2);
-      const end = new Date();
-      end.setDate(today.getDate() + 21);
-      const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-      const dateParam = `dates=${fmt(start)}-${fmt(end)}&limit=100`;
-
-      // Only query endpoints for sports/leagues present in this quiniela
-      const neededEndpoints = [];
-      const seen = new Set();
+      // 1. Calculate dynamic date range based on actual match dates in this quiniela
+      let minTs = null;
+      let maxTs = null;
       matches.forEach(m => {
-        const sp = detectSport(m);
-        const sl = m.slug || (sp === 'football' ? 'nfl' : sp === 'baseball' ? 'mlb' : sp === 'basketball' ? 'nba' : 'mex.1');
-        const key = `${sp}/${sl}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          neededEndpoints.push({ sport: sp, slug: sl });
+        const t = parseMatchTimestamp(m);
+        if (t > 0) {
+          if (!minTs || t < minTs) minTs = t;
+          if (!maxTs || t > maxTs) maxTs = t;
         }
       });
 
-      if (neededEndpoints.length === 0) {
-        neededEndpoints.push({ sport: 'soccer', slug: 'mex.1' }, { sport: 'football', slug: 'nfl' });
+      const today = new Date();
+      const start = minTs ? new Date(minTs - 3 * 86400000) : new Date(today.getTime() - 14 * 86400000);
+      const end = maxTs ? new Date(maxTs + 3 * 86400000) : new Date(today.getTime() + 21 * 86400000);
+      const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+      const dateParam = `dates=${fmt(start)}-${fmt(end)}&limit=100`;
+
+      // 2. Build complete endpoint list
+      const neededUrls = [];
+      const seenUrls = new Set();
+      const addUrl = (url, sport, slug) => {
+        if (!seenUrls.has(url)) {
+          seenUrls.add(url);
+          neededUrls.push({ url, sport, slug });
+        }
+      };
+
+      const hasFootball = matches.some(m => detectSport(m) === 'football');
+      const hasSoccer = matches.some(m => detectSport(m) === 'soccer');
+      const hasBaseball = matches.some(m => detectSport(m) === 'baseball');
+      const hasBasketball = matches.some(m => detectSport(m) === 'basketball');
+
+      if (hasFootball) {
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?${dateParam}`, 'football', 'nfl');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=1&week=1`, 'football', 'nfl');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=1&week=2`, 'football', 'nfl');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=1&week=3`, 'football', 'nfl');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&limit=100`, 'football', 'nfl');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?limit=100`, 'football', 'nfl');
       }
 
+      if (hasSoccer) {
+        const soccerSlugs = new Set(['mex.1', 'esp.1', 'eng.1', 'uefa.champions', 'fra.1', 'ita.1', 'ger.1', 'usa.1']);
+        matches.forEach(m => {
+          if (detectSport(m) === 'soccer' && m.slug) soccerSlugs.add(m.slug);
+        });
+        soccerSlugs.forEach(slug => {
+          addUrl(`https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard?${dateParam}`, 'soccer', slug);
+          addUrl(`https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard?limit=100`, 'soccer', slug);
+        });
+      }
+
+      if (hasBaseball) {
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?${dateParam}`, 'baseball', 'mlb');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?limit=100`, 'baseball', 'mlb');
+      }
+
+      if (hasBasketball) {
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?${dateParam}`, 'basketball', 'nba');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?limit=100`, 'basketball', 'nba');
+      }
+
+      if (neededUrls.length === 0) {
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/soccer/mex.1/scoreboard?${dateParam}`, 'soccer', 'mex.1');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?${dateParam}`, 'football', 'nfl');
+      }
+
+      // 3. Fetch scoreboard feeds concurrently
       const eventsBySport = {};
-      const fetchPromises = neededEndpoints.map(async ep => {
+      const eventsById = {};
+
+      await Promise.all(neededUrls.map(async item => {
         try {
-          let res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?${dateParam}`);
-          if (!res.ok) {
-            res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?limit=100`);
-          }
+          const res = await fetch(item.url);
           if (!res.ok) return;
           const data = await res.json();
-          if (data && data.events) {
-            if (!eventsBySport[ep.sport]) eventsBySport[ep.sport] = [];
-            eventsBySport[ep.sport].push(...data.events.map(ev => ({ ...ev, _sport: ep.sport, _slug: ep.slug })));
+          if (data && Array.isArray(data.events)) {
+            if (!eventsBySport[item.sport]) eventsBySport[item.sport] = [];
+            data.events.forEach(ev => {
+              const enhanced = { ...ev, _sport: item.sport, _slug: item.slug };
+              eventsBySport[item.sport].push(enhanced);
+              if (ev.id) eventsById[String(ev.id)] = enhanced;
+            });
           }
         } catch (e) {}
-      });
+      }));
 
-      await Promise.all(fetchPromises);
+      // 4. Direct Fallback: query ESPN summary endpoint for missing events
+      const missingMatches = matches.filter(m => m.espnEventId && !eventsById[String(m.espnEventId)] && (m.homeScore === null || m.completed !== true));
+      if (missingMatches.length > 0) {
+        await Promise.all(missingMatches.slice(0, 20).map(async m => {
+          try {
+            const sp = detectSport(m);
+            const sl = m.slug || (sp === 'football' ? 'nfl' : sp === 'baseball' ? 'mlb' : sp === 'basketball' ? 'nba' : 'mex.1');
+            const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sp}/${sl}/summary?event=${m.espnEventId}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            const header = data?.header;
+            const comp = header?.competitions?.[0];
+            if (comp) {
+              const syntheticEv = {
+                id: m.espnEventId,
+                status: comp.status,
+                competitions: [comp],
+                _sport: sp,
+                _slug: sl
+              };
+              eventsById[String(m.espnEventId)] = syntheticEv;
+              if (!eventsBySport[sp]) eventsBySport[sp] = [];
+              eventsBySport[sp].push(syntheticEv);
+            }
+          } catch (e) {}
+        }));
+      }
 
+      // 5. Update matches with SCORE PRESERVATION
       let updated = 0;
       const updatedMatches = matches.map(m => {
         const matchSport = detectSport(m);
         const candidateEvents = eventsBySport[matchSport] || [];
 
         let ev = null;
-        if (m.espnEventId) {
+        if (m.espnEventId && eventsById[String(m.espnEventId)]) {
+          ev = eventsById[String(m.espnEventId)];
+        }
+
+        if (!ev && m.espnEventId) {
           ev = candidateEvents.find(e => String(e.id) === String(m.espnEventId));
         }
 
@@ -1051,23 +1248,33 @@
           });
         }
 
-        let newHomeScore = null;
-        let newAwayScore = null;
-        let state = 'pre';
-        let statusStr = '';
-        let completed = false;
+        // PRESERVE EXISTING VALUES BY DEFAULT - NEVER WIPE OUT WITH NULL
+        let newHomeScore = m.homeScore;
+        let newAwayScore = m.awayScore;
+        let state = m.status || 'pre';
+        let statusStr = m.statusStr || '';
+        let completed = m.completed || false;
 
         if (ev) {
           const comps = ev.competitions?.[0]?.competitors || [];
           const homeC = comps.find(c => c.homeAway === 'home') || comps[1] || {};
           const awayC = comps.find(c => c.homeAway === 'away') || comps[0] || {};
-          completed = !!ev.status?.type?.completed;
-          state = ev.status?.type?.state || 'pre';
-          statusStr = ev.status?.type?.shortDetail || '';
+          const evCompleted = !!ev.status?.type?.completed;
+          const evState = ev.status?.type?.state || 'pre';
+          const evStatusStr = ev.status?.type?.shortDetail || '';
 
-          if (state === 'in' || state === 'post' || completed) {
-            newHomeScore = (homeC && homeC.score !== undefined && homeC.score !== null) ? parseInt(homeC.score, 10) : null;
-            newAwayScore = (awayC && awayC.score !== undefined && awayC.score !== null) ? parseInt(awayC.score, 10) : null;
+          if (evState === 'in' || evState === 'post' || evCompleted) {
+            if (homeC && homeC.score !== undefined && homeC.score !== null && homeC.score !== '') {
+              const parsedH = parseInt(homeC.score, 10);
+              if (!isNaN(parsedH)) newHomeScore = parsedH;
+            }
+            if (awayC && awayC.score !== undefined && awayC.score !== null && awayC.score !== '') {
+              const parsedA = parseInt(awayC.score, 10);
+              if (!isNaN(parsedA)) newAwayScore = parsedA;
+            }
+            state = evState;
+            statusStr = evStatusStr;
+            completed = evCompleted || evState === 'post' || (evStatusStr && (evStatusStr.toUpperCase().includes('FINAL') || evStatusStr === 'FT'));
           }
         }
 

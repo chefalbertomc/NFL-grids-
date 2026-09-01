@@ -1843,6 +1843,12 @@ input:focus, select:focus, textarea:focus {
   border: 1px solid #ff4444;
   color: #ff8b8b;
 }
+.q-lock-banner.finished {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2) 0%, rgba(45, 35, 10, 0.85) 100%);
+  border: 1.5px solid #ffd100;
+  color: #fff2a8;
+  box-shadow: 0 0 24px rgba(255, 209, 0, 0.25);
+}
 .q-lock-banner.open {
   background: linear-gradient(135deg, rgba(32,191,107,0.15) 0%, rgba(15,35,25,0.7) 100%);
   border: 1px solid #00e676;
@@ -2901,6 +2907,26 @@ input:focus, select:focus, textarea:focus {
   font-weight: 900;
   text-align: center;
   box-shadow: 0 0 10px rgba(255, 102, 0, 0.25);
+}
+
+/* Winner Celebration Card */
+.q-winner-card {
+  background: linear-gradient(135deg, rgba(255, 180, 0, 0.16) 0%, rgba(20, 25, 38, 0.96) 100%);
+  border: 2px solid #ffd100;
+  border-radius: 16px;
+  padding: 16px 18px;
+  text-align: center;
+  box-shadow: 0 8px 30px rgba(255, 209, 0, 0.22);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 16px;
+  animation: fadeIn 0.4s ease-out;
+}
+.q-winner-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #ff6600, #ffd100, #00e676, #ffd100, #ff6600);
 }
 
 /* Top 3 Sleeper Podium */

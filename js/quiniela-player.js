@@ -352,21 +352,26 @@
 
   // Intelligent Lock Check: Lock if manual lock is on, or if first game started / kickoff date has passed
   function checkQuinielaLockStatus(q) {
-    if (q.locked === true) {
-      return { isLocked: true, reason: 'Quiniela bloqueada por el administrador', earliestTime: null };
-    }
-
     const rawMatches = q.matches || [];
-    if (rawMatches.length === 0) {
-      return { isLocked: false, reason: 'Sin partidos', earliestTime: null };
+    const matches = sortMatchesChronologically(rawMatches);
+    const allDone = matches.length > 0 && matches.every(m => m.completed === true || m.status === 'post' || (m.homeScore !== null && m.awayScore !== null && m.status !== 'in'));
+
+    if (allDone) {
+      return { isLocked: true, isFinished: true, reason: 'La jornada ha finalizado con todos los partidos concluidos', earliestTime: null };
     }
 
-    const matches = sortMatchesChronologically(rawMatches);
+    if (q.locked === true) {
+      return { isLocked: true, isFinished: false, reason: 'Quiniela bloqueada por el administrador', earliestTime: null };
+    }
+
+    if (rawMatches.length === 0) {
+      return { isLocked: false, isFinished: false, reason: 'Sin partidos', earliestTime: null };
+    }
 
     // Check if any match is already LIVE, POST or COMPLETED
     const anyStarted = matches.some(m => m.status === 'in' || m.status === 'post' || m.completed === true);
     if (anyStarted) {
-      return { isLocked: true, reason: 'La jornada ya inició con el primer partido en curso o finalizado', earliestTime: null };
+      return { isLocked: true, isFinished: false, reason: 'La jornada ya inició con el primer partido en curso o finalizado', earliestTime: null };
     }
 
     // Check match start timestamps using universal date parser
@@ -381,21 +386,21 @@
     });
 
     if (earliestTime && Date.now() >= earliestTime) {
-      return { isLocked: true, reason: 'La fecha y hora del primer partido ya comenzó', earliestTime };
+      return { isLocked: true, isFinished: false, reason: 'La fecha y hora del primer partido ya comenzó', earliestTime };
     }
 
     // Check custom deadline if configured
     if (q.lockDeadline) {
       const dl = new Date(q.lockDeadline).getTime();
       if (!isNaN(dl) && Date.now() >= dl) {
-        return { isLocked: true, reason: 'Se alcanzó la fecha límite para pronósticos', earliestTime: dl };
+        return { isLocked: true, isFinished: false, reason: 'Se alcanzó la fecha límite para pronósticos', earliestTime: dl };
       }
       if (!earliestTime || (dl && dl < earliestTime)) {
         earliestTime = dl;
       }
     }
 
-    return { isLocked: false, reason: 'Abierta', earliestTime };
+    return { isLocked: false, isFinished: false, reason: 'Abierta', earliestTime };
   }
 
   function detectSport(m) {
@@ -459,11 +464,16 @@
       const hasLive = matches.some(m => m.status === 'in');
       const allDone = matches.length > 0 && matches.every(m => m.completed || m.status === 'post');
 
+      const { isLocked, isFinished } = checkQuinielaLockStatus(q);
+      const isMine = !!myParticipations[q.id];
+      const hasLive = matches.some(m => m.status === 'in');
+      const allDone = isFinished || (matches.length > 0 && matches.every(m => m.completed === true || m.status === 'post' || (m.homeScore !== null && m.awayScore !== null && m.status !== 'in')));
+
       let statusBadge = '';
       if (hasLive) {
         statusBadge = `<span class="badge danger" style="background:#ff4444; color:#fff; animation: tvPulse 1s infinite; font-weight:900;">🔴 EN VIVO</span>`;
       } else if (allDone) {
-        statusBadge = `<span class="badge" style="background:rgba(255,255,255,0.12); color:#aaa; font-weight:800;">🏁 FINALIZADA</span>`;
+        statusBadge = `<span class="badge" style="background:rgba(255,215,0,0.18); border:1.5px solid #ffd100; color:#ffd100; font-weight:900; box-shadow:0 0 10px rgba(255,209,0,0.2);">🏁 FINALIZADA</span>`;
       } else if (isLocked) {
         statusBadge = `<span class="badge danger" style="font-weight:800;">🔒 JORNADA INICIADA</span>`;
       } else {
@@ -920,16 +930,43 @@
       countdownTimerInterval = null;
     }
 
-    if (lockInfo.isLocked) {
+    if (lockInfo.isFinished) {
+      if (banner) {
+        banner.className = 'q-lock-banner finished';
+        banner.querySelector('span').textContent = '🏆';
+      }
+      if (titleEl) {
+        titleEl.textContent = '🏁 Jornada Finalizada — Resultados Oficiales';
+        titleEl.style.color = '#ffd100';
+      }
+      if (subEl) {
+        subEl.textContent = 'Todos los partidos han concluido. ¡Revisa al Campeón de la Quiniela y las posiciones oficiales abajo!';
+      }
+      if (timerContainer) timerContainer.style.display = 'none';
+      if (badgeEl) {
+        badgeEl.className = 'badge';
+        badgeEl.style.cssText = 'background:rgba(255,215,0,0.2); border:1px solid #ffd100; color:#ffd100; font-weight:900;';
+        badgeEl.textContent = '🏁 FINALIZADA';
+      }
+      if (btnSave) {
+        btnSave.disabled = true;
+        btnSave.textContent = '🏁 Jornada Finalizada';
+        btnSave.style.opacity = '0.6';
+      }
+    } else if (lockInfo.isLocked) {
       if (banner) {
         banner.className = 'q-lock-banner locked';
         banner.querySelector('span').textContent = '🔒';
       }
-      if (titleEl) titleEl.textContent = 'Jornada Iniciada — Pronósticos Bloqueados';
+      if (titleEl) {
+        titleEl.textContent = 'Jornada Iniciada — Pronósticos Bloqueados';
+        titleEl.style.color = '#ff6600';
+      }
       if (subEl) subEl.textContent = 'Los marcadores ya no se pueden modificar porque comenzó el primer partido de la quiniela. ¡Sigue los resultados en vivo!';
       if (timerContainer) timerContainer.style.display = 'none';
       if (badgeEl) {
         badgeEl.className = 'badge danger';
+        badgeEl.style.cssText = '';
         badgeEl.textContent = '🔒 BLOQUEADA';
       }
       if (btnSave) {
@@ -1630,7 +1667,6 @@
 
   // Interactive Live Leaderboard & Quiniela PRO Matrix Table
   function renderLiveStandings(picksSnap, rawMatches) {
-    const leaderCardEl = document.getElementById('qLiveLeaderCard');
     const standingsListEl = document.getElementById('qLiveStandings');
     if (!standingsListEl) return;
 
@@ -1638,8 +1674,11 @@
     const players = [];
     picksSnap.forEach(doc => players.push({ id: doc.id, ...doc.data() }));
 
-    // 1. Sort matches chronologically: earliest first, latest last (handles rawDate, dateISO, and Spanish strings)
+    // 1. Sort matches chronologically: earliest first, latest last
     const matches = sortMatchesChronologically(rawMatches || []);
+
+    // Check if tournament is completely finished
+    const allDone = matches.length > 0 && matches.every(m => m.completed === true || m.status === 'post' || (m.homeScore !== null && m.awayScore !== null && m.status !== 'in'));
 
     // 2. Determine actual tiebreaker value
     const isAllSoccer = matches.length > 0 && matches.every(m => detectSport(m) === 'soccer');
@@ -1716,10 +1755,44 @@
       return a.tiebreakerDiff - b.tiebreakerDiff;
     });
 
-    // 1. Render Sleeper Top 3 Podium
+    // 4. Render Winner Announcement Card
+    const winnerBannerEl = document.getElementById('qWinnerBanner');
+    const approvedPlayers = players.filter(p => p.isApproved);
+
+    if (winnerBannerEl) {
+      if (allDone && approvedPlayers.length > 0) {
+        const champ = approvedPlayers[0];
+        winnerBannerEl.style.display = 'block';
+        winnerBannerEl.innerHTML = `
+          <div class="q-winner-card">
+            <div style="font-size:36px; margin-bottom:4px; filter: drop-shadow(0 0 12px rgba(255,209,0,0.7));">👑 🏆</div>
+            <div style="font-size:12px; font-weight:900; letter-spacing:0.12em; text-transform:uppercase; color:#ffd100; margin-bottom:6px;">
+              ¡TENEMOS GANADOR OFICIAL!
+            </div>
+            <div style="display:flex; align-items:center; justify-content:center; gap:14px; margin:12px 0;">
+              <img src="${champ.photoURL || 'img/logo.jpg'}" onerror="this.src='img/logo.jpg'" style="width:58px; height:58px; border-radius:50%; border:2.5px solid #ffd100; object-fit:cover; box-shadow:0 0 18px rgba(255,209,0,0.45);"/>
+              <div style="text-align:left;">
+                <div style="font-size:20px; font-weight:900; color:#ffffff; text-shadow:0 0 12px rgba(255,209,0,0.35);">${champ.playerName || champ.nickname || champ.name || 'Campeón'}</div>
+                <div style="font-size:14px; font-weight:800; color:#ffd100; margin-top:2px;">
+                  🥇 ${champ.totalPoints} Puntos &bull; ${champ.exactHits || 0} Aciertos Exactos
+                </div>
+              </div>
+            </div>
+            <div style="font-size:12px; color:var(--text-muted); background:rgba(0,0,0,0.35); border-radius:8px; padding:7px 14px; display:inline-block; margin-top:4px;">
+              🎉 ¡Felicidades al Campeón de la Quiniela! Presenta tu pantalla en barra para reclamar tu premio 🍻🍔
+            </div>
+          </div>
+        `;
+      } else {
+        winnerBannerEl.style.display = 'none';
+        winnerBannerEl.innerHTML = '';
+      }
+    }
+
+    // 5. Render Sleeper Top 3 Podium
     const podiumEl = document.getElementById('qSleeperPodium');
     if (podiumEl) {
-      const appr = players.filter(p => p.isApproved && p.totalPoints > 0);
+      const appr = players.filter(p => p.isApproved && p.totalPoints >= 0);
       if (appr.length > 0) {
         podiumEl.style.display = 'flex';
         const first = appr[0];
@@ -1759,7 +1832,7 @@
       }
     }
 
-    // 2. Render Authentic Quiniela Table (Exact Bar Format with PTS right beside player)
+    // 6. Render Authentic Quiniela Table
     standingsListEl.innerHTML = '';
     const wrap = document.createElement('div');
     wrap.style.cssText = 'overflow-x:auto; border-radius:14px; border:1px solid rgba(255,255,255,0.1); background:#0e131d; box-shadow:0 8px 30px rgba(0,0,0,0.6); position:relative;';
@@ -1798,78 +1871,92 @@
       const rankEmoji = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx+1}`;
       const photo = p.photoURL || 'img/logo.jpg';
       const name = p.playerName || 'Anónimo';
-      const statusPill = p.isApproved ? '' : ` <span class="badge" style="background:rgba(255,193,7,0.2); color:#ffc107; font-size:9px; padding:1px 4px;">PENDIENTE</span>`;
+      const isApproved = p.approved === true || p.status === 'approved';
 
       const tr = tbody.insertRow();
-      tr.className = `q-matrix-row ${isMe ? 'is-me' : ''}`;
+      tr.style.cssText = `border-bottom:1px solid rgba(255,255,255,0.05); ${isMe ? 'background:rgba(255,102,0,0.1);' : ''} ${!isApproved ? 'opacity:0.6;' : ''}`;
 
-      let cells = `
-        <td style="padding:10px 12px; font-weight:800; white-space:nowrap; position:sticky; left:0; background:${isMe ? '#1e2118' : '#0e131d'}; z-index:4; border-bottom:1px solid rgba(255,255,255,0.05); box-shadow:2px 0 8px rgba(0,0,0,0.3);">
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span style="font-size:12px;">${rankEmoji}</span>
-            <img src="${photo}" alt="${name}" onerror="this.onerror=null;this.src='img/logo.jpg'" style="width:24px; height:24px; border-radius:50%; object-fit:cover; border:1.5px solid ${isMe ? '#ffd100' : '#444'};" />
-            <span style="color:${isMe ? '#ffd100' : '#ffffff'}; font-size:13px; max-width:95px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name} ${isMe ? '(Tú)' : ''}</span>
-            ${statusPill}
+      let playerCell = `
+        <td style="padding:10px 12px; position:sticky; left:0; background:${isMe ? '#1e2430' : '#121824'}; z-index:4; border-bottom:1px solid rgba(255,255,255,0.05);">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:12px; font-weight:900; color:#ffd100; min-width:20px;">${rankEmoji}</span>
+            <img src="${photo}" onerror="this.src='img/logo.jpg'" style="width:24px; height:24px; border-radius:50%; object-fit:cover;" alt="${name}"/>
+            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:90px;">
+              <span style="font-size:12px; font-weight:800; color:${isMe ? 'var(--accent-color)' : '#fff'};">${name} ${isMe ? '(Tú)' : ''}</span>
+              ${!isApproved ? '<div style="font-size:9px; color:#ffc107;">🟡 Pendiente</div>' : ''}
+            </div>
           </div>
         </td>
-        <td style="text-align:center; font-weight:900; color:#ffd100; font-size:15px; padding:8px; border-left:1px solid rgba(255,255,255,0.1); border-bottom:1px solid rgba(255,255,255,0.05); background:${isMe ? 'rgba(255,209,0,0.15)' : 'rgba(255,255,255,0.02)'};">
+      `;
+
+      let ptsCell = `
+        <td style="text-align:center; padding:10px 8px; font-size:15px; font-weight:900; color:#ffd100; border-left:1px solid rgba(255,255,255,0.08); border-bottom:1px solid rgba(255,255,255,0.05); background:${isMe ? 'rgba(255,102,0,0.15)' : 'rgba(255,255,255,0.02)'};">
           ${p.totalPoints}
         </td>
       `;
 
-      const lockInfo = checkQuinielaLockStatus(activeQuiniela);
-      const isJornadaStarted = lockInfo.isLocked;
+      let cells = playerCell + ptsCell;
+      const isJornadaStarted = checkQuinielaLockStatus(activeQuiniela).isLocked;
 
       matches.forEach(m => {
         const pick = p.picks?.[m.id];
-        if (!pick) {
-          cells += `<td class="q-s-cell q-cell-gray" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);">—</td>`;
-          return;
-        }
-
-        // Privacy rule: if jornada hasn't started and it's not the active player's row, hide picks with 🔒
-        if (!isJornadaStarted && !isMe) {
-          cells += `<td class="q-s-cell q-cell-neutral" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05); color:#666;" title="Oculto hasta que inicie la jornada">🔒</td>`;
-          return;
-        }
-
         const sport = detectSport(m);
-        const isSoccer = sport === 'soccer';
-        const isLive = m.status === 'in';
-        const isDone = m.completed || m.status === 'post';
+        const isHybrid = activeQuiniela && activeQuiniela.isHybrid === true;
         const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
+        const isLive = m.status === 'in';
 
-        if (isSoccer) {
-          const pickStr = `${pick.awayScore}-${pick.homeScore}`;
-          if (!hasScore) {
-            cells += `<td class="q-s-cell q-cell-neutral" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);">${pickStr}</td>`;
+        if (!pick) {
+          cells += `<td class="q-s-cell q-cell-neutral" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05); color:var(--text-muted); font-size:11px;">—</td>`;
+          return;
+        }
+
+        if (sport === 'soccer' && !isHybrid) {
+          const rawA = pick.awayScore;
+          const rawH = pick.homeScore;
+          const pickStr = `${rawA ?? '-'}-${rawH ?? '-'}`;
+          const isHidden = !isJornadaStarted && !isMe;
+          const displayStr = isHidden ? '🔒' : pickStr;
+
+          if (!hasScore || isHidden) {
+            cells += `<td class="q-s-cell q-cell-neutral" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);">${displayStr}</td>`;
             return;
           }
 
+          const pickA = parseInt(rawA, 10);
+          const pickH = parseInt(rawH, 10);
+          const exact = pickH === m.homeScore && pickA === m.awayScore;
           const realWin = m.homeScore > m.awayScore ? 'home' : m.awayScore > m.homeScore ? 'away' : 'draw';
-          const exact = pick.homeScore === m.homeScore && pick.awayScore === m.awayScore;
-          const pickWin = pick.homeScore > pick.awayScore ? 'home' : pick.awayScore > pick.homeScore ? 'away' : 'draw';
+          const pickWin = pickH > pickA ? 'home' : pickA > pickH ? 'away' : 'draw';
 
           if (isLive) {
             if (exact) {
-              cells += `<td class="q-s-cell q-cell-live-winning" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="En Vivo: +3 pts (Exacto)">🎯 ${pickStr}</td>`;
+              cells += `<td class="q-s-cell q-cell-live-winning" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="En Vivo: ¡Marcador Exacto! (+3 pts)">${displayStr}</td>`;
             } else if (realWin === pickWin) {
-              cells += `<td class="q-s-cell q-cell-live-winning" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="En Vivo: +1 pt (Ganando)">✓ ${pickStr}</td>`;
+              cells += `<td class="q-s-cell q-cell-live-tied" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="En Vivo: Ganador Correcto (+1 pt)">${displayStr}</td>`;
             } else {
-              cells += `<td class="q-s-cell q-cell-live-losing" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="En Vivo: 0 pts (Perdiendo)">✗ ${pickStr}</td>`;
+              cells += `<td class="q-s-cell q-cell-live-losing" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="En Vivo: Perdiendo (0 pts)">${displayStr}</td>`;
             }
           } else {
-            // Final
-            if (exact) cells += `<td class="q-s-cell q-cell-final-hit" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="Final: +3 pts">🎯 ${pickStr}</td>`;
-            else if (realWin === pickWin) cells += `<td class="q-s-cell q-cell-final-hit" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="Final: +1 pt">✓ ${pickStr}</td>`;
-            else cells += `<td class="q-s-cell q-cell-final-miss" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="Final: 0 pts">✗ ${pickStr}</td>`;
+            if (exact) {
+              cells += `<td class="q-s-cell q-cell-exact-hit" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="Final: ¡Exacto! (+3 pts)">🎯 ${displayStr}</td>`;
+            } else if (realWin === pickWin) {
+              cells += `<td class="q-s-cell q-cell-winner-hit" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="Final: Ganador (+1 pt)">✓ ${displayStr}</td>`;
+            } else {
+              cells += `<td class="q-s-cell q-cell-final-miss" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="Final: Fallado (0 pts)">✗ ${displayStr}</td>`;
+            }
           }
         } else {
-          // US Sports: Render Chosen Team Logo
+          // US Sports / Pick Winner mode
           const winnerSide = pick.winner ? pick.winner : (Number(pick.homeScore) > Number(pick.awayScore) ? 'home' : 'away');
+
+          if (!isJornadaStarted && !isMe) {
+            cells += `<td class="q-s-cell q-cell-neutral" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);">🔒</td>`;
+            return;
+          }
+
           const pickedLogo = winnerSide === 'home' ? m.homeLogo : m.awayLogo;
           const pickedAbbr = winnerSide === 'home' ? (m.homeAbbr || m.home) : (m.awayAbbr || m.away);
-          const shortAbbr = pickedAbbr.length > 4 ? pickedAbbr.substring(0, 3).toUpperCase() : pickedAbbr.toUpperCase();
+          const shortAbbr = pickedAbbr && pickedAbbr.length > 4 ? pickedAbbr.substring(0, 3).toUpperCase() : (pickedAbbr || '').toUpperCase();
 
           const logoHtml = `
             <div class="q-cell-logo-wrap" title="${pickedAbbr}">
@@ -1894,7 +1981,6 @@
               cells += `<td class="q-s-cell q-cell-live-losing" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="En Vivo: Perdiendo (0 pts)">${logoHtml}</td>`;
             }
           } else {
-            // Final
             if (winnerSide === realWin) {
               cells += `<td class="q-s-cell q-cell-final-hit" style="border-left:1px solid rgba(255,255,255,0.04); border-bottom:1px solid rgba(255,255,255,0.05);" title="Final: Acertado (+1 pt)">${logoHtml}</td>`;
             } else {
@@ -1918,7 +2004,7 @@
     return (str || '')
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[̀-ͯ]/g, '')
       .replace(/[^a-z0-9]/g, '');
   }
 
@@ -1930,57 +2016,135 @@
       if (!snap.exists) return;
       const q = snap.data();
       const matches = q.matches || [];
+      if (matches.length === 0) return;
 
-      const today = new Date();
-      const start = new Date();
-      start.setDate(today.getDate() - 2);
-      const end = new Date();
-      end.setDate(today.getDate() + 21);
-      const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-      const dateParam = `dates=${fmt(start)}-${fmt(end)}&limit=100`;
-
-      // Only query endpoints for sports/leagues present in this quiniela
-      const neededEndpoints = [];
-      const seen = new Set();
+      // 1. Calculate dynamic date range based on actual match dates in this quiniela
+      let minTs = null;
+      let maxTs = null;
       matches.forEach(m => {
-        const sp = detectSport(m);
-        const sl = m.slug || (sp === 'football' ? 'nfl' : sp === 'baseball' ? 'mlb' : sp === 'basketball' ? 'nba' : 'mex.1');
-        const key = `${sp}/${sl}`;
-        if (!seen.has(key)) {
-          seen.add(key);
-          neededEndpoints.push({ sport: sp, slug: sl });
+        const t = parseMatchTimestamp(m);
+        if (t > 0) {
+          if (!minTs || t < minTs) minTs = t;
+          if (!maxTs || t > maxTs) maxTs = t;
         }
       });
 
-      if (neededEndpoints.length === 0) {
-        neededEndpoints.push({ sport: 'soccer', slug: 'mex.1' }, { sport: 'football', slug: 'nfl' });
+      const today = new Date();
+      const start = minTs ? new Date(minTs - 3 * 86400000) : new Date(today.getTime() - 14 * 86400000);
+      const end = maxTs ? new Date(maxTs + 3 * 86400000) : new Date(today.getTime() + 21 * 86400000);
+      const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+      const dateParam = `dates=${fmt(start)}-${fmt(end)}&limit=100`;
+
+      // 2. Build complete endpoint list
+      const neededUrls = [];
+      const seenUrls = new Set();
+      const addUrl = (url, sport, slug) => {
+        if (!seenUrls.has(url)) {
+          seenUrls.add(url);
+          neededUrls.push({ url, sport, slug });
+        }
+      };
+
+      const hasFootball = matches.some(m => detectSport(m) === 'football');
+      const hasSoccer = matches.some(m => detectSport(m) === 'soccer');
+      const hasBaseball = matches.some(m => detectSport(m) === 'baseball');
+      const hasBasketball = matches.some(m => detectSport(m) === 'basketball');
+
+      if (hasFootball) {
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?${dateParam}`, 'football', 'nfl');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=1&week=1`, 'football', 'nfl');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=1&week=2`, 'football', 'nfl');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=1&week=3`, 'football', 'nfl');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?seasontype=2&limit=100`, 'football', 'nfl');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?limit=100`, 'football', 'nfl');
       }
 
+      if (hasSoccer) {
+        const soccerSlugs = new Set(['mex.1', 'esp.1', 'eng.1', 'uefa.champions', 'fra.1', 'ita.1', 'ger.1', 'usa.1']);
+        matches.forEach(m => {
+          if (detectSport(m) === 'soccer' && m.slug) soccerSlugs.add(m.slug);
+        });
+        soccerSlugs.forEach(slug => {
+          addUrl(`https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard?${dateParam}`, 'soccer', slug);
+          addUrl(`https://site.api.espn.com/apis/site/v2/sports/soccer/${slug}/scoreboard?limit=100`, 'soccer', slug);
+        });
+      }
+
+      if (hasBaseball) {
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?${dateParam}`, 'baseball', 'mlb');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard?limit=100`, 'baseball', 'mlb');
+      }
+
+      if (hasBasketball) {
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?${dateParam}`, 'basketball', 'nba');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard?limit=100`, 'basketball', 'nba');
+      }
+
+      if (neededUrls.length === 0) {
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/soccer/mex.1/scoreboard?${dateParam}`, 'soccer', 'mex.1');
+        addUrl(`https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?${dateParam}`, 'football', 'nfl');
+      }
+
+      // 3. Fetch scoreboard feeds concurrently
       const eventsBySport = {};
-      const fetchPromises = neededEndpoints.map(async ep => {
+      const eventsById = {};
+
+      await Promise.all(neededUrls.map(async item => {
         try {
-          let res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?${dateParam}`);
-          if (!res.ok) {
-            res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${ep.sport}/${ep.slug}/scoreboard?limit=100`);
-          }
+          const res = await fetch(item.url);
           if (!res.ok) return;
           const data = await res.json();
-          if (data && data.events) {
-            if (!eventsBySport[ep.sport]) eventsBySport[ep.sport] = [];
-            eventsBySport[ep.sport].push(...data.events.map(ev => ({ ...ev, _sport: ep.sport, _slug: ep.slug })));
+          if (data && Array.isArray(data.events)) {
+            if (!eventsBySport[item.sport]) eventsBySport[item.sport] = [];
+            data.events.forEach(ev => {
+              const enhanced = { ...ev, _sport: item.sport, _slug: item.slug };
+              eventsBySport[item.sport].push(enhanced);
+              if (ev.id) eventsById[String(ev.id)] = enhanced;
+            });
           }
         } catch (e) {}
-      });
+      }));
 
-      await Promise.all(fetchPromises);
+      // 4. Direct Fallback: query ESPN summary endpoint for missing events
+      const missingMatches = matches.filter(m => m.espnEventId && !eventsById[String(m.espnEventId)] && (m.homeScore === null || m.completed !== true));
+      if (missingMatches.length > 0) {
+        await Promise.all(missingMatches.slice(0, 20).map(async m => {
+          try {
+            const sp = detectSport(m);
+            const sl = m.slug || (sp === 'football' ? 'nfl' : sp === 'baseball' ? 'mlb' : sp === 'basketball' ? 'nba' : 'mex.1');
+            const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sp}/${sl}/summary?event=${m.espnEventId}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            const header = data?.header;
+            const comp = header?.competitions?.[0];
+            if (comp) {
+              const syntheticEv = {
+                id: m.espnEventId,
+                status: comp.status,
+                competitions: [comp],
+                _sport: sp,
+                _slug: sl
+              };
+              eventsById[String(m.espnEventId)] = syntheticEv;
+              if (!eventsBySport[sp]) eventsBySport[sp] = [];
+              eventsBySport[sp].push(syntheticEv);
+            }
+          } catch (e) {}
+        }));
+      }
 
+      // 5. Update matches with SCORE PRESERVATION (Never wipe out valid scores with null)
       let hasChanges = false;
       const updatedMatches = matches.map(m => {
         const matchSport = detectSport(m);
         const candidateEvents = eventsBySport[matchSport] || [];
 
         let ev = null;
-        if (m.espnEventId) {
+        if (m.espnEventId && eventsById[String(m.espnEventId)]) {
+          ev = eventsById[String(m.espnEventId)];
+        }
+
+        if (!ev && m.espnEventId) {
           ev = candidateEvents.find(e => String(e.id) === String(m.espnEventId));
         }
 
@@ -2000,27 +2164,37 @@
           });
         }
 
-        let newHomeScore = null;
-        let newAwayScore = null;
-        let state = 'pre';
-        let statusStr = '';
-        let completed = false;
+        // PRESERVE EXISTING VALUES BY DEFAULT - NEVER WIPE OUT WITH NULL
+        let newHomeScore = m.homeScore;
+        let newAwayScore = m.awayScore;
+        let state = m.status || 'pre';
+        let statusStr = m.statusStr || '';
+        let completed = m.completed || false;
 
         if (ev) {
           const comps = ev.competitions?.[0]?.competitors || [];
           const homeC = comps.find(c => c.homeAway === 'home') || comps[1] || {};
           const awayC = comps.find(c => c.homeAway === 'away') || comps[0] || {};
-          completed = !!ev.status?.type?.completed;
-          state = ev.status?.type?.state || 'pre';
-          statusStr = ev.status?.type?.shortDetail || '';
+          const evCompleted = !!ev.status?.type?.completed;
+          const evState = ev.status?.type?.state || 'pre';
+          const evStatusStr = ev.status?.type?.shortDetail || '';
 
-          if (state === 'in' || state === 'post' || completed) {
-            newHomeScore = (homeC && homeC.score !== undefined && homeC.score !== null) ? parseInt(homeC.score, 10) : null;
-            newAwayScore = (awayC && awayC.score !== undefined && awayC.score !== null) ? parseInt(awayC.score, 10) : null;
+          if (evState === 'in' || evState === 'post' || evCompleted) {
+            if (homeC && homeC.score !== undefined && homeC.score !== null && homeC.score !== '') {
+              const parsedH = parseInt(homeC.score, 10);
+              if (!isNaN(parsedH)) newHomeScore = parsedH;
+            }
+            if (awayC && awayC.score !== undefined && awayC.score !== null && awayC.score !== '') {
+              const parsedA = parseInt(awayC.score, 10);
+              if (!isNaN(parsedA)) newAwayScore = parsedA;
+            }
+            state = evState;
+            statusStr = evStatusStr;
+            completed = evCompleted || evState === 'post' || (evStatusStr && (evStatusStr.toUpperCase().includes('FINAL') || evStatusStr === 'FT'));
           }
         }
 
-        if (newHomeScore !== m.homeScore || newAwayScore !== m.awayScore || state !== m.status || statusStr !== m.statusStr) {
+        if (newHomeScore !== m.homeScore || newAwayScore !== m.awayScore || state !== m.status || statusStr !== m.statusStr || completed !== m.completed) {
           hasChanges = true;
         }
 
