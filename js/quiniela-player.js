@@ -351,6 +351,66 @@
   window.backToQuinielasCatalog = showCatalogView;
 
   // Intelligent Lock Check: Lock if manual lock is on, or if first game started / kickoff date has passed
+  
+  // Persistent Global Match Cache (Ensures complete scores are NEVER wiped out by snapshot listeners)
+  const globalMatchScoresCache = {};
+
+  function recordMatchScore(key, homeScore, awayScore, completed, status, statusStr) {
+    if (!key) return;
+    if (homeScore === null || homeScore === undefined || isNaN(homeScore)) return;
+    if (awayScore === null || awayScore === undefined || isNaN(awayScore)) return;
+    globalMatchScoresCache[String(key)] = {
+      homeScore: parseInt(homeScore, 10),
+      awayScore: parseInt(awayScore, 10),
+      completed: !!completed,
+      status: status || (completed ? 'post' : 'in'),
+      statusStr: statusStr || (completed ? 'FINAL' : '')
+    };
+  }
+
+  function mergeWithLiveScores(matchesList) {
+    if (!Array.isArray(matchesList)) return [];
+    return matchesList.map(m => {
+      // 1. If match already has valid completed score, record it
+      if (m.homeScore !== null && m.homeScore !== undefined && !isNaN(m.homeScore) &&
+          m.awayScore !== null && m.awayScore !== undefined && !isNaN(m.awayScore)) {
+        if (m.espnEventId) recordMatchScore(m.espnEventId, m.homeScore, m.awayScore, m.completed, m.status, m.statusStr);
+        const nameKey = `${norm(m.home)}_${norm(m.away)}`;
+        recordMatchScore(nameKey, m.homeScore, m.awayScore, m.completed, m.status, m.statusStr);
+        return { ...m };
+      }
+
+      // 2. Look for cached score
+      let cached = null;
+      if (m.espnEventId && globalMatchScoresCache[String(m.espnEventId)]) {
+        cached = globalMatchScoresCache[String(m.espnEventId)];
+      }
+      if (!cached) {
+        const nameKey = `${norm(m.home)}_${norm(m.away)}`;
+        const revKey = `${norm(m.away)}_${norm(m.home)}`;
+        if (globalMatchScoresCache[nameKey]) {
+          cached = globalMatchScoresCache[nameKey];
+        } else if (globalMatchScoresCache[revKey]) {
+          const r = globalMatchScoresCache[revKey];
+          cached = { homeScore: r.awayScore, awayScore: r.homeScore, completed: r.completed, status: r.status, statusStr: r.statusStr };
+        }
+      }
+
+      if (cached) {
+        return {
+          ...m,
+          homeScore: cached.homeScore,
+          awayScore: cached.awayScore,
+          completed: cached.completed,
+          status: cached.status,
+          statusStr: cached.statusStr || 'FINAL'
+        };
+      }
+
+      return { ...m };
+    });
+  }
+
   function checkQuinielaLockStatus(q) {
     const rawMatches = q.matches || [];
     const matches = sortMatchesChronologically(rawMatches);
@@ -847,22 +907,26 @@
       });
     }
 
-    // Live Snapshot listener on quiniela
+    // Live Snapshot listener on quiniela with safe score merging
     liveUnsubscribe = db.collection('quinielas').doc(quinielaId).onSnapshot(snap => {
       if (!snap.exists) return;
       const data = snap.data() || {};
-      activeQuiniela = { id: snap.id, ...data, matches: sortMatchesChronologically(data.matches || []) };
+      const sorted = sortMatchesChronologically(data.matches || []);
+      const merged = mergeWithLiveScores(sorted);
+      activeQuiniela = { id: snap.id, ...data, matches: merged };
       updateQuinielaView(activeQuiniela);
       if (latestPicksSnap) {
-        renderLiveStandings(latestPicksSnap, activeQuiniela.matches || []);
+        renderLiveStandings(latestPicksSnap, merged);
       }
     }, err => console.error('[QPlayer] live error:', err));
 
-    // Live Snapshot listener on standings
+    // Live Snapshot listener on standings with safe score merging
     standingsUnsubscribe = db.collection('quinielas').doc(quinielaId).collection('picks').onSnapshot(snap => {
       latestPicksSnap = snap;
       if (!activeQuiniela) return;
-      renderLiveStandings(snap, activeQuiniela.matches || []);
+      const currentMatches = mergeWithLiveScores(activeQuiniela.matches || []);
+      activeQuiniela.matches = currentMatches;
+      renderLiveStandings(snap, currentMatches);
     }, err => console.error('[QPlayer] standings error:', err));
 
     // Instant sync & background loop every 12s
@@ -2163,6 +2227,12 @@
             statusStr = evStatusStr;
             completed = evCompleted || evState === 'post' || (evStatusStr && (evStatusStr.toUpperCase().includes('FINAL') || evStatusStr === 'FT'));
           }
+        }
+
+        if (newHomeScore !== null && newHomeScore !== undefined && newAwayScore !== null && newAwayScore !== undefined) {
+          if (m.espnEventId) recordMatchScore(m.espnEventId, newHomeScore, newAwayScore, completed, state, statusStr);
+          const nameKey = `${norm(m.home)}_${norm(m.away)}`;
+          recordMatchScore(nameKey, newHomeScore, newAwayScore, completed, state, statusStr);
         }
 
         if (newHomeScore !== m.homeScore || newAwayScore !== m.awayScore || state !== m.status || statusStr !== m.statusStr || completed !== m.completed) {
