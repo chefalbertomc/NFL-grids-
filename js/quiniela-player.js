@@ -459,11 +459,6 @@
     grid.innerHTML = '';
     filtered.forEach(q => {
       const matches = q.matches || [];
-      const { isLocked } = checkQuinielaLockStatus(q);
-      const isMine = !!myParticipations[q.id];
-      const hasLive = matches.some(m => m.status === 'in');
-      const allDone = matches.length > 0 && matches.every(m => m.completed || m.status === 'post');
-
       const { isLocked, isFinished } = checkQuinielaLockStatus(q);
       const isMine = !!myParticipations[q.id];
       const hasLive = matches.some(m => m.status === 'in');
