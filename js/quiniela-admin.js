@@ -909,7 +909,7 @@
           <span style="font-size:10px; font-weight:900; color:#ff4444; animation:tvPulse 1s infinite;">🔴 ${m.awayScore ?? 0}-${m.homeScore ?? 0}</span>
         </div>`;
       }
-      if (m.completed || m.status === 'post') {
+      if (m.completed || m.status === 'post' || (m.homeScore !== null && m.awayScore !== null && m.homeScore !== undefined && m.awayScore !== undefined)) {
         return `<div style="margin-top:2px;">
           <span style="font-size:10px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore}</span>
           <div style="font-size:8px; color:#00e676; font-weight:800;">FINAL</div>
@@ -976,7 +976,7 @@
       matches.forEach(m => {
         const pick = p.picks?.[m.id];
         const sport = detectSport(m);
-        const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
+        const hasScore = (m.homeScore !== null && m.awayScore !== null && m.homeScore !== undefined && m.awayScore !== undefined && m.status !== 'pre') || m.completed === true || m.status === 'post';
         const isLive = m.status === 'in';
 
         if (!pick) {

@@ -1277,7 +1277,7 @@
 
       const isLive = m.status === 'in';
       const isDone = m.completed || m.status === 'post';
-      const hasScore = m.homeScore !== null && m.awayScore !== null && m.status !== 'pre';
+      const hasScore = (m.homeScore !== null && m.awayScore !== null && m.homeScore !== undefined && m.awayScore !== undefined && m.status !== 'pre') || m.completed === true || m.status === 'post';
       const isIndividualMatchLocked = isLocked || isLive || isDone;
 
       const awayInfo = typeof window.getTeamInfo === 'function' ? window.getTeamInfo(m.away) : null;
@@ -1622,45 +1622,21 @@
   }
 
   function getMatchHeaderSchedule(m) {
-    if (m.status === 'in') {
+    if (m.status === "in") {
       return `<div style="background:rgba(255,68,68,0.25); border:1px solid #ff4444; border-radius:6px; padding:2px 5px; margin-top:2px;">
         <span style="font-size:10px; font-weight:900; color:#ff4444; animation:tvPulse 1s infinite;">🔴 ${m.awayScore ?? 0}-${m.homeScore ?? 0}</span>
       </div>`;
     }
-    if (m.completed || m.status === 'post') {
+    if (m.completed || m.status === "post" || (m.homeScore !== null && m.awayScore !== null && m.homeScore !== undefined && m.awayScore !== undefined)) {
       return `<div style="margin-top:2px;">
         <span style="font-size:10px; font-weight:900; color:#ffd100;">${m.awayScore}-${m.homeScore}</span>
         <div style="font-size:8px; color:#00e676; font-weight:800;">FINAL</div>
       </div>`;
     }
-
-    // Pre-game: Extract date and time
-    const str = (m.date || '').trim();
-    const timeMatch = str.match(/(\d{1,2}:\d{2}\s*(?:[ap]\.?\s*m\.?)?)/i);
-    const timeStr = timeMatch ? timeMatch[1].replace(/\s+/g, ' ') : '';
-    
-    // Check if match is today
-    const t = parseMatchTimestamp(m);
-    let isToday = false;
-    if (t > 0) {
-      const d = new Date(t);
-      const now = new Date();
-      isToday = (d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear());
-    }
-
-    if (isToday && timeStr) {
-      return `<span style="font-size:8.5px; color:#ffd100; font-weight:800; display:inline-block; margin-top:2px;">⏰ ${timeStr}</span>`;
-    }
-
-    // Future date: short date (e.g. "28 Ago")
-    let dateOnly = str;
-    if (timeStr) {
-      dateOnly = dateOnly.replace(timeMatch[0], '').replace(/,\s*$/, '').replace(/\s*de\s*$/, '').trim();
-    }
-    return `<span style="font-size:8.5px; color:var(--text-muted); font-weight:800; display:inline-block; margin-top:2px;">${dateOnly || 'PENDIENTE'}</span>`;
+    const str = (m.date || "").trim();
+    return `<span style="font-size:8.5px; color:var(--text-muted); font-weight:800; display:inline-block; margin-top:2px;">${str || "PENDIENTE"}</span>`;
   }
 
-  // Interactive Live Leaderboard & Quiniela PRO Matrix Table
   function renderLiveStandings(picksSnap, rawMatches) {
     const standingsListEl = document.getElementById('qLiveStandings');
     if (!standingsListEl) return;
@@ -2209,6 +2185,11 @@
         updateQuinielaView(activeQuiniela);
         if (latestPicksSnap) {
           renderLiveStandings(latestPicksSnap, updatedMatches);
+        } else if (db) {
+          db.collection('quinielas').doc(quinielaId).collection('picks').get().then(snap => {
+            latestPicksSnap = snap;
+            renderLiveStandings(snap, updatedMatches);
+          }).catch(() => {});
         }
       }
 
