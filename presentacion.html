@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Drinks & Wins • Manual Operativo & Propuesta Ejecutiva</title>
+  <title>Drinks & Wins • Manual Operativo y Presentación Ejecutiva</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -136,7 +136,7 @@
       box-shadow: 0 6px 20px var(--gold-glow);
     }
 
-    /* Deck Layout */
+    /* Deck Container */
     .deck-container {
       flex: 1;
       position: relative;
@@ -256,7 +256,7 @@
 
     .card-title {
       font-family: var(--font-display);
-      font-size: 16px;
+      font-size: 15.5px;
       font-weight: 800;
       color: #fff;
       margin-bottom: 6px;
@@ -282,7 +282,7 @@
 
     .step-title {
       font-family: var(--font-display);
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 800;
       color: var(--gold);
       margin-bottom: 3px;
@@ -302,7 +302,7 @@
       position: relative;
       height: 100%;
       min-height: 340px;
-      max-height: 480px;
+      max-height: 490px;
       transition: all 0.3s ease;
     }
 
@@ -326,7 +326,7 @@
     .photo-frame-contain img {
       object-fit: contain;
       background: #000;
-      padding: 6px;
+      padding: 8px;
     }
 
     .photo-caption {
@@ -455,7 +455,7 @@
       <img src="img/logo.jpg" alt="Logo" class="brand-logo" onerror="this.src='https://via.placeholder.com/40'"/>
       <div>
         <div class="brand-title">DRINKS & WINS</div>
-        <div class="brand-sub">Manual Operativo & Propuesta Ejecutiva</div>
+        <div class="brand-sub">Manual Operativo & Presentación Ejecutiva</div>
       </div>
     </div>
 
@@ -475,85 +475,46 @@
   <!-- Deck Slides Container -->
   <main class="deck-container" id="deck">
 
-    <!-- SLIDE 1: PORTADA HERO -->
+    <!-- LÁMINA 1: PORTADA EJECUTIVA -->
     <section class="slide active" data-index="1">
       <div class="grid-split">
         <div class="card" style="border-left: 4px solid var(--gold); display:flex; flex-direction:column; justify-content:center;">
-          <span class="slide-tag">PROYECTO DE GAMIFICACIÓN EN MESA • MANUAL OPERATIVO</span>
-          <h1 class="slide-title" style="font-size: clamp(28px, 3.8vw, 44px); margin-bottom: 10px;">
-            DRINKS & WINS <span style="color:var(--gold);">GAMIFICATION</span>
+          <span class="slide-tag">MANUAL OPERATIVO Y PRESENTACIÓN EJECUTIVA</span>
+          <h1 class="slide-title" style="font-size: clamp(26px, 3.5vw, 42px); margin-bottom: 6px;">
+            DRINKS & WINS
           </h1>
-          <p class="slide-desc" style="font-size: 16px; color: #fff; margin-bottom: 16px;">
-            La plataforma digital que transforma comensales en fanáticos recurrentes, multiplica el tiempo de estancia y eleva el ticket promedio en días de partido.
+          <h3 style="font-family:var(--font-display); font-size:19px; color:var(--gold-bright); margin-bottom:12px; font-weight:800;">
+            Gamificación Deportiva en Mesa
+          </h3>
+          <p class="slide-desc" style="font-size: 15px; color: #fff; margin-bottom: 16px;">
+            Plataforma Digital Interactiva para Retención de Clientes y Aumento de Ticket Promedio.
           </p>
 
-          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
-            <div class="badge badge-gold">⚡ 100% Web (Sin descargas)</div>
-            <div class="badge badge-green">🤖 80% Autónoma con IA y ESPN</div>
-            <div class="badge badge-orange">💵 Mayor Consumo & Propinas</div>
-            <div class="badge badge-blue">📱 Acceso con QR en Mesa</div>
+          <div style="background:rgba(255,255,255,0.03); border-radius:10px; padding:12px; margin-bottom:16px; border:1px solid rgba(255,255,255,0.06);">
+            <p style="font-size:12.5px; color:#fff; font-weight:700; margin-bottom:4px;">
+              • Presentado por: <span style="color:var(--gold);">Beto Muñoz • Gerencia Juriquilla</span>
+            </p>
+            <p style="font-size:12.5px; color:var(--text-muted); font-weight:600;">
+              • Dirigido a: <span style="color:#fff;">Dirección General y Operaciones</span>
+            </p>
           </div>
 
-          <p style="font-size:13px; color:var(--gold-bright); font-weight:800; margin-bottom:4px;">
-            Presentado por Beto Muñoz • Para el Dueño de la Marca, Dirección General y Gerencia
-          </p>
-          <p style="font-size:11.5px; color:var(--text-muted); font-style:italic;">
-            «Nacido del cariño al lugar de trabajo, a los clientes y a las propinas que sacan adelante a mi familia»
+          <p style="font-size:12px; color:var(--gold-bright); font-style:italic; font-weight:700;">
+            «Nacido del piso de venta, la pasión por el servicio y la lealtad a la marca»
           </p>
         </div>
 
         <div class="photo-frame">
           <img src="img/presentation/sports_bar_atmosphere.jpg" alt="Ambiente Sports Bar" />
-          <div class="photo-caption">Ambiente Deportivo y Conexión en Mesa en Tiempo Real</div>
+          <div class="photo-caption">Ambiente Deportivo y Gamificación en Mesa</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 2: DEFINICIÓN, OBJETIVO Y METAS -->
+    <!-- LÁMINA 2: EL CORAZÓN DEL PROYECTO (HISTORIA REAL) -->
     <section class="slide" data-index="2">
-      <span class="slide-tag">DEFINICIÓN, OBJETIVO Y METAS • LA PROPUESTA DE VALOR</span>
-      <h2 class="slide-title">¿Qué es Drinks & Wins? Definición, Objetivo y Metas Clave</h2>
-      <p class="slide-desc">
-        La plataforma digital de entretenimiento y competencia deportiva en mesa que transforma comensales pasivos en clientes recurrentes.
-      </p>
-
-      <div class="grid-split">
-        <div>
-          <div class="card" style="margin-bottom: 12px; border-left: 4px solid var(--gold);">
-            <h3 class="card-title" style="color:var(--gold);">📱 ¿QUÉ ES DRINKS & WINS?</h3>
-            <p class="card-text">
-              Es una <b>plataforma web interactiva (PWA) de gamificación deportiva en mesa</b> diseñada para restaurantes y sports bars. Conecta las transmisiones deportivas en las pantallas con el celular de cada cliente mediante códigos QR en mesa (sin descargar aplicaciones). Permite competir en vivo en quinielas, grids, survivor, primer gol y trivias en TV, con el <b>80% de la operación automatizada mediante IA (Gemini) y resultados oficiales de ESPN</b>.
-            </p>
-          </div>
-
-          <div class="card" style="border-left: 4px solid var(--orange); margin-bottom:12px;">
-            <h3 class="card-title" style="color:var(--orange);">🎯 OBJETIVO ESTRATÉGICO</h3>
-            <div class="step-box step-box-orange">
-              <div class="step-title">1. Activar al Comensal Pasivo</div>
-              <div style="font-size:11.5px; color:var(--text-muted);">Transformarlo en un participante apasionado que compite sanamente con las mesas vecinas.</div>
-            </div>
-            <div class="step-box step-box-orange">
-              <div class="step-title">2. Maximizar Consumo en Mesa</div>
-              <div style="font-size:11.5px; color:var(--text-muted);">Incentivar rondas adicionales de cerveza y botanas mientras esperan el cierre de cada cuarto.</div>
-            </div>
-            <div class="step-box step-box-orange">
-              <div class="step-title">3. Fidelización y Recurrencia</div>
-              <div style="font-size:11.5px; color:var(--text-muted);">Hacer que elijan nuestra sucursal semana a semana porque aquí los partidos se viven con adrenalina.</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="photo-frame">
-          <img src="img/presentation/fans_celebrating_table.jpg" alt="Comensales Celebrando" />
-          <div class="photo-caption">Comensales Compitiendo y Celebrando en Mesa</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 3: HISTORIA DE ÁLAMOS -->
-    <section class="slide" data-index="3">
       <span class="slide-tag">HISTORIA REAL • MOTIVACIÓN Y PROPÓSITO</span>
-      <h2 class="slide-title">El Corazón del Proyecto: La Historia de un Barman en Álamos</h2>
+      <h2 class="slide-title">El Corazón del Proyecto (Historia Real)</h2>
       <p class="slide-desc" style="color:var(--gold-bright); font-weight:700; font-size:14px; margin-bottom:12px;">
         ❤️ «Mi objetivo siempre fue intentar que el cliente estuviera contento: aún si su equipo pierde o si el partido está aburrido. Al ser humano le gusta competir por naturaleza.»
       </p>
@@ -561,38 +522,38 @@
       <div class="grid-split">
         <div>
           <div class="card" style="border-left: 3.5px solid var(--gold); margin-bottom:10px;">
-            <h3 class="card-title" style="color:var(--gold);">🍺 El Origen en la Barra</h3>
+            <h4 class="card-title" style="color:var(--gold);">🍺 El Origen en la Barra</h4>
             <p class="card-text">
-              Esto comenzó cuando yo era barman en Álamos. Empecé a inventar quinielas y dinámicas en hojas de papel entre las mesas; de repente, la gente no solo veía la tele: convivían, gritaban y pedían más rondas de cerveza y alitas para seguir jugando.
+              Nació cuando era barman en Álamos. Empecé inventando quinielas y dinámicas en hojas de papel entre mesas. De repente, la gente no solo veía la tele: convivían, gritaban y pedían más rondas de cerveza y alitas.
             </p>
           </div>
 
           <div class="card" style="border-left: 3.5px solid var(--orange); margin-bottom:10px;">
-            <h3 class="card-title" style="color:var(--orange);">💬 Clientes Agradecidos</h3>
+            <h4 class="card-title" style="color:var(--orange);">💬 Clientes Agradecidos</h4>
             <p class="card-text">
               Esas dinámicas crearon clientes tan fieles que hasta hoy me ven en la calle en Querétaro y me dicen: <b>«¡Beto, qué onda! ¿Para cuándo otra quiniela o trivia?»</b>. Gracias a ellos y a sus propinas he sacado adelante a mi familia.
             </p>
           </div>
 
           <div class="card" style="border-left: 3.5px solid var(--green);">
-            <h3 class="card-title" style="color:var(--green);">💡 Amor por el Restaurante</h3>
+            <h4 class="card-title" style="color:var(--green);">💡 De la Barra a la Innovación</h4>
             <p class="card-text">
-              No soy programador, ingeniero en software ni diseñador gráfico. Esto se hizo por el gran cariño que le tengo al lugar donde trabajo y a mis clientes, digitalizando lo que ya demostró tener éxito rotundo.
+              No soy programador ni diseñador gráfico; soy alguien que cree firmemente en esta marca y en su gente tras años de vivirla todos los días. Esa misma convicción me llevó a aprender por mi cuenta y crear herramientas para sumar al negocio y llevar la experiencia del cliente a otro nivel.
             </p>
           </div>
         </div>
 
         <div class="photo-frame">
           <img src="img/presentation/friendly_bartender_hero.jpg" alt="Beto Muñoz Barman" />
-          <div class="photo-caption">Beto Muñoz • Hospitalidad, Pasión y Servicio en Restaurante</div>
+          <div class="photo-caption">Beto Muñoz • De la Barra a la Innovación en Piso</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 4: DILEMA EN JURIQUILLA -->
-    <section class="slide" data-index="4">
-      <span class="slide-tag">EVOLUCIÓN OPERATIVA • TECNOLOGÍA EN MESA</span>
-      <h2 class="slide-title">De Álamos a Juriquilla: Por Qué la App se Maneja Sola al 80%</h2>
+    <!-- LÁMINA 3: EL RETO OPERATIVO Y LA SOLUCIÓN AUTÓNOMA AL 80% -->
+    <section class="slide" data-index="3">
+      <span class="slide-tag">OPERACIÓN EFICIENTE • TECNOLOGÍA EN PISO</span>
+      <h2 class="slide-title">El Reto Operativo y la Solución Autónoma al 80%</h2>
       <p class="slide-desc">
         La transición de una barra pequeña a la operación general de un restaurante grande exigió automatización con IA y ESPN.
       </p>
@@ -600,592 +561,402 @@
       <div class="grid-split">
         <div>
           <div class="card" style="border-left: 3.5px solid var(--orange); margin-bottom:12px;">
-            <h3 class="card-title" style="color:var(--orange);">⚖️ El Dilema Operativo en Juriquilla</h3>
-            <p class="card-text" style="margin-bottom:8px;">
-              En Álamos yo estaba en la barra. En Juriquilla mis deberes atienden a la operación completa del restaurante: cocina, servicio, tiempos y mesas. Es imposible descuidar el servicio para llenar papelitos.
+            <h3 class="card-title" style="color:var(--orange);">⚖️ El Reto Operativo en Juriquilla</h3>
+            <p class="card-text">
+              En Álamos estaba en la barra; en Juriquilla la prioridad es la operación integral: cocina, tiempos de servicio, mesas y auditorías. No se puede descuidar el piso para repartir hojas de papel.
             </p>
-            <div class="step-box step-box-orange">
-              <div class="step-title">El papel no escala</div>
-              <div style="font-size:11.5px; color:var(--text-muted);">Hojas mojadas con cerveza, pérdidas y horas de conteo manual propenso a discusiones.</div>
-            </div>
           </div>
 
           <div class="card" style="border-left: 3.5px solid var(--green);">
-            <h3 class="card-title" style="color:var(--green);">🤖 La Solución: 80% Autónoma con IA y ESPN</h3>
-            <div class="step-box step-box-green">
-              <div class="step-title">Creación en Segundos con IA</div>
-              <div style="font-size:11.5px; color:var(--text-muted);">Gemini y ESPN cargan jornadas completas y trivias en 30 segundos sin captura manual.</div>
+            <h3 class="card-title" style="color:var(--green);">🤖 La Solución Autónoma al 80%</h3>
+            <div class="step-box step-box-green" style="margin-bottom:8px;">
+              <div class="step-title">Carga en segundos con IA e ESPN</div>
+              <div style="font-size:11.5px; color:var(--text-muted);">Las jornadas y partidos se sincronizan solos mediante APIs sin captura manual.</div>
+            </div>
+            <div class="step-box step-box-green" style="margin-bottom:8px;">
+              <div class="step-title">Resultados y puntos en vivo</div>
+              <div style="font-size:11.5px; color:var(--text-muted);">La plataforma liquida marcadores oficiales en tiempo real.</div>
             </div>
             <div class="step-box step-box-green">
-              <div class="step-title">Marcadores y Puntos en Vivo</div>
-              <div style="font-size:11.5px; color:var(--text-muted);">La app liquida marcadores exactos en tiempo real sin que el gerente mueva un solo dedo.</div>
+              <div class="step-title">Cero distracción del personal</div>
+              <div style="font-size:11.5px; color:var(--text-muted);">El equipo de servicio se enfoca al 100% en atender comandas y consentir a la mesa.</div>
             </div>
           </div>
         </div>
 
         <div class="photo-frame">
-          <img src="img/presentation/sports_bar_atmosphere.jpg" alt="Operación Juriquilla" />
-          <div class="photo-caption">Operación Eficiente sin Distracción del Personal de Servicio</div>
+          <img src="img/presentation/sports_bar_atmosphere.jpg" alt="Operación Eficiente" />
+          <div class="photo-caption">Operación Eficiente sin Carga Administrativa en Piso</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 5: FAN CLUBS EN QUERÉTARO -->
-    <section class="slide" data-index="5">
-      <span class="slide-tag">CASO DE ÉXITO • VALIDACIÓN INMEDIATA</span>
-      <h2 class="slide-title">Tracción Real: 71 Miembros en 2 Semanas de 350+ en QRO</h2>
-      <p class="slide-desc">
-        La prueba piloto con el club de fans oficial de los Steelers demostró adopción masiva inmediata y consumo garantizado.
-      </p>
-
-      <div class="grid-split">
-        <div>
-          <div class="card" style="margin-bottom: 12px; border-left: 3.5px solid var(--gold);">
-            <h4 class="card-title" style="color:var(--gold);">🏈 71 Miembros en 14 Días</h4>
-            <p class="card-text">
-              La base de <b>Steelers Nation Querétaro</b> cuenta con más de <b>350 miembros</b> en la ciudad. En solo 2 semanas de prueba piloto ya se registraron <b>71 fanáticos</b> en la aplicación con su credencial Fan ID interactiva.
-            </p>
-          </div>
-
-          <div class="card" style="margin-bottom: 12px; border-left: 3.5px solid var(--orange);">
-            <h4 class="card-title" style="color:var(--orange);">🔘 Botón Exclusivo en su Tarjeta Digital</h4>
-            <p class="card-text">
-              Los miembros cuentan con un botón especial directo en su tarjeta digital que los lleva directo a los juegos de su equipo sin teclear links ni buscar partidos.
-            </p>
-          </div>
-
-          <div class="card" style="border-left: 3.5px solid var(--green);">
-            <h4 class="card-title" style="color:var(--green);">🚀 Modelo 100% Escalable</h4>
-            <p class="card-text">
-              Listo para activarse con Cowboys, 49ers, Patriots o clubes de fútbol como Chivas, América o Gallos Blancos de Querétaro.
-            </p>
-          </div>
-        </div>
-
-        <div class="photo-frame photo-frame-contain">
-          <img src="img/presentation/fan_id_steelers.png" alt="Steelers Nation Fan ID" />
-          <div class="photo-caption">Credencial Digital Fan ID con Acceso Directo</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 6: ONBOARDING DEL CLIENTE -->
-    <section class="slide" data-index="6">
-      <span class="slide-tag">EXPERIENCIA DEL CLIENTE • ONBOARDING SIN FRICCIÓN</span>
-      <h2 class="slide-title">Manual de Acceso: Del Código QR en Mesa a la Pantalla de Inicio</h2>
+    <!-- LÁMINA 4: EXPERIENCIA DEL CLIENTE (ONBOARDING EN 15 SEGUNDOS) -->
+    <section class="slide" data-index="4">
+      <span class="slide-tag">EXPERIENCIA DEL CLIENTE • ONBOARDING</span>
+      <h2 class="slide-title">Experiencia del Cliente (Onboarding en 15 Segundos)</h2>
       <p class="slide-desc">
         Flujo diseñado para que cualquier comensal comience a jugar en menos de 15 segundos sin fricciones tecnológicas.
       </p>
 
       <div class="grid-split">
-        <div class="grid-4" style="grid-template-columns: repeat(2, 1fr);">
-          <div class="card" style="border-top: 3px solid var(--gold);">
+        <div>
+          <div class="card" style="border-left:3.5px solid var(--gold); margin-bottom:8px;">
             <span style="color:var(--gold); font-size:11px; font-weight:900;">PASO 1</span>
-            <h4 style="color:#fff; font-size:14px; margin:3px 0 6px 0;">Escaneo en Mesa</h4>
-            <p class="card-text" style="font-size:11px;">
-              Escanea el QR del acrílico. <b>Sin descargas</b> en App Store o Play Store; abre en Safari o Chrome.
-            </p>
+            <h4 style="color:#fff; font-size:13.5px; margin:2px 0 4px 0;">Escaneo Inmediato</h4>
+            <p class="card-text" style="font-size:11.5px;">El cliente escanea el QR en el acrílico de la mesa. Cero descargas de tiendas de apps (abre directo como PWA en Safari/Chrome).</p>
           </div>
 
-          <div class="card" style="border-top: 3px solid var(--orange);">
+          <div class="card" style="border-left:3.5px solid var(--orange); margin-bottom:8px;">
             <span style="color:var(--orange); font-size:11px; font-weight:900;">PASO 2</span>
-            <h4 style="color:#fff; font-size:14px; margin:3px 0 6px 0;">Registro en 10s</h4>
-            <p class="card-text" style="font-size:11px;">
-              Acceso con 1 toque vía Google o ingresando nombre y teléfono para guardar puntos en la nube.
-            </p>
+            <h4 style="color:#fff; font-size:13.5px; margin:2px 0 4px 0;">Registro con 1 Toque</h4>
+            <p class="card-text" style="font-size:11.5px;">Ingreso ágil con cuenta de Google o nombre y celular.</p>
           </div>
 
-          <div class="card" style="border-top: 3px solid var(--green);">
+          <div class="card" style="border-left:3.5px solid var(--green); margin-bottom:8px;">
             <span style="color:var(--green); font-size:11px; font-weight:900;">PASO 3</span>
-            <h4 style="color:#fff; font-size:14px; margin:3px 0 6px 0;">Mesa & Mesero</h4>
-            <p class="card-text" style="font-size:11px;">
-              Elige su mesa y mesero. Los premios van a la mesa correcta y se premia el servicio del mesero.
-            </p>
+            <h4 style="color:#fff; font-size:13.5px; margin:2px 0 4px 0;">Asignación de Mesa y Mesero</h4>
+            <p class="card-text" style="font-size:11.5px;">Selecciona su número de mesa y quién lo atiende (esto garantiza que los premios lleguen al comensal exacto y premia la atención del mesero).</p>
           </div>
 
-          <div class="card" style="border-top: 3px solid var(--blue);">
+          <div class="card" style="border-left:3.5px solid var(--blue);">
             <span style="color:var(--blue); font-size:11px; font-weight:900;">PASO 4</span>
-            <h4 style="color:#fff; font-size:14px; margin:3px 0 6px 0;">Instalación PWA</h4>
-            <p class="card-text" style="font-size:11px;">
-              Un toque en «Agregar a Pantalla de Inicio» y la app queda instalada con su propio ícono para futuras visitas.
-            </p>
+            <h4 style="color:#fff; font-size:13.5px; margin:2px 0 4px 0;">Acceso Permanente</h4>
+            <p class="card-text" style="font-size:11.5px;">Opción de «Agregar a Pantalla de Inicio» para jugar en visitas recurrentes.</p>
           </div>
         </div>
 
         <div class="photo-frame">
-          <img src="img/presentation/waiter_qr_service.jpg" alt="Mesero y Código QR en Mesa" />
-          <div class="photo-caption">Atención en Mesa: Escaneo Inmediato con Código QR</div>
+          <img src="img/presentation/waiter_qr_service.jpg" alt="QR en Mesa" />
+          <div class="photo-caption">QR en Acrílico de Mesa + Pantalla del Comensal</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 7: MANUAL GERENTE - PANEL MASTER -->
-    <section class="slide" data-index="7">
+    <!-- LÁMINA 5: CENTRO DE CONTROL MAESTRO (ADMIN.HTML) -->
+    <section class="slide" data-index="5">
       <span class="slide-tag">CONTROL OPERATIVO • PANEL DEL GERENTE</span>
-      <h2 class="slide-title">Manual del Gerente: El Centro de Control Maestro (admin.html)</h2>
+      <h2 class="slide-title">Centro de Control Maestro (admin.html)</h2>
       <p class="slide-desc">
-        Interfaz administrativa centralizada para configurar y monitorear todas las salas en tiempo real.
+        Vista general del panel de administración del gerente con todas las herramientas de control centralizadas.
       </p>
 
       <div class="grid-split">
         <div>
           <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--gold);">
-            <h4 class="card-title" style="color:var(--gold);">1. Pestañas de Gestión Rápida</h4>
-            <p class="card-text">
-              Menú superior: <b>🏈 Grids</b>, <b>📋 Quinielas</b>, <b>🏆 Survivor</b>, <b>⚽ First Striker</b>, <b>🎯 Bingo</b>, <b>🧠 Trivia en Vivo</b> y <b>🎨 Material Promocional</b>.
-            </p>
+            <h4 class="card-title" style="color:var(--gold);">• Menú Superior de Juegos</h4>
+            <p class="card-text">Pestañas directas para Grids, Quinielas, Survivor, First Striker, Trivia y Bingo.</p>
           </div>
 
           <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--green);">
-            <h4 class="card-title" style="color:var(--green);">2. Switch Maestro «⚡ Auto-Aprobar»</h4>
-            <p class="card-text">
-              En <b>ON</b>, los comensales entran a jugar de forma directa al escanear. En <b>OFF</b>, los clientes quedan en lista de espera hasta que el mesero valide consumo mínimo en mesa.
-            </p>
+            <h4 class="card-title" style="color:var(--green);">• Switch Maestro «⚡ Auto-Aprobar»</h4>
+            <div style="font-size:12px; color:var(--text-muted); line-height:1.5;">
+              <p><b>ON:</b> Comensales entran directo al escanear.</p>
+              <p><b>OFF:</b> Clientes quedan en lista de espera hasta que el mesero valide consumo en mesa.</p>
+            </div>
           </div>
 
-          <div class="card" style="border-left:3.5px solid var(--blue);">
-            <h4 class="card-title" style="color:var(--blue);">3. Selector Multitienda & Scorebug</h4>
-            <p class="card-text">
-              Permite a gerentes gestionar Juriquilla, Álamos o Paseo Qro de forma independiente, con marcador en vivo de ESPN.
-            </p>
+          <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--blue);">
+            <h4 class="card-title" style="color:var(--blue);">• Selector Multitienda</h4>
+            <p class="card-text">Switch rápido para operar Juriquilla, Álamos o Paseo Querétaro de manera independiente.</p>
+          </div>
+
+          <div class="card" style="border-left:3.5px solid var(--orange);">
+            <h4 class="card-title" style="color:var(--orange);">• Scorebug Oficial ESPN</h4>
+            <p class="card-text">Reloj, cuarto y marcador en tiempo real conectado al satélite deportivo.</p>
           </div>
         </div>
 
         <div class="photo-frame photo-frame-contain">
-          <img src="img/presentation/admin_panel_grids.png" alt="Admin Panel Dashboard" />
-          <div class="photo-caption">Panel Administrativo Maestro en Vivo</div>
+          <img src="img/presentation/admin_panel_grids.png" alt="admin.html Dashboard" />
+          <div class="photo-caption">admin.html: Centro de Control Maestro para Gerentes</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 8: MANUAL GRIDS (ADMIN) -->
-    <section class="slide" data-index="8">
-      <span class="slide-tag">MANUAL OPERATIVO • JUEGO 1: FOOTBALL GRIDS (ADMIN)</span>
-      <h2 class="slide-title">Football Grids (100 Casillas): Cómo Crea y Opera el Gerente</h2>
+    <!-- LÁMINA 6: JUEGO 1 — FOOTBALL GRIDS (100 CASILLAS NFL) -->
+    <section class="slide" data-index="6">
+      <span class="slide-tag">JUEGOS • FOOTBALL GRIDS</span>
+      <h2 class="slide-title">Juego 1 — Football Grids (100 Casillas NFL)</h2>
       <p class="slide-desc">
-        La cuadrícula clásica de 10x10 casillas para NFL, digitalizada y resuelta con algoritmo en tiempo real.
+        Tablero clásico de 100 casillas digitalizado con 4 oportunidades de ganar por partido.
       </p>
 
       <div class="grid-split">
         <div>
           <div class="card" style="border-left:3.5px solid var(--gold); margin-bottom:8px;">
-            <span style="color:var(--gold); font-weight:900; font-size:11px;">PASO 1</span>
-            <h4 style="color:#fff; font-size:14px; margin:2px 0;">Búsqueda con ESPN (30s)</h4>
-            <p class="card-text" style="font-size:11.5px;">Seleccionar sucursal y liga NFL. Pulsar «🔍 Buscar Partidos». Tocar el juego y presionar «Crear Grid de Juego».</p>
+            <h4 class="card-title" style="color:var(--gold);">⚙️ Cómo se Crea (Admin en 30s)</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              1. En admin.html, seleccionar liga NFL y pulsar 🔍 Buscar Partidos.<br>
+              2. Seleccionar el juego y presionar Crear Grid.<br>
+              3. Antes del kickoff pulsar 🔒 Bloquear, luego 🎲 Generar Números (baraja 0 al 9 en ejes X e Y) y 👁️ Mostrar Números.
+            </p>
           </div>
+
           <div class="card" style="border-left:3.5px solid var(--orange); margin-bottom:8px;">
-            <span style="color:var(--orange); font-weight:900; font-size:11px;">PASO 2</span>
-            <h4 style="color:#fff; font-size:14px; margin:2px 0;">Bloqueo y Sorteo 0-9</h4>
-            <p class="card-text" style="font-size:11.5px;">Al iniciar el partido, pulsar «🔒 Bloquear». Luego pulsar «🎲 Generar Números» (baraja dígitos 0 al 9) y «👁️ Mostrar Números».</p>
-          </div>
-          <div class="card" style="border-left:3.5px solid var(--green);">
-            <span style="color:var(--green); font-weight:900; font-size:11px;">PASO 3</span>
-            <h4 style="color:#fff; font-size:14px; margin:2px 0;">Liquidación por Cuarto</h4>
-            <p class="card-text" style="font-size:11.5px;">Al final de 1Q, Halftime, 3Q y Final, la app toma el último dígito del marcador oficial de ESPN y resalta en dorado a la mesa ganadora.</p>
-          </div>
-        </div>
-
-        <div class="photo-frame photo-frame-contain">
-          <img src="img/promo/tarjeta_2_vive_la_nfl.png" alt="Football Grids Promo" />
-          <div class="photo-caption">Football Grids: 100 Casillas y 4 Momentos de Premiación</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 9: MANUAL GRIDS (JUGADOR) -->
-    <section class="slide" data-index="9">
-      <span class="slide-tag">MANUAL OPERATIVO • JUEGO 1: FOOTBALL GRIDS (JUGADOR)</span>
-      <h2 class="slide-title">Football Grids: Cómo Aparta Casillas y Gana el Comensal</h2>
-      <p class="slide-desc">
-        Cuatro momentos de emoción en un solo partido que mantienen a la mesa consumiendo de principio a fin.
-      </p>
-
-      <div class="grid-split">
-        <div>
-          <div class="card" style="border-left:3.5px solid var(--gold); margin-bottom:12px;">
-            <h3 class="card-title" style="color:var(--gold);">📱 Selección Táctil en Celular</h3>
-            <p class="card-text">
-              El cliente abre el tablero interactivo de 10x10. Toca las casillas vacías que desea apartar y se iluminan con su nombre o apodo.
+            <h4 class="card-title" style="color:var(--orange);">📱 Cómo se Juega (Comensal)</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              El cliente toca en su celular las casillas que desea apartar en la cuadrícula 10x10; quedan marcadas con su nombre.
             </p>
           </div>
 
-          <div class="card" style="border-left:3.5px solid var(--green);">
-            <h3 class="card-title" style="color:var(--green);">🏆 4 Momentos de Premiación</h3>
-            <div class="step-box step-box-green" style="margin-bottom:6px;">
-              <div class="step-title">1Q: Botana de Bienvenida</div>
-              <div style="font-size:11px; color:var(--text-muted);">Emoción rápida desde el primer cuarto.</div>
-            </div>
-            <div class="step-box step-box-green" style="margin-bottom:6px;">
-              <div class="step-title">Medio Tiempo: Ronda de Bebidas</div>
-              <div style="font-size:11px; color:var(--text-muted);">Mantiene el consumo durante el descanso.</div>
-            </div>
-            <div class="step-box step-box-green" style="margin-bottom:6px;">
-              <div class="step-title">3Q: Postre o Alitas al Centro</div>
-              <div style="font-size:11px; color:var(--text-muted);">Revive la competencia en la segunda mitad.</div>
-            </div>
-            <div class="step-box step-box-green">
-              <div class="step-title">Final: Premio Mayor del Día</div>
-              <div style="font-size:11px; color:var(--text-muted);">Mantiene las mesas llenas hasta el último segundo.</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="photo-frame photo-frame-contain">
-          <img src="img/games/badge_grids.png" alt="Insignia Grids" />
-          <div class="photo-caption">Insignia Oficial de Football Grids</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 10: MANUAL QUINIELAS (ADMIN) -->
-    <section class="slide" data-index="10">
-      <span class="slide-tag">MANUAL OPERATIVO • JUEGO 2: QUINIELAS & PICK'EM (ADMIN)</span>
-      <h2 class="slide-title">Quinielas & Pick'em: Creación Masiva con ESPN en 45 Segundos</h2>
-      <p class="slide-desc">
-        El gerente no pierde tiempo escribiendo partidos a mano; la API de ESPN y la IA importan la jornada completa en 1 clic.
-      </p>
-
-      <div class="grid-split">
-        <div>
-          <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--gold);">
-            <h4 class="card-title" style="color:var(--gold);">1. Asignar Nombre y Modo</h4>
-            <p class="card-text">
-              Escribir nombre (ej. «Semana 1 NFL Juriquilla»). Elegir modo Marcador Exacto o Quiniela Híbrida (Pick'em solo ganador).
-            </p>
-          </div>
-
-          <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--green);">
-            <h4 class="card-title" style="color:var(--green);">2. Importación Masiva en 1 Clic</h4>
-            <p class="card-text">
-              Seleccionar deporte y rango de fechas (7 a 30 días). Tocar «🔍 Buscar Partidos». Se importan escudos, horarios y líneas.
+          <div class="card" style="border-left:3.5px solid var(--green); margin-bottom:8px;">
+            <h4 class="card-title" style="color:var(--green);">🏆 Cómo se Gana</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              Al final de cada cuarto (1Q, Medio Tiempo, 3Q y Final), la app toma el último dígito del marcador oficial. La casilla donde se cruzan los números brilla en dorado y notifica al comensal en su pantalla.
             </p>
           </div>
 
           <div class="card" style="border-left:3.5px solid var(--blue);">
-            <h4 class="card-title" style="color:var(--blue);">3. Sincronización en Vivo</h4>
-            <p class="card-text">
-              Botón «🔒 Bloquear» antes del primer juego y «🔄 Sincronizar ESPN» para jalar marcadores finales y recalcular la tabla.
+            <h4 class="card-title" style="color:var(--blue);">💡 Propuesta de Premios</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              4 ganadores por partido (1Q: Botana / Halftime: Ronda o tarro de cerveza / 3Q: Orden de boneless / Final: Certificado de regalo o cortesía estelar).
             </p>
           </div>
         </div>
 
         <div class="photo-frame photo-frame-contain">
-          <img src="img/presentation/screenshot_quiniela_picks.png" alt="Quiniela Admin Selection" />
-          <div class="photo-caption">Selección Masiva de Partidos con ESPN</div>
+          <img src="img/promo/tarjeta_2_vive_la_nfl.png" alt="Tablero Grids NFL" />
+          <div class="photo-caption">Tablero de 100 Casillas NFL y Premios por Cuarto</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 11: MANUAL QUINIELAS (JUGADOR) -->
-    <section class="slide" data-index="11">
-      <span class="slide-tag">MANUAL OPERATIVO • JUEGO 2: QUINIELAS (JUGADOR)</span>
-      <h2 class="slide-title">Quinielas & Pick'em: Cómo Juega, Suma Puntos y Sigue la Tabla</h2>
+    <!-- LÁMINA 7: JUEGO 2 — QUINIELAS & PICK’EM DEPORTIVO -->
+    <section class="slide" data-index="7">
+      <span class="slide-tag">JUEGOS • QUINIELAS & PICK'EM</span>
+      <h2 class="slide-title">Juego 2 — Quinielas & Pick’EM Deportivo</h2>
       <p class="slide-desc">
-        Sistema visual interactivo con feedback por colores que detona la adrenalina con cada anotación en la TV.
+        Tarjetas de partidos y Tabla de Posiciones en Vivo con evaluación automática oficial de ESPN.
       </p>
 
       <div class="grid-split">
         <div>
-          <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--green);">
-            <h4 class="card-title" style="color:var(--green);">🟩 +3 Puntos: Marcador Exacto (Verde Esmeralda)</h4>
-            <p class="card-text">
-              Si el cliente acierta exactamente el resultado del partido, su tarjeta brilla en verde brillante y suma 3 puntos al ranking general.
+          <div class="card" style="border-left:3.5px solid var(--gold); margin-bottom:8px;">
+            <h4 class="card-title" style="color:var(--gold);">⚙️ Cómo se Crea (Admin en 45s)</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              1. Asignar nombre (ej. «Liga MX Jornada 8 Juriquilla»).<br>
+              2. Seleccionar deporte y rango de fechas (7 a 30 días) y pulsar 🔍 Buscar Partidos. Importa escudos y horarios de ESPN en bloque.<br>
+              3. Clic en Crear Quiniela y pulsar 🔒 Bloquear al iniciar el primer partido.
             </p>
           </div>
 
-          <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--gold);">
-            <h4 class="card-title" style="color:var(--gold);">🟨 +1 Punto: Ganador Acertado (Dorado)</h4>
-            <p class="card-text">
-              Si no acertó el marcador exacto pero sí acertó quién ganó el encuentro, recibe 1 punto con medalla dorada.
+          <div class="card" style="border-left:3.5px solid var(--orange); margin-bottom:8px;">
+            <h4 class="card-title" style="color:var(--orange);">📱 Cómo se Juega (Comensal)</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              Ingresa sus pronósticos (marcador exacto o ganador simple). Sigue la Tabla de Posiciones en Vivo viendo cómo sube en el ranking jugada a jugada.
             </p>
           </div>
 
-          <div class="card" style="border-left:3.5px solid var(--orange);">
-            <h4 class="card-title" style="color:var(--orange);">🏆 Leaderboard en Vivo & Podio Automático</h4>
-            <p class="card-text">
-              Los clientes consultan su posición en tiempo real compitiendo contra las demás mesas. Al silbatazo final, la app corona automáticamente al 1°, 2° y 3° lugar.
+          <div class="card" style="border-left:3.5px solid var(--green); margin-bottom:8px;">
+            <h4 class="card-title" style="color:var(--green);">🏆 Cómo se Gana</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              • 🟩 <b>+3 Puntos:</b> Marcador exacto (tarjeta verde esmeralda).<br>
+              • 🟨 <b>+1 Punto:</b> Acierto al ganador (medalla dorada).<br>
+              Al concluir la jornada, 🔄 Sincronizar ESPN evalúa la tabla y corona automáticamente el podio (1°, 2° y 3° lugar).
+            </p>
+          </div>
+
+          <div class="card" style="border-left:3.5px solid var(--blue);">
+            <h4 class="card-title" style="color:var(--blue);">💡 Propuesta Comercial</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              El premio mayor se entrega como cupón canjeable de lunes a jueves, garantizando aforo entre semana.
             </p>
           </div>
         </div>
 
         <div class="photo-frame photo-frame-contain">
-          <img src="img/presentation/quiniela_live_badges.png" alt="Puntos Verde y Dorado" />
-          <div class="photo-caption">Tarjetas de Juego con Puntos Verde (+3) y Dorado (+1)</div>
+          <img src="img/presentation/quiniela_live_badges.png" alt="Puntuación Verde y Dorado" />
+          <div class="photo-caption">Tarjetas de Pronóstico y Puntuación Verde (+3) y Oro (+1)</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 12: MANUAL SURVIVOR (ADMIN) -->
-    <section class="slide" data-index="12">
-      <span class="slide-tag">MANUAL OPERATIVO • JUEGO 3: SURVIVOR (ADMIN)</span>
-      <h2 class="slide-title">Manual: Survivor Multi-Semana — Panel del Gerente (admin.html)</h2>
+    <!-- LÁMINA 8: JUEGO 3 — SURVIVOR MULTI-SEMANA (RETENCIÓN TOTAL) -->
+    <section class="slide" data-index="8">
+      <span class="slide-tag">JUEGOS • SURVIVOR</span>
+      <h2 class="slide-title">Juego 3 — Survivor Multi-Semana (Retención Total)</h2>
       <p class="slide-desc">
-        Gestión de ligas de eliminación directa que garantizan clientes recurrentes semana tras semana.
+        Panel de Sobrevivientes Activos vs. Eliminados que garantiza clientes fieles cada domingo.
       </p>
 
       <div class="grid-split">
         <div>
-          <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--gold);">
-            <h4 class="card-title" style="color:var(--gold);">1. Crear Torneo Survivor</h4>
-            <p class="card-text">
-              Clic en «➕ Crear Nuevo Survivor», asignar nombre (ej. «Survivor NFL 2026 Juriquilla») y definir sucursal.
+          <div class="card" style="border-left:3.5px solid var(--gold); margin-bottom:8px;">
+            <h4 class="card-title" style="color:var(--gold);">⚙️ Cómo se Crea (Admin)</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              1. Clic en ➕ Crear Nuevo Survivor (ej. «Survivor NFL Temporada Regular»).<br>
+              2. Cada semana se bloquea antes de los partidos.<br>
+              3. Al terminar la semana, pulsar ⚡ Evaluar Survivor con ESPN: la app contrasta marcadores y elimina automáticamente a quienes fallaron.
             </p>
           </div>
 
-          <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--orange);">
-            <h4 class="card-title" style="color:var(--orange);">2. Bloqueo Semanal (Lock)</h4>
-            <p class="card-text">
-              Selector de semana activa con casilla «🔒 Bloquear Pronósticos» antes del partido de jueves o domingo.
+          <div class="card" style="border-left:3.5px solid var(--orange); margin-bottom:8px;">
+            <h4 class="card-title" style="color:var(--orange);">📱 Cómo se Juega (Comensal)</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              • <b>Regla de Oro:</b> Elige un equipo por semana. Si gana, avanzas; si empata o pierde, quedas ELIMINADO.<br>
+              • <b>No Repetición:</b> No puedes volver a seleccionar a un equipo que ya utilizaste en semanas anteriores.
             </p>
           </div>
 
-          <div class="card" style="border-left:3.5px solid var(--green);">
-            <h4 class="card-title" style="color:var(--green);">3. Auto-Evaluación ESPN</h4>
-            <p class="card-text">
-              Botón «⚡ Evaluar Survivor con ESPN» compara elecciones contra resultados oficiales y elimina a quienes eligieron equipos derrotados.
+          <div class="card" style="border-left:3.5px solid var(--green); margin-bottom:8px;">
+            <h4 class="card-title" style="color:var(--green);">🏆 Cómo se Gana</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              Gana el último comensal que sobreviva al corte final de las semanas.
+            </p>
+          </div>
+
+          <div class="card" style="border-left:3.5px solid var(--blue);">
+            <h4 class="card-title" style="color:var(--blue);">💡 Propuesta Comercial</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              Genera un compromiso semanal donde los sobrevivientes regresan cada domingo al restaurante para no perderse a su equipo.
             </p>
           </div>
         </div>
 
         <div class="photo-frame photo-frame-contain">
-          <img src="img/presentation/survivor_view.png" alt="Survivor Dashboard" />
+          <img src="img/presentation/survivor_view.png" alt="Survivor Activos vs Eliminados" />
           <div class="photo-caption">Panel de Sobrevivientes Activos vs Eliminados</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 13: MANUAL SURVIVOR (JUGADOR) -->
-    <section class="slide" data-index="13">
-      <span class="slide-tag">MANUAL OPERATIVO • JUEGO 3: SURVIVOR (JUGADOR)</span>
-      <h2 class="slide-title">Manual: Survivor — La Regla de Oro que Asegura Visitas Semanales</h2>
+    <!-- LÁMINA 9: JUEGO 4 — FIRST STRIKER WINS (EL MINUTO DEL PRIMER GOL) -->
+    <section class="slide" data-index="9">
+      <span class="slide-tag">JUEGOS • FIRST STRIKER WINS</span>
+      <h2 class="slide-title">Juego 4 — First Striker Wins (El Minuto del Primer Gol)</h2>
       <p class="slide-desc">
-        Mecánica de supervivencia implacable que convierte una jornada deportiva en una cita fija cada domingo.
+        Planilla de bloques de tiempo y botón de detección en vivo para premiar al arranque del partido.
       </p>
 
       <div class="grid-split">
         <div>
-          <div class="card" style="border-left:3.5px solid var(--gold); margin-bottom:10px;">
-            <span style="color:var(--gold); font-size:11px; font-weight:900;">REGLA 1</span>
-            <h4 style="color:#fff; font-size:15px; margin:2px 0;">1 Equipo por Semana</h4>
-            <p class="card-text">El cliente elige a su favorito de la jornada. Si gana, sigue vivo; si empata o pierde, queda <b>ELIMINADO</b>.</p>
-          </div>
-
-          <div class="card" style="border-left:3.5px solid var(--orange); margin-bottom:10px;">
-            <span style="color:var(--orange); font-size:11px; font-weight:900;">REGLA 2</span>
-            <h4 style="color:#fff; font-size:15px; margin:2px 0;">Prohibido Repetir Equipos</h4>
-            <p class="card-text">Una vez que eliges un equipo (ej. Chiefs en semana 1), la app lo bloquea; jamás podrás volver a seleccionarlo.</p>
-          </div>
-
-          <div class="card" style="border-left:3.5px solid var(--green);">
-            <span style="color:var(--green); font-size:11px; font-weight:900;">IMPACTO</span>
-            <h4 style="color:#fff; font-size:15px; margin:2px 0;">Retención Extrema</h4>
-            <p class="card-text">Los sobrevivientes regresan religiosamente cada semana para no perderse a su equipo, asegurando consumo sostenido.</p>
-          </div>
-        </div>
-
-        <div class="photo-frame photo-frame-contain">
-          <img src="img/games/badge_survivor.png" alt="Insignia Survivor" />
-          <div class="photo-caption">Survivor: Competencia de Eliminación Directa</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 14: MANUAL FIRST STRIKER (ADMIN) -->
-    <section class="slide" data-index="14">
-      <span class="slide-tag">MANUAL OPERATIVO • JUEGO 4: FIRST STRIKER (ADMIN)</span>
-      <h2 class="slide-title">First Striker Wins: Planilla de 15 Minutos y Detección en Vivo</h2>
-      <p class="slide-desc">
-        El juego diseñado para fútbol (Liga MX / Champions) que premia desde el primer tiempo sin esperar 90 minutos.
-      </p>
-
-      <div class="grid-split">
-        <div>
-          <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--gold);">
-            <h4 class="card-title" style="color:var(--gold);">1. Creación con ESPN</h4>
-            <p class="card-text">
-              Seleccionar liga de fútbol, buscar partido en ESPN y pulsar «Crear Juego Minuto del Gol». Se abren los 7 bloques: 0-15', 16-30', 31-45', 46-60', 61-75', 76-90' y Sin Gol.
+          <div class="card" style="border-left:3.5px solid var(--gold); margin-bottom:8px;">
+            <h4 class="card-title" style="color:var(--gold);">⚙️ Cómo se Crea (Admin en 15s)</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              En un partido de fútbol (Liga MX, Champions, Clásicos), presionar Crear Juego Minuto del Gol. Genera los bloques automáticos: 0-15', 16-30', 31-45', 46-60', 61-75', 76-90' y Sin Gol.
             </p>
           </div>
 
-          <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--green);">
-            <h4 class="card-title" style="color:var(--green);">2. Detección en Vivo de ESPN</h4>
-            <p class="card-text">
-              Botón «⚡ Detectar 1er Gol en Vivo (ESPN Oficial)» lee el minuto y segundo oficial de la anotación de forma automática.
+          <div class="card" style="border-left:3.5px solid var(--orange); margin-bottom:8px;">
+            <h4 class="card-title" style="color:var(--orange);">📱 Cómo se Juega (Comensal)</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              El cliente elige el bloque en el que caerá el primer gol antes del silbatazo inicial. No requiere esperar 90 minutos para festejar.
             </p>
           </div>
 
-          <div class="card" style="border-left:3.5px solid var(--orange);">
-            <h4 class="card-title" style="color:var(--orange);">3. Regla «El Más Cercano Sin Pasarse»</h4>
-            <p class="card-text">
-              Si el gol cae al minuto 18, gana el bloque 16-30'. Si nadie lo tenía, gana el bloque anterior ocupado más cercano. Módulos integrados para Tiempos Extras y Penales.
+          <div class="card" style="border-left:3.5px solid var(--green); margin-bottom:8px;">
+            <h4 class="card-title" style="color:var(--green);">🏆 Cómo se Gana</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              Al caer el gol, pulsar ⚡ Detectar 1er Gol en Vivo (ESPN). Si el gol cae al minuto 12, gana la mesa con el bloque 0-15'. (Aplica regla de cercanía si nadie lo tenía).
+            </p>
+          </div>
+
+          <div class="card" style="border-left:3.5px solid var(--blue);">
+            <h4 class="card-title" style="color:var(--blue);">💡 Propuesta Comercial</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              Entrega un premio rápido (shots, papas) al arranque del juego. Ganar temprano pone de excelente humor a la mesa y detona consumo en cascada durante el resto del partido.
             </p>
           </div>
         </div>
 
         <div class="photo-frame photo-frame-contain">
-          <img src="img/presentation/first_striker_board.png" alt="First Striker Board" />
-          <div class="photo-caption">Planilla Oficial de Bloques de Tiempo First Striker</div>
+          <img src="img/presentation/first_striker_board.png" alt="Planilla First Striker" />
+          <div class="photo-caption">Planilla de Bloques de 15 Minutos y Detección ESPN</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 15: MANUAL FIRST STRIKER (JUGADOR) -->
-    <section class="slide" data-index="15">
-      <span class="slide-tag">MANUAL OPERATIVO • JUEGO 4: FIRST STRIKER (JUGADOR)</span>
-      <h2 class="slide-title">First Striker Wins: Adrenalina y Ganadores Desde el Minuto 5</h2>
+    <!-- LÁMINA 10: JUEGO 5 — TRIVIA DEPORTIVA EN VIVO CON IA -->
+    <section class="slide" data-index="10">
+      <span class="slide-tag">JUEGOS • TRIVIA CON IA</span>
+      <h2 class="slide-title">Juego 5 — Trivia Deportiva en Vivo con IA</h2>
       <p class="slide-desc">
-        Elimina la apatía del inicio del partido y enciende el ánimo del comensal con premios inmediatos.
+        Pantalla proyectada de TV con QR/PIN y botones en celular para encender el medio tiempo.
       </p>
 
       <div class="grid-split">
         <div>
-          <div class="card" style="border-left:3.5px solid var(--gold); margin-bottom:10px;">
-            <h3 class="card-title" style="color:var(--gold);">⚡ Cero Espera Aburrida</h3>
-            <p class="card-text">
-              A diferencia de las quinielas donde hay que esperar 90 minutos, en First Striker la emoción arranca con el silbatazo inicial. El cliente toca el bloque en que cree que caerá el 1er gol.
+          <div class="card" style="border-left:3.5px solid var(--gold); margin-bottom:8px;">
+            <h4 class="card-title" style="color:var(--gold);">⚙️ Cómo se Crea (Admin en 10s con IA)</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              1. Clic en ✨ Crear Trivia con IA, teclear el tema (ej. «Clásico Nacional» o «Super Bowl»). Gemini genera de 5 a 10 preguntas con respuestas verificadas.<br>
+              2. Clic en 🖥️ Abrir Pantalla de TV para proyectar el PIN y QR gigante en las pantallas del restaurante.
             </p>
           </div>
 
-          <div class="card" style="border-left:3.5px solid var(--green); margin-bottom:10px;">
-            <h3 class="card-title" style="color:var(--green);">🍻 Celebración Temprana</h3>
-            <p class="card-text">
-              Si cae gol en el minuto 8, la mesa con el bloque 0-15' festeja de inmediato. El mesero les entrega su cortesía mientras el partido apenas va comenzando.
+          <div class="card" style="border-left:3.5px solid var(--orange); margin-bottom:8px;">
+            <h4 class="card-title" style="color:var(--orange);">📱 Cómo se Juega (Comensal)</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              El cliente ingresa con el PIN desde su mesa; su celular muestra 4 botones de colores y un temporizador de 15 segundos. Bonifica por acierto y velocidad.
             </p>
           </div>
 
-          <div class="card" style="border-left:3.5px solid var(--orange);">
-            <h3 class="card-title" style="color:var(--orange);">🍗 Consumo en Cascada</h3>
-            <p class="card-text">
-              Ganar temprano pone de excelente humor a la mesa, detonando pedidos de cerveza y comida adicionales durante el resto del encuentro.
+          <div class="card" style="border-left:3.5px solid var(--green); margin-bottom:8px;">
+            <h4 class="card-title" style="color:var(--green);">🏆 Cómo se Gana</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              El gerente presiona 🏆 Revelar Podio Final y las pantallas del restaurante proyectan a los 3 ganadores con fuegos artificiales digitales.
+            </p>
+          </div>
+
+          <div class="card" style="border-left:3.5px solid var(--blue);">
+            <h4 class="card-title" style="color:var(--blue);">💡 Propuesta Comercial</h4>
+            <p class="card-text" style="font-size:11.5px;">
+              Activa los medios tiempos de los partidos (momento muerto donde suele caer el consumo) manteniendo a la gente atenta y pidiendo rondas extra.
             </p>
           </div>
         </div>
 
         <div class="photo-frame photo-frame-contain">
-          <img src="img/promo/tarjeta_3_instinto_goleador.png" alt="Instinto Goleador" />
-          <div class="photo-caption">First Striker Wins: El Gol del Partido</div>
+          <img src="img/presentation/screenshot_podium_standings.png" alt="Podio de TV Trivia" />
+          <div class="photo-caption">Pantalla Proyectada de TV y Podio de Ganadores</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 16: MANUAL TRIVIA EN TV CON IA (ADMIN) -->
-    <section class="slide" data-index="16">
-      <span class="slide-tag">MANUAL OPERATIVO • JUEGO 5: TRIVIA EN TV (ADMIN)</span>
-      <h2 class="slide-title">Trivia Deportiva en TV con IA: Creación en 10s y Modo Bar Host</h2>
+    <!-- LÁMINA 11: HERRAMIENTAS ADICIONALES — GAMEDAY BINGO Y MARKETING -->
+    <section class="slide" data-index="11">
+      <span class="slide-tag">HERRAMIENTAS • BINGO & MARKETING</span>
+      <h2 class="slide-title">Lámina 11: Herramientas Adicionales — GameDay Bingo y Marketing</h2>
       <p class="slide-desc">
-        Inteligencia Artificial que genera trivias validadas y las proyecta en las televisiones del restaurante.
-      </p>
-
-      <div class="grid-split">
-        <div>
-          <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--gold);">
-            <h4 class="card-title" style="color:var(--gold);">1. Crear con Gemini IA (10s)</h4>
-            <p class="card-text">
-              Clic en «✨ Crear Trivia con IA». El gerente escribe el tema (ej. «Super Bowl e Historia NFL» o «Fútbol Mexicano») y la IA genera 5 a 10 preguntas con respuestas validadas.
-            </p>
-          </div>
-
-          <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--orange);">
-            <h4 class="card-title" style="color:var(--orange);">2. Proyección en Pantallas de TV</h4>
-            <p class="card-text">
-              Clic en «🖥️ Abrir Pantalla de TV». Proyecta en las pantallas del bar el código PIN y un código QR gigante para que todo el salón escanee desde su lugar.
-            </p>
-          </div>
-
-          <div class="card" style="border-left:3.5px solid var(--green);">
-            <h4 class="card-title" style="color:var(--green);">3. Control Remoto Host</h4>
-            <p class="card-text">
-              El gerente controla el ritmo: «▶️ Empezar Trivia Automática (10s)», «⏱️ Revelar Respuesta», «📊 Ver Posiciones» y «🏆 Podio Final».
-            </p>
-          </div>
-        </div>
-
-        <div class="photo-frame photo-frame-contain">
-          <img src="img/games/badge_trivia.png" alt="Insignia Trivia" />
-          <div class="photo-caption">Trivia Deportiva en Vivo en Pantallas del Restaurante</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 17: MANUAL TRIVIA EN TV (JUGADOR) -->
-    <section class="slide" data-index="17">
-      <span class="slide-tag">MANUAL OPERATIVO • JUEGO 5: TRIVIA EN TV (JUGADOR)</span>
-      <h2 class="slide-title">Trivia en TV: Dinamizar el Medio Tiempo y Eliminar Tiempos Muertos</h2>
-      <p class="slide-desc">
-        La solución definitiva para evitar que las mesas se distraigan o pidan la cuenta durante el descanso.
-      </p>
-
-      <div class="grid-split">
-        <div>
-          <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--gold);">
-            <h4 class="card-title" style="color:var(--gold);">1. Conexión Rápida con PIN</h4>
-            <p class="card-text">
-              El cliente escanea el QR de la tele o escribe el PIN en su celular para unirse a la partida en vivo sin descargas.
-            </p>
-          </div>
-
-          <div class="card" style="margin-bottom:10px; border-left:3.5px solid var(--orange);">
-            <h4 class="card-title" style="color:var(--orange);">2. Temporizador de 15 Segundos</h4>
-            <p class="card-text">
-              Cada pregunta aparece en pantalla y en los celulares con botones de colores. Quien contesta correctamente y más rápido suma puntos extra.
-            </p>
-          </div>
-
-          <div class="card" style="border-left:3.5px solid var(--green);">
-            <h4 class="card-title" style="color:var(--green);">3. Podio Final en las Pantallas</h4>
-            <p class="card-text">
-              Al concluir la trivia, las televisiones del restaurante proyectan a los 3 ganadores ante todo el público con animación de podio y fuegos artificiales.
-            </p>
-          </div>
-        </div>
-
-        <div class="photo-frame photo-frame-contain">
-          <img src="img/presentation/screenshot_podium_standings.png" alt="Trivia TV Podium" />
-          <div class="photo-caption">Podio de Ganadores y Pantalla de TV en Vivo</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 18: BINGO Y MATERIAL PROMOCIONAL -->
-    <section class="slide" data-index="18">
-      <span class="slide-tag">HERRAMIENTAS OPERATIVAS • BINGO & MARKETING</span>
-      <h2 class="slide-title">Manual: GameDay Bingo y Generador de Material para Redes y Mesas</h2>
-      <p class="slide-desc">
-        Herramientas complementarias para maximizar el ambiente en el restaurante y promover las dinámicas en redes sociales.
+        Cartón interactivo 5x5 y módulo generador de banners de difusión para WhatsApp e Instagram.
       </p>
 
       <div class="grid-split">
         <div>
           <div class="card" style="border-left:3.5px solid var(--gold); margin-bottom:12px;">
-            <h3 class="card-title" style="color:var(--gold);">🎯 GameDay Bingo (Cartón 5x5)</h3>
-            <p class="card-text" style="margin-bottom:8px;">
-              Cartones con sucesos reales: Touchdown largo, Gol de tiro libre, Tarjeta roja, Revisión de VAR, Gol de campo fallado.
+            <h4 class="card-title" style="color:var(--gold);">🎯 GameDay Bingo (Cartón 5x5)</h4>
+            <p class="card-text">
+              Casillas con sucesos reales (Touchdown largo, Gol de tiro libre, VAR, Tarjeta roja). Se valida con ESPN y el primer cliente en completar canta ¡BINGO! desde su celular.
             </p>
-            <div class="step-box">
-              <div class="step-title">VAR Automático con ESPN</div>
-              <div style="font-size:11.5px; color:var(--text-muted);">La app valida eventos oficiales y el primer cliente en completar su cartón canta ¡BINGO! en su mesa.</div>
-            </div>
           </div>
 
-          <div class="card" style="border-left:3.5px solid var(--orange);">
-            <h3 class="card-title" style="color:var(--orange);">🎨 Generador de Material Promocional</h3>
+          <div class="card" style="border-left:3.5px solid var(--orange); margin-bottom:12px;">
+            <h4 class="card-title" style="color:var(--orange);">🎨 Generador de Material Gráfico</h4>
             <p class="card-text">
-              Módulo interno para que la gerencia genere artes visuales en alta resolución listos para acrílicos de mesa o historias de Instagram y WhatsApp.
+              Módulo interno para gerencia que genera artes en alta resolución con el QR de la sucursal listos para imprimir acrílicos o publicar en historias de WhatsApp e Instagram.
+            </p>
+          </div>
+
+          <div class="card" style="border-left:3.5px solid var(--green);">
+            <h4 class="card-title" style="color:var(--green);">📲 Invitaciones Automáticas</h4>
+            <p class="card-text">
+              Enlaces directos para compartir en grupos de WhatsApp de comunidades y comensales frecuentes.
             </p>
           </div>
         </div>
 
         <div class="photo-frame photo-frame-contain">
-          <img src="img/promo/tarjeta_1_que_es_drinks_and_wins.png" alt="Material Promocional" />
-          <div class="photo-caption">Material Promocional y Dinámica de Bar</div>
+          <img src="img/promo/tarjeta_1_que_es_drinks_and_wins.png" alt="Bingo y Material Gráfico" />
+          <div class="photo-caption">Cartón Interactivo 5x5 y Material de Difusión</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 19: ESTRATEGIA DE PREMIOS -->
-    <section class="slide" data-index="19">
+    <!-- LÁMINA 12: INGENIERÍA FINANCIERA DE PREMIOS (ALTO VALOR, BAJO COSTO) -->
+    <section class="slide" data-index="12">
       <span class="slide-tag">RENTABILIDAD & COSTO • ESTRATEGIA DE PREMIOS</span>
-      <h2 class="slide-title">Ingeniería de Premios: Alto Valor Percibido con Bajo Costo de Insumo</h2>
+      <h2 class="slide-title">Lámina 12: Ingeniería Financiera de Premios (Alto Valor, Bajo Costo)</h2>
       <p class="slide-desc">
         Cómo premiar al cliente haciéndolo sentir un campeón mientras se protege el costo gastronómico del restaurante.
       </p>
@@ -1195,36 +966,36 @@
           <div class="card" style="border-left:3.5px solid var(--green); margin-bottom:10px;">
             <h4 class="card-title" style="color:var(--green);">🍗 Bajo Food Cost Real (&lt;20%-25%)</h4>
             <p class="card-text">
-              Se premia con insumos de barra y cocina cuyo costo es menor al 20%-25%: órdenes de alitas de cortesía, tarros de cerveza de barril, shots de la casa o postres. El restaurante regala experiencias gastronómicas, no efectivo.
+              Se premia con insumos de alto valor percibido: tarros de cerveza, shots, órdenes de papas o alitas de cortesía. Nunca se regala efectivo.
             </p>
           </div>
 
           <div class="card" style="border-left:3.5px solid var(--gold); margin-bottom:10px;">
-            <h4 class="card-title" style="color:var(--gold);">🍻 Efecto Mesa Ganadora</h4>
+            <h4 class="card-title" style="color:var(--gold);">🍻 El «Efecto Mesa Ganadora»</h4>
             <p class="card-text">
-              Nadie va solo a un sports bar a cobrar un premio. El ganador casi siempre va con 2 a 4 amigos que consumen hamburguesas, entradas y bebidas completas pagadas ($800 a $1,500 ticket).
+              Nadie va solo a cobrar un premio. El ganador invita a 2 a 4 amigos a su mesa. Mientras él consume su cortesía de bajo costo ($40-$60 pesos), sus acompañantes piden alimentos y bebidas pagadas, generando cuentas de $800 a $1,500 pesos.
             </p>
           </div>
 
           <div class="card" style="border-left:3.5px solid var(--orange);">
-            <h4 class="card-title" style="color:var(--orange);">🎟️ Retorno Entre Semana</h4>
+            <h4 class="card-title" style="color:var(--orange);">🎟️ Tráfico Garantizado Entre Semana</h4>
             <p class="card-text">
-              Los premios mayores se entregan como cupones válidos de Lunes a Jueves, convirtiendo el éxito del fin de semana en tráfico garantizado en los días más flojos.
+              Los premios mayores de quinielas y torneos se entregan como cupones válidos únicamente de lunes a jueves, levantando los días tradicionalmente tranquilos.
             </p>
           </div>
         </div>
 
         <div class="photo-frame">
-          <img src="img/presentation/fans_celebrating_table.jpg" alt="Efecto Mesa Ganadora" />
-          <div class="photo-caption">El Efecto Mesa Ganadora: Un Premio Detona Cuentas de 4 Personas</div>
+          <img src="img/presentation/fans_celebrating_table.jpg" alt="Mesa Ganadora" />
+          <div class="photo-caption">El «Efecto Mesa Ganadora»: Una Cortesía Detona Cuentas Completas</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 20: GAMIFICACIÓN DE MESEROS -->
-    <section class="slide" data-index="20">
+    <!-- LÁMINA 13: EL FACTOR HUMANO — GAMIFICACIÓN DEL SERVICIO -->
+    <section class="slide" data-index="13">
       <span class="slide-tag">EQUIPO & SERVICIO • EL FACTOR HUMANO</span>
-      <h2 class="slide-title">Gamificación de Meseros: Mejor Servicio, Más Venta y Mejores Propinas</h2>
+      <h2 class="slide-title">Lámina 13: El Factor Humano — Gamificación del Servicio</h2>
       <p class="slide-desc">
         La plataforma alinea los intereses del negocio con los del personal de servicio para crear embajadores entusiastas.
       </p>
@@ -1232,82 +1003,40 @@
       <div class="grid-split">
         <div>
           <div class="card" style="border-left:3.5px solid var(--gold); margin-bottom:12px;">
-            <h3 class="card-title" style="color:var(--gold);">📱 Atribución Directa en Mesa</h3>
+            <h4 class="card-title" style="color:var(--gold);">📱 Atribución Directa al Colaborador</h4>
             <p class="card-text">
-              Al registrarse, el comensal selecciona el nombre de su mesero. La gerencia sabe qué mesero está logrando que más clientes jueguen y consuman en su estación.
+              El comensal registra el nombre de su mesero. Esto permite a la gerencia identificar y premiar al personal que más promueve la dinámica.
             </p>
           </div>
 
           <div class="card" style="border-left:3.5px solid var(--green); margin-bottom:12px;">
-            <h3 class="card-title" style="color:var(--green);">💵 Incentivo Natural en Propinas</h3>
+            <h4 class="card-title" style="color:var(--green);">💵 Aumento en Cuentas y Propinas</h4>
             <p class="card-text">
-              Un comensal entretenido permanece 40 minutos más en el restaurante y pide 1 o 2 rondas adicionales. Esto eleva directamente el cheque y la propina para el mesero.
+              Un cliente entretenido se queda más tiempo y pide 1 o 2 rondas adicionales. Esto se traduce en tickets más altos y mejores propinas para el equipo de piso.
             </p>
           </div>
 
           <div class="card" style="border-left:3.5px solid var(--blue);">
-            <h3 class="card-title" style="color:var(--blue);">🤝 Rompehielos de Atención</h3>
+            <h4 class="card-title" style="color:var(--blue);">🤝 Excelente Rompehielos</h4>
             <p class="card-text">
-              El mesero no llega a presionar venta; llega ofreciendo un juego gratuito y entretenido de la casa, mejorando la simpatía y las reseñas del lugar.
+              El mesero no llega a presionar venta; llega ofreciendo un juego gratuito de la casa, generando simpatía y mejores reseñas en Google.
             </p>
           </div>
         </div>
 
         <div class="photo-frame">
-          <img src="img/presentation/waiter_qr_service.jpg" alt="Servicio de Meseros" />
-          <div class="photo-caption">Meseros Motivados: Mayor Venta y Mayores Propinas</div>
+          <img src="img/presentation/waiter_qr_service.jpg" alt="Mesero con QR" />
+          <div class="photo-caption">Meseros Motivados: Mejor Servicio y Mayores Propinas</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 21: CALENDARIO GRADUAL -->
-    <section class="slide" data-index="21">
-      <span class="slide-tag">CALENDARIO OPERATIVO • ESTRATEGIA GRADUAL</span>
-      <h2 class="slide-title">Estrategia Gradual: Calendario Quirúrgico sin Saturar al Cliente</h2>
-      <p class="slide-desc">
-        No se juegan todos los juegos todos los días; cada día de la semana tiene una dinámica deportiva específica.
-      </p>
-
-      <div class="grid-split">
-        <div class="grid-4" style="grid-template-columns: repeat(2, 1fr);">
-          <div class="card" style="border-top:3px solid var(--gold);">
-            <span style="color:var(--gold); font-size:11px; font-weight:900;">JUEVES</span>
-            <h4 style="color:#fff; font-size:14px; margin:2px 0 4px 0;">Thursday Night NFL</h4>
-            <p class="card-text" style="font-size:11.5px;">Quiniela exprés o First Striker para animar la noche y abrir el fin de semana.</p>
-          </div>
-
-          <div class="card" style="border-top:3px solid var(--orange);">
-            <span style="color:var(--orange); font-size:11px; font-weight:900;">VIERNES</span>
-            <h4 style="color:#fff; font-size:14px; margin:2px 0 4px 0;">Viernes Botanero</h4>
-            <p class="card-text" style="font-size:11.5px;">First Striker (El Minuto del Gol) en los partidos estelares nocturnos de Liga MX.</p>
-          </div>
-
-          <div class="card" style="border-top:3px solid var(--green);">
-            <span style="color:var(--green); font-size:11px; font-weight:900;">SÁB & DOM</span>
-            <h4 style="color:#fff; font-size:14px; margin:2px 0 4px 0;">Jornada Estelar</h4>
-            <p class="card-text" style="font-size:11.5px;">Grids de 100 Casillas en NFL estelar, Quinielas completas y Trivia en TV en medios tiempos.</p>
-          </div>
-
-          <div class="card" style="border-top:3px solid var(--blue);">
-            <span style="color:var(--blue); font-size:11px; font-weight:900;">LUNES</span>
-            <h4 style="color:#fff; font-size:14px; margin:2px 0 4px 0;">Monday Night</h4>
-            <p class="card-text" style="font-size:11.5px;">Cierre de jornada, resolución de Quiniela semanal y coronación del Survivor.</p>
-          </div>
-        </div>
-
-        <div class="photo-frame photo-frame-contain">
-          <img src="img/games/badge_quiniela.png" alt="Insignia Quiniela" />
-          <div class="photo-caption">Calendario Quirúrgico de Gamificación Deportiva</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- SLIDE 22: MÉTRICAS Y ROI -->
-    <section class="slide" data-index="22">
+    <!-- LÁMINA 14: RETORNO DE INVERSIÓN (KPIs CLAVE) -->
+    <section class="slide" data-index="14">
       <span class="slide-tag">IMPACTO EN NEGOCIO • MÉTRICAS Y RETORNO</span>
-      <h2 class="slide-title">Retorno de Inversión: Métricas Comprobadas en la Operación</h2>
+      <h2 class="slide-title">Lámina 14: Retorno de Inversión (KPIs Clave)</h2>
       <p class="slide-desc">
-        Impacto cuantitativo proyectado en base a la experiencia previa en barra y la prueba piloto en Juriquilla.
+        Impacto cuantitativo comprobado en base a la operación real y la prueba piloto en Juriquilla.
       </p>
 
       <div class="grid-split">
@@ -1315,78 +1044,79 @@
           <div class="stat-box">
             <div class="stat-number">+22%</div>
             <div class="stat-label">Ticket Promedio</div>
-            <p class="stat-desc">Mayor venta de cervezas y botanas por mesa.</p>
+            <p class="stat-desc">Mayor rotación de tarros y botanas por mesa durante las transmisiones.</p>
           </div>
 
           <div class="stat-box">
             <div class="stat-number" style="color:var(--green);">+35%</div>
             <div class="stat-label">Tiempo de Estancia</div>
-            <p class="stat-desc">Clientes permanecen hasta el silbatazo final.</p>
+            <p class="stat-desc">Los comensales se quedan hasta el final del evento para ver si ganaron.</p>
           </div>
 
           <div class="stat-box">
             <div class="stat-number" style="color:var(--orange);">3x a 4x</div>
-            <div class="stat-label">Frecuencia Mensual</div>
-            <p class="stat-desc">Retención de fanáticos que regresan cada semana.</p>
+            <div class="stat-label">Retención</div>
+            <p class="stat-desc">Fanáticos recurrentes que regresan cada semana por su revancha o por el Survivor.</p>
           </div>
 
           <div class="stat-box">
             <div class="stat-number" style="color:var(--blue);">$0</div>
             <div class="stat-label">Gasto en Papel</div>
-            <p class="stat-desc">Cero impresiones y cero errores manuales.</p>
+            <p class="stat-desc">Cero impresiones, hojas mojadas ni plumones en las mesas.</p>
           </div>
         </div>
 
         <div class="photo-frame">
-          <img src="img/presentation/sports_bar_atmosphere.jpg" alt="Impacto Financiero" />
+          <img src="img/presentation/sports_bar_atmosphere.jpg" alt="Retorno de Inversión" />
           <div class="photo-caption">Impacto Directo en Facturación y Rentabilidad</div>
         </div>
       </div>
     </section>
 
-    <!-- SLIDE 23: PLAN DE ACCIÓN Y CONCLUSIÓN EN JURIQUILLA -->
-    <section class="slide" data-index="23">
+    <!-- LÁMINA 15: PLAN DE ACTIVACIÓN EN JURIQUILLA Y CONCLUSIÓN -->
+    <section class="slide" data-index="15">
       <div class="grid-split">
         <div class="card" style="border-left:4px solid var(--gold); display:flex; flex-direction:column; justify-content:center;">
-          <span class="slide-tag">PLAN DE ACCIÓN • CONCLUSIÓN EN JURIQUILLA</span>
-          <h2 class="slide-title" style="font-size: clamp(24px, 3.2vw, 36px); margin-bottom: 8px;">
+          <span class="slide-tag">PLAN DE ACTIVACIÓN • CONCLUSIÓN EN JURIQUILLA</span>
+          <h2 class="slide-title" style="font-size: clamp(23px, 3vw, 34px); margin-bottom: 8px;">
             Llevemos la Experiencia de Juriquilla al <span style="color:var(--gold);">Siguiente Nivel</span>
           </h2>
-          <p class="slide-desc" style="font-size: 14px; margin-bottom: 14px;">
-            Drinks & Wins es una herramienta nacida de la operación real para hacer crecer el negocio: genera clientes leales, meseros motivados y un ambiente inigualable cada fin de semana.
-          </p>
 
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:16px;">
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:14px;">
             <div class="step-box" style="margin:0;">
               <span style="color:var(--gold); font-size:10px; font-weight:900;">PASO 1</span>
-              <div style="color:#fff; font-size:12px; font-weight:800;">Acrílicos QR en Mesas</div>
+              <div style="color:#fff; font-size:11.5px; font-weight:800;">Display Acrílico en Mesas</div>
             </div>
             <div class="step-box step-box-orange" style="margin:0;">
               <span style="color:var(--orange); font-size:10px; font-weight:900;">PASO 2</span>
-              <div style="color:#fff; font-size:12px; font-weight:800;">Charla de 15 Min al Personal</div>
+              <div style="color:#fff; font-size:11.5px; font-weight:800;">Charla Operativa (15 Min)</div>
             </div>
             <div class="step-box step-box-green" style="margin:0;">
               <span style="color:var(--green); font-size:10px; font-weight:900;">PASO 3</span>
-              <div style="color:#fff; font-size:12px; font-weight:800;">Estreno Steelers Nation</div>
+              <div style="color:#fff; font-size:11.5px; font-weight:800;">Estreno con Steelers Nation</div>
             </div>
             <div class="step-box step-box-blue" style="margin:0;">
               <span style="color:var(--blue); font-size:10px; font-weight:900;">PASO 4</span>
-              <div style="color:#fff; font-size:12px; font-weight:800;">Medir Consumo y Escalar</div>
+              <div style="color:#fff; font-size:11.5px; font-weight:800;">Medición con Dirección</div>
             </div>
           </div>
 
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <a href="Drinks_and_Wins_Presentacion_Ejecutiva.pptx" download class="btn-top btn-gold" style="padding:10px 18px; font-size:13px;">
+          <p style="font-size:12.5px; color:var(--gold-bright); font-style:italic; font-weight:800; margin-bottom:14px; text-align:center;">
+            «Drinks & Wins no es un gasto; es una herramienta de ventas, lealtad y servicio creada desde la operación real del restaurante.»
+          </p>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;">
+            <a href="Drinks_and_Wins_Presentacion_Ejecutiva.pptx" download class="btn-top btn-gold" style="padding:10px 18px; font-size:12.5px;">
               📥 Descargar PowerPoint (.pptx)
             </a>
-            <a href="index.html" class="btn-top" style="padding:10px 18px; font-size:13px;">
+            <a href="index.html" class="btn-top" style="padding:10px 18px; font-size:12.5px;">
               🎮 Probar la App en Vivo
             </a>
           </div>
         </div>
 
         <div class="photo-frame">
-          <img src="img/presentation/fans_celebrating_table.jpg" alt="Festejo Final" />
+          <img src="img/presentation/fans_celebrating_table.jpg" alt="Hagamos Fiesta" />
           <div class="photo-caption">Hagamos de Cada Partido una Fiesta en Juriquilla</div>
         </div>
       </div>
@@ -1399,7 +1129,7 @@
     <div class="progress-bar" id="progressBar"></div>
 
     <div class="slide-counter">
-      DIAPOSITIVA <span id="currentSlideNum">1</span> / <span id="totalSlidesNum">23</span>
+      LÁMINA <span id="currentSlideNum">1</span> / <span id="totalSlidesNum">15</span>
     </div>
 
     <div style="font-size:12px; color:var(--text-muted); display:flex; gap:6px; align-items:center;">
