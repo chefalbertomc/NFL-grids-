@@ -66,9 +66,10 @@
           <div class="form-group" style="flex: 1; min-width: 140px; margin: 0;">
             <label>Sucursal</label>
             <select id="selectStore">
-              <option value="Juriquilla">Juriquilla</option>
+              <option value="Juriquilla" selected>Juriquilla</option>
               <option value="Álamos">Álamos</option>
               <option value="Paseo Qro">Paseo Qro</option>
+              <option value="Todas las Sucursales">Todas las Sucursales</option>
             </select>
           </div>
           <div class="form-group" style="flex: 1; min-width: 140px; margin: 0;">
@@ -113,6 +114,18 @@
       <section class="card" id="panelManage">
         <h3 class="card-title">Administrar Grid</h3>
         
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label style="font-size: 11.5px; font-weight: 800; color: #ffd100; display: flex; align-items: center; gap: 5px;">
+            <span>🏢</span> Filtrar Grids por Sucursal / Tienda:
+          </label>
+          <select id="filterGridStore" style="font-size: 13px; font-weight: 700;">
+            <option value="Todas" selected>🌐 Todas las Sucursales</option>
+            <option value="Juriquilla">Juriquilla</option>
+            <option value="Álamos">Álamos</option>
+            <option value="Paseo Qro">Paseo Qro</option>
+          </select>
+        </div>
+
         <div class="form-group">
           <label>Seleccionar Grid Activo</label>
           <div class="flex-row" style="gap: 8px;">
@@ -222,9 +235,20 @@
         <h3 class="card-title">📋 Crear Nueva Quiniela</h3>
         <p class="card-subtitle">Busca partidos de cualquier fecha o liga (NFL / Colegial) y agrégalos a una misma Quiniela.</p>
 
-        <div class="form-group">
-          <label>Nombre de la Quiniela / Pick'em</label>
-          <input type="text" id="qName" placeholder="Ej. Semana 1 NFL 2026, Cartelera Especial, etc." style="font-size:14px; font-weight:700;" />
+        <div style="display:grid; grid-template-columns: 1.4fr 1fr; gap:10px; margin-bottom:10px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="font-size:11.5px; font-weight:800; color:#ffd100;">Nombre de la Quiniela / Pick'em</label>
+            <input type="text" id="qName" placeholder="Ej. Semana 1 NFL 2026, Cartelera Especial, etc." style="font-size:13.5px; font-weight:700;" />
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="font-size:11.5px; font-weight:800; color:#ffd100;">Sucursal / Tienda</label>
+            <select id="qStore" style="font-size:13px; font-weight:700;">
+              <option value="Juriquilla" selected>Juriquilla</option>
+              <option value="Álamos">Álamos</option>
+              <option value="Paseo Qro">Paseo Qro</option>
+              <option value="Todas las Sucursales">Todas las Sucursales</option>
+            </select>
+          </div>
         </div>
 
         <div class="form-group" style="margin-top: 10px; display: flex; align-items: center; gap: 8px;">
@@ -285,6 +309,18 @@
       <!-- MANAGE ACTIVE QUINIELAS -->
       <section class="card">
         <h3 class="card-title">⚙️ Gestionar Quinielas</h3>
+
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label style="font-size: 11.5px; font-weight: 800; color: #ffd100; display: flex; align-items: center; gap: 5px;">
+            <span>🏢</span> Filtrar Quinielas por Sucursal / Tienda:
+          </label>
+          <select id="selectQuinielaFilterStore" style="font-size: 13px; font-weight: 700;">
+            <option value="Todas" selected>🌐 Todas las Sucursales</option>
+            <option value="Juriquilla">Juriquilla</option>
+            <option value="Álamos">Álamos</option>
+            <option value="Paseo Qro">Paseo Qro</option>
+          </select>
+        </div>
 
         <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; margin-bottom:16px;">
           <div class="form-group" style="flex:1; min-width:200px; margin:0;">
@@ -357,6 +393,18 @@
           <button type="button" class="btn btn-primary" onclick="window.openCreateSurvivorModal()" style="width:auto; padding:8px 16px; font-size:12.5px; font-weight:900; border-radius:10px; display:inline-flex; align-items:center; gap:6px;">
             <span>➕</span> Crear Nuevo Survivor
           </button>
+        </div>
+
+        <div class="form-group" style="margin-bottom:10px;">
+          <label style="font-size: 11.5px; font-weight: 800; color: #ffd100; display: flex; align-items: center; gap: 5px;">
+            <span>🏢</span> Filtrar Torneos por Sucursal / Tienda:
+          </label>
+          <select id="survAdminFilterStore" style="font-size: 13px; font-weight: 700;">
+            <option value="Todas" selected>🌐 Todas las Sucursales</option>
+            <option value="Juriquilla">Juriquilla</option>
+            <option value="Álamos">Álamos</option>
+            <option value="Paseo Qro">Paseo Qro</option>
+          </select>
         </div>
 
         <div class="form-group" style="margin-bottom:0;">
@@ -471,11 +519,12 @@
         <p class="card-subtitle">Busca un partido de Fútbol o Deporte en ESPN para crear la planilla de 5 minutos en tiempo real.</p>
 
         <div class="form-group">
-          <label>Sucursal</label>
+          <label>Sucursal / Tienda</label>
           <select id="fgStore" style="font-size:14px; font-weight:700;">
-            <option value="Juriquilla">Juriquilla</option>
+            <option value="Juriquilla" selected>Juriquilla</option>
             <option value="Álamos">Álamos</option>
             <option value="Paseo Qro">Paseo Qro</option>
+            <option value="Todas las Sucursales">Todas las Sucursales</option>
           </select>
         </div>
 
@@ -558,6 +607,18 @@
       <!-- Manage Active First Striker Wins Games -->
       <section class="card">
         <h3 class="card-title">⚙️ Administrar First Striker Wins</h3>
+
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label style="font-size: 11.5px; font-weight: 800; color: #ffd100; display: flex; align-items: center; gap: 5px;">
+            <span>🏢</span> Filtrar Juegos por Sucursal / Tienda:
+          </label>
+          <select id="fgFilterStore" style="font-size: 13px; font-weight: 700;">
+            <option value="Todas" selected>🌐 Todas las Sucursales</option>
+            <option value="Juriquilla">Juriquilla</option>
+            <option value="Álamos">Álamos</option>
+            <option value="Paseo Qro">Paseo Qro</option>
+          </select>
+        </div>
 
         <div class="form-group">
           <label>Seleccionar Juego Activo</label>
@@ -734,11 +795,12 @@
         <p class="card-subtitle">Busca un partido de ESPN para vincular el VAR automático.</p>
 
         <div class="form-group" style="margin-bottom: 15px;">
-          <label>Sucursal Principal</label>
-          <select id="bingoStore" style="font-size:14px;">
-            <option value="matriz">Sucursal Matriz (La Paz)</option>
-            <option value="centro">Sucursal Centro</option>
-            <option value="sur">Sucursal Sur</option>
+          <label>Sucursal / Tienda</label>
+          <select id="bingoStore" style="font-size:14px; font-weight:700;">
+            <option value="Juriquilla" selected>Juriquilla</option>
+            <option value="Álamos">Álamos</option>
+            <option value="Paseo Qro">Paseo Qro</option>
+            <option value="Todas las Sucursales">Todas las Sucursales</option>
           </select>
         </div>
 
@@ -777,6 +839,18 @@
       <section class="card">
         <h3 class="card-title">Gestión de la Sala Activa</h3>
         <p class="card-subtitle">Administra los eventos del bingo y a los jugadores.</p>
+
+        <div class="form-group" style="margin-bottom: 10px;">
+          <label style="font-size: 11.5px; font-weight: 800; color: #ffd100; display: flex; align-items: center; gap: 5px;">
+            <span>🏢</span> Filtrar Salas por Sucursal / Tienda:
+          </label>
+          <select id="bingoFilterStore" style="font-size: 13px; font-weight: 700;">
+            <option value="Todas" selected>🌐 Todas las Sucursales</option>
+            <option value="Juriquilla">Juriquilla</option>
+            <option value="Álamos">Álamos</option>
+            <option value="Paseo Qro">Paseo Qro</option>
+          </select>
+        </div>
 
         <div class="form-group" style="margin-bottom: 20px;">
           <label>Seleccionar Sala de Bingo Activa</label>
@@ -824,6 +898,18 @@
           <button type="button" class="btn btn-primary" onclick="window.openCreateTriviaModal()" style="width:auto; padding:8px 16px; font-size:12.5px; font-weight:900; border-radius:10px; display:inline-flex; align-items:center; gap:6px; box-shadow:0 0 15px rgba(255,209,0,0.35);">
             <span>✨</span> Crear Trivia con IA
           </button>
+        </div>
+
+        <div class="form-group" style="margin-bottom:10px;">
+          <label style="font-size: 11.5px; font-weight: 800; color: #ffd100; display: flex; align-items: center; gap: 5px;">
+            <span>🏢</span> Filtrar Trivias por Sucursal / Tienda:
+          </label>
+          <select id="trivAdminFilterStore" style="font-size: 13px; font-weight: 700;">
+            <option value="Todas" selected>🌐 Todas las Sucursales</option>
+            <option value="Juriquilla">Juriquilla</option>
+            <option value="Álamos">Álamos</option>
+            <option value="Paseo Qro">Paseo Qro</option>
+          </select>
         </div>
 
         <div class="form-group" style="margin-bottom:0;">

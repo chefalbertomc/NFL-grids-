@@ -41,6 +41,11 @@
         loadActiveRoomDetails();
       });
     }
+
+    const filterEl = document.getElementById('bingoFilterStore');
+    if (filterEl) {
+      filterEl.addEventListener('change', renderFilteredBingoRoomsDropdown);
+    }
   }
 
   async function searchBingoGames() {
@@ -159,30 +164,63 @@
     }
   }
 
+  let allCachedBingoRooms = [];
+
+  function matchStoreFilter(gameStore, filterVal) {
+    if (!filterVal || filterVal === 'Todas' || filterVal === 'Todas las Sucursales') return true;
+    if (!gameStore) return true;
+    const g = gameStore.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const f = filterVal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return g.includes(f) || f.includes(g) || g.includes('todas');
+  }
+
+  function renderFilteredBingoRoomsDropdown() {
+    const dropdown = document.getElementById('bingoActiveRoomsDropdown');
+    if (!dropdown) return;
+    const filterEl = document.getElementById('bingoFilterStore');
+    const filterVal = filterEl ? filterEl.value : 'Todas';
+
+    const filtered = allCachedBingoRooms.filter(r => matchStoreFilter(r.store, filterVal));
+
+    dropdown.innerHTML = '<option value="" disabled selected>-- Selecciona una sala --</option>';
+    if (filtered.length === 0) {
+      dropdown.innerHTML = `<option value="" disabled selected>No hay salas en ${filterVal}</option>`;
+      const details = document.getElementById('bingoActiveRoomDetails');
+      if (details) details.style.display = 'none';
+      return;
+    }
+
+    filtered.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.id;
+      opt.textContent = `${d.roomName} (${d.store || 'Gral'})`;
+      dropdown.appendChild(opt);
+    });
+
+    if (activeBingoRoomId && filtered.some(r => r.id === activeBingoRoomId)) {
+      dropdown.value = activeBingoRoomId;
+    }
+  }
+
   function loadBingoRooms() {
     if (!db) return;
     const dropdown = document.getElementById('bingoActiveRoomsDropdown');
     
     if (unsubBingoRooms) unsubBingoRooms();
     unsubBingoRooms = db.collection('bingo_games').orderBy('createdAt', 'desc').onSnapshot(snap => {
-      dropdown.innerHTML = '<option value="" disabled selected>-- Selecciona una sala --</option>';
+      allCachedBingoRooms = [];
       if (snap.empty) {
-        dropdown.innerHTML = '<option value="" disabled selected>No hay salas activas</option>';
-        document.getElementById('bingoActiveRoomDetails').style.display = 'none';
+        if (dropdown) dropdown.innerHTML = '<option value="" disabled selected>No hay salas activas</option>';
+        const details = document.getElementById('bingoActiveRoomDetails');
+        if (details) details.style.display = 'none';
         return;
       }
 
       snap.forEach(doc => {
-        const d = doc.data();
-        const opt = document.createElement('option');
-        opt.value = doc.id;
-        opt.textContent = `${d.roomName} (${d.store})`;
-        dropdown.appendChild(opt);
+        allCachedBingoRooms.push({ id: doc.id, ...doc.data() });
       });
 
-      if (activeBingoRoomId) {
-        dropdown.value = activeBingoRoomId;
-      }
+      renderFilteredBingoRoomsDropdown();
     });
   }
 

@@ -200,6 +200,11 @@
       });
     }
 
+    const filterStoreEl = document.getElementById('selectQuinielaFilterStore');
+    if (filterStoreEl) {
+      filterStoreEl.addEventListener('change', renderFilteredQuinielasDropdown);
+    }
+
     const btnDelete = document.getElementById('btnDeleteQuiniela');
     if (btnDelete) {
       btnDelete.addEventListener('click', async () => {
@@ -479,10 +484,12 @@
     try {
       const ref = db.collection('quinielas').doc();
       const isHybrid = document.getElementById('chkIsHybrid')?.checked === true;
+      const storeVal = document.getElementById('qStore')?.value || 'Juriquilla';
       await ref.set({
         id: ref.id,
         name,
         sport: 'mixed',
+        store: storeVal,
         matches,
         active: true,
         autoApprove: document.getElementById('chkAutoApprove')?.checked === true,
@@ -506,6 +513,50 @@
     }
   }
 
+  let allCachedQuinielas = [];
+
+  function matchStoreFilter(gameStore, filterVal) {
+    if (!filterVal || filterVal === 'Todas' || filterVal === 'Todas las Sucursales') return true;
+    if (!gameStore) return true;
+    const g = gameStore.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const f = filterVal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return g.includes(f) || f.includes(g) || g.includes('todas');
+  }
+
+  function renderFilteredQuinielasDropdown() {
+    const sel = document.getElementById('selectActiveQuiniela');
+    const panel = document.getElementById('qManagePanel');
+    if (!sel) return;
+
+    const filterEl = document.getElementById('selectQuinielaFilterStore');
+    const filterVal = filterEl ? filterEl.value : 'Todas';
+
+    const filtered = allCachedQuinielas.filter(q => matchStoreFilter(q.store, filterVal));
+
+    sel.innerHTML = '';
+    if (filtered.length === 0) {
+      sel.innerHTML = `<option disabled selected>— Sin quinielas en ${filterVal} —</option>`;
+      if (panel) panel.style.display = 'none';
+      return;
+    }
+
+    filtered.forEach(q => {
+      const opt = document.createElement('option');
+      opt.value = q.id;
+      opt.textContent = `${q.store ? '[' + q.store + '] ' : ''}${q.name} (${q.matches?.length || 0} partidos)`;
+      sel.appendChild(opt);
+    });
+
+    if (!activeQuinielaId || !filtered.some(q => q.id === activeQuinielaId)) {
+      activeQuinielaId = sel.options[0]?.value;
+    }
+    if (activeQuinielaId) {
+      sel.value = activeQuinielaId;
+      if (panel) panel.style.display = 'block';
+      loadQuinielaStandings(activeQuinielaId);
+    }
+  }
+
   async function loadActiveQuinielas() {
     if (!db) return;
     const sel = document.getElementById('selectActiveQuiniela');
@@ -514,9 +565,10 @@
 
     sel.innerHTML = '<option disabled selected>— Cargando... —</option>';
     try {
-      const snap = await db.collection('quinielas').limit(20).get();
+      const snap = await db.collection('quinielas').limit(50).get();
       if (snap.empty) {
         sel.innerHTML = '<option disabled selected>— No hay quinielas creadas —</option>';
+        allCachedQuinielas = [];
         if (panel) panel.style.display = 'none';
         return;
       }
@@ -524,22 +576,9 @@
       snap.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
       docs.sort((a, b) => (b.createdAt?.seconds || b.createdAt || 0) - (a.createdAt?.seconds || a.createdAt || 0));
 
-      sel.innerHTML = '';
-      docs.forEach(q => {
-        const opt = document.createElement('option');
-        opt.value = q.id;
-        opt.textContent = `${q.name} (${q.matches?.length || 0} partidos)`;
-        sel.appendChild(opt);
-      });
+      allCachedQuinielas = docs;
       attachGlobalQuinielasWatchers(docs);
-      if (!activeQuinielaId || !Array.from(sel.options).some(o => o.value === activeQuinielaId)) {
-        activeQuinielaId = sel.options[0]?.value;
-      }
-      if (activeQuinielaId) {
-        sel.value = activeQuinielaId;
-        if (panel) panel.style.display = 'block';
-        loadQuinielaStandings(activeQuinielaId);
-      }
+      renderFilteredQuinielasDropdown();
     } catch (err) {
       console.error('[QAdmin] load quinielas error:', err);
     }

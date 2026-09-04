@@ -347,6 +347,45 @@
     }
   }
 
+  let allCachedGrids = [];
+
+  function matchStoreFilter(gameStore, filterVal) {
+    if (!filterVal || filterVal === 'Todas' || filterVal === 'Todas las Sucursales') return true;
+    if (!gameStore) return true; // Mantener retrocompatibilidad con grids antiguos
+    const g = gameStore.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const f = filterVal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return g.includes(f) || f.includes(g) || g.includes('todas');
+  }
+
+  function renderFilteredGridsDropdown() {
+    if (!selectGame) return;
+    const filterEl = document.getElementById('filterGridStore');
+    const filterVal = filterEl ? filterEl.value : 'Todas';
+
+    const filtered = allCachedGrids.filter(g => matchStoreFilter(g.store, filterVal));
+
+    selectGame.innerHTML = '';
+    if (filtered.length === 0) {
+      selectGame.innerHTML = `<option disabled selected>— Sin grids en ${filterVal} —</option>`;
+      return;
+    }
+
+    filtered.forEach(g => {
+      const opt = document.createElement('option');
+      opt.value = g.code;
+      opt.textContent = `${g.away} @ ${g.home} (${g.store || 'Gral'} — ${g.code})`;
+      selectGame.appendChild(opt);
+    });
+
+    if (selectGame.options.length) {
+      if (!currentGridCode || !Array.from(selectGame.options).some(o => o.value === currentGridCode)) {
+        currentGridCode = selectGame.options[0].value;
+      }
+      selectGame.value = currentGridCode;
+      loadGameDetail();
+    }
+  }
+
   async function loadGamesDropdown() {
     if (!selectGame) return;
     selectGame.innerHTML = '';
@@ -355,9 +394,11 @@
       const snap = await db.collection('games').orderBy('createdAt', 'desc').get();
       if (snap.empty) {
         selectGame.innerHTML = '<option disabled selected>— No hay grids creados —</option>';
+        allCachedGrids = [];
         return;
       }
 
+      allCachedGrids = [];
       let validGamesCount = 0;
 
       for (const doc of snap.docs) {
@@ -375,10 +416,13 @@
         }
 
         validGamesCount++;
-        const opt = document.createElement('option');
-        opt.value = code;
-        opt.textContent = `${away} @ ${home} (${g.store || ''} — ${code})`;
-        selectGame.appendChild(opt);
+        allCachedGrids.push({
+          code,
+          away,
+          home,
+          store: g.store || '',
+          data: g
+        });
       }
 
       if (validGamesCount === 0) {
@@ -386,14 +430,7 @@
         return;
       }
 
-      // Select first valid game by default if not set or invalid
-      if (selectGame.options.length) {
-        if (!currentGridCode || !Array.from(selectGame.options).some(o => o.value === currentGridCode)) {
-          currentGridCode = selectGame.options[0].value;
-        }
-        selectGame.value = currentGridCode;
-        loadGameDetail();
-      }
+      renderFilteredGridsDropdown();
     } catch (e) {
       console.error('[admin] Error listing grids:', e);
     }
@@ -401,6 +438,8 @@
 
   function setupGridUI() {
     if (selectGame) selectGame.addEventListener('change', loadGameDetail);
+    const filterGridStore = document.getElementById('filterGridStore');
+    if (filterGridStore) filterGridStore.addEventListener('change', renderFilteredGridsDropdown);
     if (btnCreateGame) btnCreateGame.addEventListener('click', createGridGame);
     if (btnLoadGame) btnLoadGame.addEventListener('click', loadGameDetail);
     if (btnLock) btnLock.addEventListener('click', () => toggleGridLock(true));
@@ -1733,6 +1772,8 @@
 
     if (btnLockFG) btnLockFG.addEventListener('click', () => setFGLock(true));
     if (btnUnlockFG) btnUnlockFG.addEventListener('click', () => setFGLock(false));
+    const fgFilterStore = document.getElementById('fgFilterStore');
+    if (fgFilterStore) fgFilterStore.addEventListener('change', renderFilteredFGGamesDropdown);
     if (btnToggleFGExtraTime) btnToggleFGExtraTime.addEventListener('click', toggleFGExtraTime);
     if (btnToggleFGPenalties) btnToggleFGPenalties.addEventListener('click', toggleFGPenalties);
     if (btnDrawFGPenalties) btnDrawFGPenalties.addEventListener('click', drawFGPenalties);
@@ -1952,6 +1993,36 @@
     }
   }
 
+  let allCachedFGGames = [];
+
+  function renderFilteredFGGamesDropdown() {
+    const dropdown = document.getElementById('fgActiveGamesDropdown');
+    if (!dropdown) return;
+    const filterEl = document.getElementById('fgFilterStore');
+    const filterVal = filterEl ? filterEl.value : 'Todas';
+
+    const filtered = allCachedFGGames.filter(g => matchStoreFilter(g.store, filterVal));
+
+    dropdown.innerHTML = '';
+    if (filtered.length === 0) {
+      dropdown.innerHTML = `<option value="">-- Sin juegos en ${filterVal} --</option>`;
+      const panel = document.getElementById('fgManagePanel');
+      if (panel) panel.style.display = 'none';
+      return;
+    }
+
+    filtered.forEach(game => {
+      const opt = document.createElement('option');
+      opt.value = game.id;
+      opt.textContent = `${game.store || 'Gral'} — ${game.gameName} (${game.active ? 'Activo' : 'Cerrado'})`;
+      dropdown.appendChild(opt);
+    });
+
+    if (!fgSelectedGameId || !filtered.some(g => g.id === fgSelectedGameId)) {
+      if (dropdown.value) loadFGGameDetails(dropdown.value);
+    }
+  }
+
   function loadFGGamesList() {
     if (!db) return;
     const dropdown = document.getElementById('fgActiveGamesDropdown');
@@ -1962,7 +2033,7 @@
     fgUnsubGamesDropdown = db.collection('first_goal_games')
       .orderBy('createdAt', 'desc')
       .onSnapshot(snap => {
-        dropdown.innerHTML = '';
+        allCachedFGGames = [];
         if (snap.empty) {
           dropdown.innerHTML = '<option value="">-- No hay juegos --</option>';
           return;
@@ -1970,16 +2041,13 @@
 
         snap.forEach(doc => {
           const game = doc.data();
-          const opt = document.createElement('option');
-          opt.value = doc.id;
-          opt.textContent = `${game.store || 'Gral'} — ${game.gameName} (${game.active ? 'Activo' : 'Cerrado'})`;
-          dropdown.appendChild(opt);
+          allCachedFGGames.push({
+            id: doc.id,
+            ...game
+          });
         });
 
-        // Auto load first game if none loaded yet
-        if (!fgSelectedGameId && dropdown.value) {
-          loadFGGameDetails(dropdown.value);
-        }
+        renderFilteredFGGamesDropdown();
       }, err => {
         console.error('[fg] Error loading games dropdown:', err);
       });

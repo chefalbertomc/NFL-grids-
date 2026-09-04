@@ -573,6 +573,11 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
   window.initTriviaAdmin = function() {
     if (window.db) {
       db = window.db;
+      const filterEl = document.getElementById('trivAdminFilterStore');
+      if (filterEl && !filterEl._bound) {
+        filterEl._bound = true;
+        filterEl.addEventListener('change', renderTriviaSelect);
+      }
       loadTriviaGames();
       loadGeminiKeyFromFirestore();
     } else {
@@ -625,24 +630,44 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     }
   }
 
+  function matchStoreFilter(gameStore, filterVal) {
+    if (!filterVal || filterVal === 'Todas' || filterVal === 'Todas las Sucursales') return true;
+    if (!gameStore) return true;
+    const g = gameStore.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const f = filterVal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return g.includes(f) || f.includes(g) || g.includes('todas');
+  }
+
   function renderTriviaSelect() {
     const sel = document.getElementById('trivAdminGameSelect');
     if (!sel) return;
     sel.innerHTML = '';
 
-    if (activeTriviaGames.length === 0) {
-      sel.innerHTML = '<option value="">-- No hay trivias creadas --</option>';
+    const filterEl = document.getElementById('trivAdminFilterStore');
+    const filterVal = filterEl ? filterEl.value : 'Todas';
+
+    const filtered = activeTriviaGames.filter(g => matchStoreFilter(g.store, filterVal));
+
+    if (filtered.length === 0) {
+      sel.innerHTML = `<option value="">-- Sin trivias en ${filterVal} --</option>`;
+      renderNoTriviaUI();
       return;
     }
 
-    activeTriviaGames.forEach(g => {
+    filtered.forEach(g => {
       const opt = document.createElement('option');
       opt.value = g.id;
       const statusIcon = g.status === 'lobby' ? '⏳ Lobby' : (g.status === 'finished' || g.status === 'podium' ? '🏁 Finalizada' : '🔴 En Vivo');
-      opt.textContent = `${g.title} [PIN: ${g.pin || g.id}] (${statusIcon})`;
+      opt.textContent = `${g.title} [${g.store || 'Todas'}] [PIN: ${g.pin || g.id}] (${statusIcon})`;
       if (g.id === selectedTriviaId) opt.selected = true;
       sel.appendChild(opt);
     });
+
+    if (!selectedTriviaId || !filtered.some(g => g.id === selectedTriviaId)) {
+      selectedTriviaId = filtered[0].id;
+      sel.value = selectedTriviaId;
+      loadSelectedTrivia(selectedTriviaId);
+    }
   }
 
   window.onTriviaGameChange = function(gameId) {

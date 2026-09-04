@@ -21,6 +21,11 @@
   window.initSurvivorAdmin = function() {
     if (window.db) {
       db = window.db;
+      const filterEl = document.getElementById('survAdminFilterStore');
+      if (filterEl && !filterEl._bound) {
+        filterEl._bound = true;
+        filterEl.addEventListener('change', renderTournamentSelect);
+      }
       loadSurvivorTournaments();
     } else {
       setTimeout(window.initSurvivorAdmin, 100);
@@ -52,23 +57,43 @@
     });
   }
 
+  function matchStoreFilter(gameStore, filterVal) {
+    if (!filterVal || filterVal === 'Todas' || filterVal === 'Todas las Sucursales') return true;
+    if (!gameStore) return true;
+    const g = gameStore.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const f = filterVal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    return g.includes(f) || f.includes(g) || g.includes('todas');
+  }
+
   function renderTournamentSelect() {
     const sel = document.getElementById('survAdminTournamentSelect');
     if (!sel) return;
     sel.innerHTML = '';
 
-    if (activeTournaments.length === 0) {
-      sel.innerHTML = '<option value="">-- No hay torneos creados --</option>';
+    const filterEl = document.getElementById('survAdminFilterStore');
+    const filterVal = filterEl ? filterEl.value : 'Todas';
+
+    const filtered = activeTournaments.filter(t => matchStoreFilter(t.store, filterVal));
+
+    if (filtered.length === 0) {
+      sel.innerHTML = `<option value="">-- Sin torneos en ${filterVal} --</option>`;
+      renderNoTournamentsUI();
       return;
     }
 
-    activeTournaments.forEach(t => {
+    filtered.forEach(t => {
       const opt = document.createElement('option');
       opt.value = t.id;
       opt.textContent = `${t.name} [${t.store || 'General'}] (Sem. ${t.activeWeek || 1}/${t.totalWeeks || 18}) - ${t.status === 'active' ? '🟢 Activo' : '🔴 Cerrado'}`;
       if (t.id === selectedTournamentId) opt.selected = true;
       sel.appendChild(opt);
     });
+
+    if (!selectedTournamentId || !filtered.some(t => t.id === selectedTournamentId)) {
+      selectedTournamentId = filtered[0].id;
+      sel.value = selectedTournamentId;
+      loadSelectedTournament(selectedTournamentId);
+    }
   }
 
   window.onSurvivorTournamentChange = function(tournId) {
