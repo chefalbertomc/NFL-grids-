@@ -208,14 +208,16 @@
     const btnDelete = document.getElementById('btnDeleteQuiniela');
     if (btnDelete) {
       btnDelete.addEventListener('click', async () => {
-        if (!activeQuinielaId) { alert('Selecciona una quiniela primero.'); return; }
+        const selQ = document.getElementById('selectActiveQuiniela');
+        const qId = activeQuinielaId || (selQ && selQ.value ? selQ.value : null);
+        if (!qId) { alert('Selecciona una quiniela primero.'); return; }
         if (!confirm('¿Eliminar esta quiniela permanentemente? Esto borrará todos los pronósticos.')) return;
         try {
-          const picks = await db.collection('quinielas').doc(activeQuinielaId).collection('picks').get();
+          const picks = await db.collection('quinielas').doc(qId).collection('picks').get();
           const batch = db.batch();
           picks.forEach(d => batch.delete(d.ref));
           await batch.commit();
-          await db.collection('quinielas').doc(activeQuinielaId).delete();
+          await db.collection('quinielas').doc(qId).delete();
           alert('✅ Quiniela eliminada.');
           activeQuinielaId = null;
           const panel = document.getElementById('qManagePanel');
@@ -485,10 +487,13 @@
       const ref = db.collection('quinielas').doc();
       const isHybrid = document.getElementById('chkIsHybrid')?.checked === true;
       const isPrivate = (document.getElementById('qVisibility')?.value === 'private');
+      const storeVal = (document.getElementById('qStore')?.value || 'Todas las Sucursales').trim();
+      const codeVal = 'Q' + Math.random().toString(36).substring(2, 7).toUpperCase();
       const authUser = window.currentUser || (typeof firebase !== 'undefined' && firebase.auth ? firebase.auth().currentUser : null);
 
       await ref.set({
         id: ref.id,
+        code: codeVal,
         name,
         sport: 'mixed',
         store: storeVal,
@@ -506,7 +511,7 @@
           : Date.now()
       });
 
-      alert(`✅ Quiniela / Pick'em "${name}" (${isPrivate ? 'PRIVADA 🔒' : 'PÚBLICA 🌐'}) creada con ${matchCount} partidos.\n\n💡 Recuerda: Puedes asignar al Anfitrión una vez que los participantes se hayan unido.`);
+      alert(`✅ Quiniela / Pick'em "${name}" (${isPrivate ? 'PRIVADA 🔒 (Código: ' + codeVal + ')' : 'PÚBLICA 🌐'}) creada con ${matchCount} partidos.\n\n💡 Recuerda: Puedes asignar al Anfitrión una vez que los participantes se hayan unido.`);
       if (document.getElementById('qName')) document.getElementById('qName').value = '';
       const hybridChk = document.getElementById('chkIsHybrid');
       if (hybridChk) hybridChk.checked = false;
