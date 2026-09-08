@@ -1,7 +1,7 @@
-// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v215.21)
+// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v215.22)
 (function() {
   'use strict';
-  console.log('%c🚀 DRINKS & WINS v215.21 CARGADO EXITOSAMENTE', 'background: #ffd100; color: #000; font-weight: bold; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
+  console.log('%c🚀 DRINKS & WINS v215.22 CARGADO EXITOSAMENTE', 'background: #ffd100; color: #000; font-weight: bold; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
 
   window.currentUser = null;
   window.isAdmin = false;
@@ -131,7 +131,13 @@
         }
       } catch (err) {
         if (err.code === 'auth/popup-blocked' || (err.message && err.message.includes('opener'))) {
-          alert('📱 Aviso: Tu navegador bloqueó la ventana emergente de Google.\n\n👉 Permite ventanas emergentes en Safari/Chrome o abre el enlace en tu navegador principal.');
+          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+          if (isMobile && auth.signInWithRedirect) {
+            console.log('[auth] Popup bloqueado en móvil, usando signInWithRedirect');
+            await auth.signInWithRedirect(provider);
+            return;
+          }
+          alert('📱 Aviso: Tu navegador bloqueó la ventana emergente de Google.\n\n👉 Permite ventanas emergentes en Safari o abre el enlace en una pestaña privada.');
         } else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
           handleAuthError(err);
         }

@@ -167,19 +167,16 @@
   const btnAdminGoogle = document.getElementById('btnAdminGoogle');
   if (btnAdminGoogle) {
     btnAdminGoogle.addEventListener('click', async () => {
-      try {
-        if (!firebase.auth) return;
-        const provider = new firebase.auth.GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
+      if (typeof window.loginWithGoogle === 'function') {
+        window.loginWithGoogle(false);
+      } else {
         try {
+          if (!firebase.auth) return;
+          const provider = new firebase.auth.GoogleAuthProvider();
           await firebase.auth().signInWithPopup(provider);
-        } catch (popupErr) {
-          if (popupErr.code !== 'auth/popup-closed-by-user' && popupErr.code !== 'auth/cancelled-popup-request') {
-            alert('Error al acceder con Google: ' + (popupErr.message || popupErr.code));
-          }
+        } catch (err) {
+          console.error('[admin] Google login error:', err);
         }
-      } catch (err) {
-        console.error('[admin] Google login error:', err);
       }
     });
   }
