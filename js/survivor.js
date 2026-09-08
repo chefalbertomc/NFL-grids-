@@ -313,7 +313,7 @@
           </div>
           <p class="hint-text" style="font-size:11px; margin:0;">¿No tienes código? Pídeselo a tu anfitrión o mesero para unirte.</p>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.24</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.25</span></footer>
       `;
       return;
     }
@@ -754,7 +754,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.24</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.25</span>
       </footer>
     `;
   }

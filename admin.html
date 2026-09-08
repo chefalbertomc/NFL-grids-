@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Admin Dashboard — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=215.24"/>
+  <link rel="stylesheet" href="css/styles.css?v=215.25"/>
   <style>
     /* Styling overrides for admin features */
     .admin-tab-content {
@@ -35,7 +35,7 @@
         <img src="img/logo.jpg" alt="Drinks & Wins by Beto" class="app-brand-logo" />
         <div>
           <h1 class="header-title gradient-text">Panel de Administración</h1>
-          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v215.24</span></p>
+          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v215.25</span></p>
         </div>
       </div>
       <a href="index.html" class="btn btn-secondary" style="width: auto; padding: 8px 14px; text-decoration: none; font-size: 13px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;">
@@ -264,7 +264,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.24</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.25</span>
       </footer>
     </main>
 
@@ -432,7 +432,7 @@
       </section>
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.24</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.25</span>
       </footer>
     </main>
 
@@ -506,7 +506,7 @@
               <button type="button" class="btn btn-secondary" onclick="window.copySurvivorShareLink()" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; border-color:var(--accent-color); color:var(--accent-color); display:inline-flex; align-items:center; gap:5px;" title="Copiar enlace para unirse">
                 <span>📋</span> Copiar Link
               </button>
-              <button type="button" class="btn btn-danger" onclick="window.deleteSurvivorTournament()" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; display:inline-flex; align-items:center; gap:5px;" title="Eliminar este torneo de Survivor definitivamente">
+              <button type="button" class="btn btn-danger" onclick="window.deleteSurvivorTournament(document.getElementById('survAdminTournamentSelect') ? document.getElementById('survAdminTournamentSelect').value : null)" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; display:inline-flex; align-items:center; gap:5px;" title="Eliminar este torneo de Survivor definitivamente">
                 <span>🗑️</span> Eliminar Torneo
               </button>
             </div>
@@ -572,7 +572,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.24</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.25</span>
       </footer>
     </main>
 
@@ -849,7 +849,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.24</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.25</span>
       </footer>
     </main>
 
@@ -947,7 +947,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.24</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.25</span>
       </footer>
     </main>
 
@@ -1072,7 +1072,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.24</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.25</span>
       </footer>
     </main>
 
@@ -1127,7 +1127,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.24</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.25</span>
       </footer>
     </main>
   </div>
@@ -1426,16 +1426,16 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  <!-- Firebase Logic (v215.24) -->
-  <script src="js/firebase-config.js?v=215.24"></script>
-  <script src="js/auth.js?v=215.24"></script>
-  <script src="js/team-logos.js?v=215.24"></script>
-  <script src="js/admin.js?v=215.24"></script>
-  <script src="js/quiniela-admin.js?v=215.24"></script>
-  <script src="js/survivor-admin.js?v=215.24"></script>
-  <script src="js/bingo-admin.js?v=215.24"></script>
-  <script src="js/trivia-admin.js?v=215.24"></script>
-  <script src="js/promotional-cards.js?v=215.24"></script>
+  <!-- Firebase Logic (v215.25) -->
+  <script src="js/firebase-config.js?v=215.25"></script>
+  <script src="js/auth.js?v=215.25"></script>
+  <script src="js/team-logos.js?v=215.25"></script>
+  <script src="js/admin.js?v=215.25"></script>
+  <script src="js/quiniela-admin.js?v=215.25"></script>
+  <script src="js/survivor-admin.js?v=215.25"></script>
+  <script src="js/bingo-admin.js?v=215.25"></script>
+  <script src="js/trivia-admin.js?v=215.25"></script>
+  <script src="js/promotional-cards.js?v=215.25"></script>
 
   <!-- Admin Tab Switching for Top Tabs -->
   <script>

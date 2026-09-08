@@ -97,9 +97,27 @@
 
     if (!selectedTournamentId || !filtered.some(t => t.id === selectedTournamentId)) {
       selectedTournamentId = filtered[0].id;
-      sel.value = selectedTournamentId;
-      loadSelectedTournament(selectedTournamentId);
     }
+    sel.value = selectedTournamentId;
+    loadSelectedTournament(selectedTournamentId);
+  }
+
+  // Robust resolver for active tournament ID (with select element fallback)
+  function getSelectedTournamentId() {
+    if (selectedTournamentId && activeTournaments.some(t => t.id === selectedTournamentId)) {
+      return selectedTournamentId;
+    }
+    const sel = document.getElementById('survAdminTournamentSelect');
+    if (sel && sel.value && sel.value.trim() !== '') {
+      selectedTournamentId = sel.value.trim();
+      return selectedTournamentId;
+    }
+    if (activeTournaments.length > 0) {
+      selectedTournamentId = activeTournaments[0].id;
+      if (sel) sel.value = selectedTournamentId;
+      return selectedTournamentId;
+    }
+    return null;
   }
 
   function loadTournamentsList() {
@@ -112,7 +130,9 @@
   };
 
   function loadSelectedTournament(tournId) {
-    if (!db || !tournId) return;
+    if (!db && window.db) db = window.db;
+    if (!tournId) return;
+    selectedTournamentId = tournId;
 
     if (unsubTournament) unsubTournament();
     if (unsubPlayers) unsubPlayers();
@@ -148,6 +168,7 @@
     const activeWeek = tourn.activeWeek || startWeek;
 
     if (titleEl) titleEl.textContent = `🏆 ${tourn.name} (${tourn.store || 'Todas'})`;
+    selectedTournamentId = tourn.id;
     if (codeBadge) codeBadge.textContent = `🔑 CÓDIGO: ${tourn.code || tourn.id.substring(0, 8).toUpperCase()}`;
     if (livesBadge) livesBadge.textContent = `❤️ ${tourn.maxLives || 3} Vidas Iniciales`;
 
@@ -210,12 +231,16 @@
 
   // Save active week settings
   window.saveSurvivorWeekSettings = async function() {
-    if (!selectedTournamentId || !db) return;
+    const targetId = getSelectedTournamentId();
+    if (!targetId || !db) {
+      alert('Selecciona un torneo primero.');
+      return;
+    }
     const weekInp = document.getElementById('survAdminActiveWeek');
     const autoApproveChk = document.getElementById('survAdminAutoApprove');
     const lockedChk = document.getElementById('survAdminLocked');
 
-    const currentTourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const currentTourn = activeTournaments.find(t => t.id === targetId);
     const startWeek = currentTourn?.startWeek || 1;
     const totalWeeks = currentTourn?.totalWeeks || 18;
     const newWeek = parseInt(weekInp.value, 10) || startWeek;
@@ -235,13 +260,14 @@
     const isLocked = lockedChk ? lockedChk.checked : false;
 
     try {
-      await db.collection('survivors').doc(selectedTournamentId).update({
+      await db.collection('survivors').doc(targetId).update({
         activeWeek: newWeek,
         autoApprove: autoApprove,
         locked: isLocked,
         updatedAt: Date.now()
       });
       console.log(`[Survivor Admin] Configuración actualizada: Semana ${newWeek}, Bloqueado: ${isLocked}`);
+      alert(`✅ Configuración guardada para Semana ${newWeek}.`);
     } catch (err) {
       alert('Error al guardar: ' + err.message);
     }
@@ -343,9 +369,10 @@
   };
 
   window.adminChangeSurvivorHost = async function() {
-    if (!selectedTournamentId || !db) return;
+    const targetId = getSelectedTournamentId();
+    if (!targetId || !db) return;
     try {
-      const currentTourn = activeTournaments.find(t => t.id === selectedTournamentId);
+      const currentTourn = activeTournaments.find(t => t.id === targetId);
       const players = Object.values(tournamentPlayers).filter(p => p.status !== 'rejected');
 
       if (players.length === 0) {
@@ -366,14 +393,14 @@
       if (isNaN(num)) return;
 
       if (num === 0) {
-        await db.collection('survivors').doc(selectedTournamentId).update({
+        await db.collection('survivors').doc(targetId).update({
           hostUid: null,
           hostName: 'Sin Asignar',
           updatedAt: Date.now()
         });
         for (const p of players) {
           if (p.isHost) {
-            await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(p.id).update({ isHost: false });
+            await db.collection('survivors').doc(targetId).collection('players').doc(p.id).update({ isHost: false });
             p.isHost = false;
           }
         }
@@ -395,14 +422,15 @@
   };
 
   window.adminToggleSurvivorVisibility = async function() {
-    if (!selectedTournamentId || !db) return;
+    const targetId = getSelectedTournamentId();
+    if (!targetId || !db) return;
     try {
-      const doc = await db.collection('survivors').doc(selectedTournamentId).get();
+      const doc = await db.collection('survivors').doc(targetId).get();
       if (!doc.exists) return;
       const t = doc.data() || {};
       const currentPriv = (t.isPrivate === true || t.visibility === 'private');
       const newPriv = !currentPriv;
-      await db.collection('survivors').doc(selectedTournamentId).update({
+      await db.collection('survivors').doc(targetId).update({
         isPrivate: newPriv,
         visibility: newPriv ? 'private' : 'public',
         updatedAt: Date.now()
@@ -545,12 +573,13 @@
 
   // Player action handlers
   window.approveSurvivorPlayer = async function(pId) {
-    if (!selectedTournamentId || !db) return;
-    const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const targetId = getSelectedTournamentId();
+    if (!targetId || !db) return;
+    const tourn = activeTournaments.find(t => t.id === targetId);
     const maxLives = tourn ? (tourn.maxLives || 3) : 3;
 
     try {
-      await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(pId).update({
+      await db.collection('survivors').doc(targetId).collection('players').doc(pId).update({
         status: 'approved',
         approved: true,
         isAlive: true,
@@ -562,13 +591,14 @@
   };
 
   window.reviveSurvivorPlayer = async function(pId) {
-    if (!selectedTournamentId || !db) return;
-    const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const targetId = getSelectedTournamentId();
+    if (!targetId || !db) return;
+    const tourn = activeTournaments.find(t => t.id === targetId);
     const maxLives = tourn ? (tourn.maxLives || 3) : 3;
 
     if (!confirm(`¿Deseas reactivar a este jugador con ${maxLives} vidas completas?`)) return;
     try {
-      await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(pId).update({
+      await db.collection('survivors').doc(targetId).collection('players').doc(pId).update({
         isAlive: true,
         lives: maxLives,
         eliminatedWeek: null
@@ -579,12 +609,13 @@
   };
 
   window.eliminateSurvivorPlayer = async function(pId) {
-    if (!selectedTournamentId || !db) return;
-    const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const targetId = getSelectedTournamentId();
+    if (!targetId || !db) return;
+    const tourn = activeTournaments.find(t => t.id === targetId);
     const currWeek = tourn ? (tourn.activeWeek || 1) : 1;
     if (!confirm(`¿Deseas marcar a este jugador como ELIMINADO (0 Vidas)?`)) return;
     try {
-      await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(pId).update({
+      await db.collection('survivors').doc(targetId).collection('players').doc(pId).update({
         isAlive: false,
         lives: 0,
         eliminatedWeek: currWeek
@@ -595,18 +626,20 @@
   };
 
   window.deleteSurvivorPlayer = async function(pId) {
-    if (!selectedTournamentId || !db) return;
+    const targetId = getSelectedTournamentId();
+    if (!targetId || !db) return;
     if (!confirm('¿Estás seguro de eliminar a este participante de este Survivor?')) return;
     try {
-      await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(pId).delete();
+      await db.collection('survivors').doc(targetId).collection('players').doc(pId).delete();
     } catch (err) {
       alert('Error: ' + err.message);
     }
   };
 
   window.adjustSurvivorPlayerLives = async function(pId, delta) {
-    if (!selectedTournamentId || !db) return;
-    const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const targetId = getSelectedTournamentId();
+    if (!targetId || !db) return;
+    const tourn = activeTournaments.find(t => t.id === targetId);
     const maxLives = tourn ? (tourn.maxLives || 3) : 3;
     const p = tournamentPlayers[pId];
     if (!p) return;
@@ -617,7 +650,7 @@
     const currWeek = tourn ? (tourn.activeWeek || 1) : 1;
 
     try {
-      await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(pId).update({
+      await db.collection('survivors').doc(targetId).collection('players').doc(pId).update({
         lives: newLives,
         isAlive: isAlive,
         eliminatedWeek: isAlive ? null : currWeek
@@ -630,8 +663,9 @@
 
   // 1-Click Auto-Evaluation with ESPN Official API (Multi-Life Support)
   window.evaluateSurvivorESPN = async function() {
-    if (!selectedTournamentId || !db) return;
-    const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const targetId = getSelectedTournamentId();
+    if (!targetId || !db) return;
+    const tourn = activeTournaments.find(t => t.id === targetId);
     if (!tourn) return;
 
     const btn = document.getElementById('btnEvaluateSurvivorESPN');
@@ -781,8 +815,9 @@
 
   // WhatsApp Invite Link
   window.shareSurvivorWhatsApp = function() {
-    if (!selectedTournamentId) return;
-    const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const targetId = getSelectedTournamentId();
+    if (!targetId) return;
+    const tourn = activeTournaments.find(t => t.id === targetId);
     if (!tourn) return;
 
     const origin = window.location.origin;
@@ -802,7 +837,9 @@
 
   // Copiar Enlace Directo de Survivor
   window.copySurvivorShareLink = function() {
-    const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const targetId = getSelectedTournamentId();
+    if (!targetId) return;
+    const tourn = activeTournaments.find(t => t.id === targetId);
     if (!tourn) return;
     const origin = window.location.origin;
     const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
@@ -972,19 +1009,27 @@
 
   // Eliminar Torneo Survivor por Completo (Cascada)
   window.deleteSurvivorTournament = async function(tournId) {
-    const targetId = tournId || selectedTournamentId;
-    if (!targetId || !db) {
-      alert('Selecciona primero un torneo Survivor para eliminar.');
+    if (!db && window.db) db = window.db;
+    if (!db && typeof firebase !== 'undefined' && firebase.firestore) db = firebase.firestore();
+
+    const targetId = tournId || getSelectedTournamentId();
+    if (!targetId) {
+      alert('Selecciona primero un torneo Survivor en la lista superior para poder eliminarlo.');
       return;
     }
+    if (!db) {
+      alert('Error: La base de datos no está disponible. Por favor recarga la página.');
+      return;
+    }
+
     const tourn = activeTournaments.find(t => t.id === targetId);
-    const name = tourn ? tourn.name : 'este torneo';
+    const name = tourn ? tourn.name : (document.getElementById('survAdminSelectedTitle')?.textContent?.replace('🏆 ', '') || 'este torneo');
 
     const conf1 = confirm(`🚨 ¿Estás seguro de ELIMINAR definitivamente el Torneo Survivor "${name}"?\n\nEsta acción borrará a todos los participantes inscritos, sus selecciones y el torneo completo.`);
     if (!conf1) return;
 
-    const conf2 = prompt(`Escribe "ELIMINAR" para confirmar el borrado del torneo:`);
-    if (conf2 !== 'ELIMINAR') {
+    const conf2 = prompt(`Escribe "ELIMINAR" para confirmar el borrado del torneo "${name}":`);
+    if (!conf2 || conf2.trim().toUpperCase() !== 'ELIMINAR') {
       alert('Operación cancelada. El texto no coincidió.');
       return;
     }
@@ -1003,6 +1048,9 @@
 
       selectedTournamentId = null;
       alert(`🗑️ El Torneo Survivor "${name}" ha sido eliminado exitosamente.`);
+      
+      // Forzar recarga de torneos para actualizar interfaz
+      loadSurvivorTournaments();
     } catch (err) {
       console.error('[SurvivorAdmin] Error al eliminar torneo:', err);
       alert('Error al eliminar el torneo: ' + err.message);
