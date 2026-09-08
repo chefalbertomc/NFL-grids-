@@ -174,13 +174,13 @@
     const btnToggleVis = document.getElementById('btnToggleSurvVisibility');
     const isPriv = (tourn.isPrivate === true || tourn.visibility === 'private');
     if (visBadge) {
-      visBadge.textContent = isPriv ? '🔒 Privado' : '🌐 Público';
-      visBadge.style.background = isPriv ? 'rgba(255,193,7,0.2)' : 'rgba(59,130,246,0.2)';
-      visBadge.style.color = isPriv ? '#ffc107' : '#60a5fa';
-      visBadge.style.borderColor = isPriv ? '#ffc107' : '#3b82f6';
+      visBadge.textContent = isPriv ? '🔒 Grupo Privado (Solo Código)' : '⚠️ Torneo Público (Visible para Todos)';
+      visBadge.style.background = isPriv ? 'rgba(255,193,7,0.2)' : 'rgba(239,68,68,0.2)';
+      visBadge.style.color = isPriv ? '#ffc107' : '#f87171';
+      visBadge.style.borderColor = isPriv ? '#ffc107' : '#ef4444';
     }
     if (btnToggleVis) {
-      btnToggleVis.textContent = isPriv ? '🌐 Hacer Público' : '🔒 Hacer Privado';
+      btnToggleVis.textContent = isPriv ? '🌐 Convertir a Público' : '🔒 Convertir a Privado';
     }
 
     if (weekInp) {

@@ -111,9 +111,11 @@
 
     function processSnap(snap) {
       const u = getCurrentUser();
+      const userKey = u ? u.uid : 'anon';
       const urlParams = new URLSearchParams(window.location.search);
       const paramCode = (urlParams.get('code') || urlParams.get('s') || '').trim().toUpperCase();
-      const unlockedPrivateTourns = JSON.parse(sessionStorage.getItem('unlocked_surv_tournaments') || '[]');
+      const unlockedPrivateTourns = JSON.parse(sessionStorage.getItem('unlocked_surv_tournaments_' + userKey) || sessionStorage.getItem('unlocked_surv_tournaments') || '[]');
+      const myJoinedTourns = JSON.parse(localStorage.getItem('my_joined_surv_' + userKey) || '[]');
 
       const allTourns = [];
       snap.forEach(doc => {
@@ -127,6 +129,7 @@
 
         const isTargetCode = paramCode && ((t.code && t.code.toUpperCase() === paramCode) || t.id.toUpperCase() === paramCode);
         const isUnlockedSession = unlockedPrivateTourns.includes(t.id) || (t.code && unlockedPrivateTourns.includes(t.code.toUpperCase()));
+        const isJoined = myJoinedTourns.includes(t.id);
         const isHost = u && (
           t.hostUid === u.uid ||
           t.createdBy === u.uid ||
@@ -134,7 +137,7 @@
           u.email === 'sguerra70@hotmail.com'
         );
 
-        return isTargetCode || isUnlockedSession || isHost;
+        return isTargetCode || isUnlockedSession || isHost || isJoined;
       });
 
       if (paramCode) {
@@ -189,6 +192,17 @@
       snap.forEach(pDoc => {
         tournamentPlayers[pDoc.id] = { id: pDoc.id, ...pDoc.data() };
       });
+      const curUser = getCurrentUser();
+      if (curUser && tournamentPlayers[curUser.uid]) {
+        try {
+          const joinedKey = 'my_joined_surv_' + curUser.uid;
+          const joined = JSON.parse(localStorage.getItem(joinedKey) || '[]');
+          if (!joined.includes(tournId)) {
+            joined.push(tournId);
+            localStorage.setItem(joinedKey, JSON.stringify(joined));
+          }
+        } catch(e) {}
+      }
       renderSurvivorApp();
     });
   }
@@ -197,11 +211,13 @@
     selectTournament(tournId);
   };
 
-  // Join Tournament with Private Code Prompt
-  window.promptJoinWithCode = async function() {
-    const code = prompt('🔑 Ingresa el Código de Acceso del Torneo Survivor (Ej. SURV26):');
-    if (!code || !code.trim()) return;
-    const cleanCode = code.trim().toUpperCase();
+  // Unlock Tournament with Code (Unified & Reusable)
+  window.unlockSurvivorWithCode = async function(rawCode, silent = false) {
+    if (!rawCode || !rawCode.trim()) {
+      if (!silent) alert('🔑 Por favor ingresa el Código de Acceso del Torneo Survivor.');
+      return false;
+    }
+    const cleanCode = rawCode.trim().toUpperCase();
 
     let found = activeTournaments.find(t => (t.code && t.code.toUpperCase() === cleanCode) || t.id.toUpperCase() === cleanCode);
     if (!found && db) {
@@ -213,25 +229,50 @@
             found = { id: d.id, ...dt };
           }
         });
-      } catch(e) {}
+      } catch(e) {
+        console.warn('[Survivor] Error looking up tournament by code:', e);
+      }
     }
 
     if (found) {
-      const unlocked = JSON.parse(sessionStorage.getItem('unlocked_surv_tournaments') || '[]');
+      const u = getCurrentUser();
+      const userKey = u ? u.uid : 'anon';
+      const unlocked = JSON.parse(sessionStorage.getItem('unlocked_surv_tournaments_' + userKey) || sessionStorage.getItem('unlocked_surv_tournaments') || '[]');
       if (!unlocked.includes(found.id)) unlocked.push(found.id);
+      sessionStorage.setItem('unlocked_surv_tournaments_' + userKey, JSON.stringify(unlocked));
       sessionStorage.setItem('unlocked_surv_tournaments', JSON.stringify(unlocked));
 
       if (!activeTournaments.some(t => t.id === found.id)) {
         activeTournaments.unshift(found);
       }
-      window.selectSurvivorTournament(found.id);
-      alert(`🎉 ¡Torneo "${found.name}" (${found.isPrivate ? 'Grupo Privado 🔒' : 'Público 🌐'}) encontrado!`);
+      
+      if (typeof window.activateTab === 'function') {
+        window.activateTab('tab-survivor');
+      }
+      selectTournament(found.id);
+      renderSurvivorApp();
+
+      if (!silent) {
+        alert(`🎉 ¡Torneo "${found.name}" (${(found.isPrivate === true || found.visibility === 'private') ? 'Grupo Privado 🔒' : 'Público 🌐'}) encontrado!\n\n🔑 Código: ${found.code || cleanCode}`);
+      }
       setTimeout(() => {
         const joinBox = document.getElementById('survJoinSection');
         if (joinBox) joinBox.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      }, 200);
+      return true;
     } else {
-      alert(`❌ No se encontró ningún torneo con el código "${cleanCode}". Verifica el código con tu anfitrión.`);
+      if (!silent) {
+        alert(`❌ No se encontró ningún torneo Survivor con el código "${cleanCode}". Verifica el código con tu anfitrión.`);
+      }
+      return false;
+    }
+  };
+
+  // Join Tournament with Private Code Prompt (delegates to unlockSurvivorWithCode)
+  window.promptJoinWithCode = async function() {
+    const code = prompt('🔑 Ingresa el Código de Acceso del Torneo Survivor (Ej. SURV26):');
+    if (code) {
+      await window.unlockSurvivorWithCode(code, false);
     }
   };
 
@@ -253,12 +294,24 @@
 
     if (activeTournaments.length === 0) {
       container.innerHTML = `
-        <section class="card text-center py-5">
-          <span style="font-size:40px;">🏆</span>
-          <h3 style="color:#ffd100; margin-top:10px;">No hay Torneos Survivor Activos</h3>
-          <p class="hint-text">Pide a tu mesero o administrador que inicie un nuevo torneo Survivor para participar.</p>
+        <section class="card text-center py-5" style="background:linear-gradient(135deg, rgba(255,209,0,0.08) 0%, rgba(10,14,22,0.98) 100%); border:1.5px solid rgba(255,209,0,0.35); border-radius:18px; max-width:540px; margin:20px auto; padding:28px 20px;">
+          <span style="font-size:48px;">🏆</span>
+          <h3 style="color:#ffd100; font-size:20px; font-weight:950; margin:10px 0 6px 0;">Torneo Survivor NFL & Soccer</h3>
+          <p style="color:var(--text-muted); font-size:12.5px; max-width:440px; margin:0 auto 16px; line-height:1.4;">
+            Los torneos de Survivor operan en <strong>Grupos Privados</strong> creados por los anfitriones de cada mesa o grupo de amigos. Para ingresar y realizar tus picks semanales, ingresa tu código de acceso:
+          </p>
+          <div style="display:flex; gap:8px; max-width:380px; margin:0 auto 14px; flex-wrap:wrap; justify-content:center;">
+            <input type="text" id="inpSurvEmptyCode" placeholder="Ej. SURV26" 
+              style="flex:1; min-width:160px; font-size:15px; font-weight:900; letter-spacing:0.06em; text-transform:uppercase; padding:10px 14px; border-radius:12px; border:1.5px solid #ffd100; background:#0d1117; color:#ffd100; text-align:center;"
+              onkeydown="if(event.key==='Enter') window.unlockSurvivorWithCode(document.getElementById('inpSurvEmptyCode').value)"
+            />
+            <button type="button" class="btn btn-primary" onclick="window.unlockSurvivorWithCode(document.getElementById('inpSurvEmptyCode').value)" style="padding:10px 18px; font-size:13px; font-weight:950; border-radius:12px; white-space:nowrap; background:linear-gradient(135deg, #ffd100, #ff6600); color:#000; border:none; box-shadow:0 4px 16px rgba(255,209,0,0.3);">
+              🔓 Acceder al Torneo
+            </button>
+          </div>
+          <p class="hint-text" style="font-size:11px; margin:0;">¿No tienes código? Pídeselo a tu anfitrión o mesero para unirte.</p>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.22</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.23</span></footer>
       `;
       return;
     }
@@ -297,31 +350,42 @@
 
     const currentPick = myPlayer?.picks?.[activeWeek];
 
-    // Tournament Selector Header & Private Code Button
+    // Tournament Selector Header & Private Code Quick Bar
     let selectorHtml = '';
+    const isCurrPriv = (t.isPrivate === true || t.visibility === 'private');
     const opts = activeTournaments.map(trn => {
       const sw = trn.startWeek || 1;
       const aw = trn.activeWeek || sw;
       const tw = trn.totalWeeks || 18;
       const startNote = sw > 1 ? ` (Inició Sem. ${sw})` : '';
+      const privIcon = (trn.isPrivate === true || trn.visibility === 'private') ? '🔒 ' : '🌐 ';
       return `
         <option value="${trn.id}" ${trn.id === t.id ? 'selected' : ''}>
-          ${trn.isPrivate ? '🔒 ' : '🌐 '}${trn.name} [${trn.store || 'General'}] • Sem. ${aw}/${tw}${startNote} (Código: ${trn.code || 'SURV'})
+          ${privIcon}${trn.name} [${trn.store || 'General'}] • Sem. ${aw}/${tw}${startNote} (Código: ${trn.code || 'SURV'})
         </option>
       `;
     }).join('');
 
     selectorHtml = `
-      <div style="margin-bottom:12px; background:rgba(0,0,0,0.3); padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.08); display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-        <div style="flex:1; min-width:200px;">
-          <label style="font-size:11px; font-weight:800; color:#ffd100; display:block; margin-bottom:3px;">Torneo Survivor Seleccionado:</label>
+      <div style="margin-bottom:12px; background:rgba(0,0,0,0.35); padding:12px 14px; border-radius:14px; border:1px solid rgba(255,209,0,0.25); display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+        <div style="flex:2; min-width:220px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <label style="font-size:11px; font-weight:800; color:#ffd100; margin:0;">Torneo Survivor Seleccionado:</label>
+            ${isCurrPriv ? '<span class="badge warning" style="font-size:9.5px; padding:1px 6px;">🔒 Grupo Privado</span>' : '<span class="badge" style="font-size:9.5px; padding:1px 6px; background:rgba(59,130,246,0.2); color:#60a5fa; border:1px solid #3b82f6;">🌐 Torneo Público</span>'}
+          </div>
           <select onchange="window.selectSurvivorTournament(this.value)" style="font-size:13px; font-weight:800; width:100%; margin:0;">
             ${opts}
           </select>
         </div>
-        <button type="button" class="btn btn-secondary" onclick="window.promptJoinWithCode()" style="width:auto; padding:8px 12px; font-size:11.5px; font-weight:900; border-color:#ffd100; color:#ffd100; display:inline-flex; align-items:center; gap:5px; height:40px; margin-top:auto;">
-          <span>🔑</span> Unirme con Código
-        </button>
+        <div style="flex:1; min-width:180px; display:flex; gap:6px;">
+          <input type="text" id="inpSurvQuickCode" placeholder="Otro Código..." 
+            style="flex:1; font-size:12px; font-weight:900; letter-spacing:0.04em; text-transform:uppercase; padding:8px 10px; border-radius:10px; border:1px solid rgba(255,209,0,0.4); background:#0c1017; color:#ffd100;"
+            onkeydown="if(event.key==='Enter') window.unlockSurvivorWithCode(document.getElementById('inpSurvQuickCode').value)"
+          />
+          <button type="button" class="btn btn-secondary" onclick="window.unlockSurvivorWithCode(document.getElementById('inpSurvQuickCode').value)" style="width:auto; padding:8px 12px; font-size:11.5px; font-weight:900; border-color:#ffd100; color:#ffd100; display:inline-flex; align-items:center; gap:4px; border-radius:10px; white-space:nowrap;" title="Desbloquear otro grupo privado con código">
+            <span>🔑</span> Entrar
+          </button>
+        </div>
       </div>
     `;
 
@@ -628,7 +692,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.22</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.23</span>
       </footer>
     `;
   }
@@ -833,6 +897,15 @@
         picks: {},
         joinedAt: Date.now()
       }, { merge: true });
+
+      try {
+        const joinedKey = 'my_joined_surv_' + u.uid;
+        const joined = JSON.parse(localStorage.getItem(joinedKey) || '[]');
+        if (!joined.includes(tournId)) {
+          joined.push(tournId);
+          localStorage.setItem(joinedKey, JSON.stringify(joined));
+        }
+      } catch(e) {}
 
       alert(autoApprove ? `🎉 ¡Te has unido a ${t.name} con ${maxLives} Vidas! Ya puedes seleccionar tu equipo.` : '⌛ Solicitud enviada al mesero o administrador para su aprobación.');
     } catch (err) {

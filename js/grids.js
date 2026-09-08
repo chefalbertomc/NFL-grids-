@@ -283,9 +283,10 @@
     if (!gridsList) return;
     const filter = filterStore ? filterStore.value : '';
     const activeUser = getActiveUser();
+    const userKey = activeUser ? activeUser.uid : 'anon';
     const urlParams = new URLSearchParams(window.location.search);
     const urlJoinCode = (urlParams.get('join') || urlParams.get('code') || '').trim().toUpperCase();
-    const sessionUnlockedGrids = JSON.parse(sessionStorage.getItem('unlocked_private_grids') || '[]');
+    const sessionUnlockedGrids = JSON.parse(sessionStorage.getItem('unlocked_private_grids_' + userKey) || sessionStorage.getItem('unlocked_private_grids') || '[]');
 
     const filtered = ALL_GRIDS.filter(g => {
       // Store filter
@@ -729,11 +730,13 @@
     }
   }
 
-  // Join Private Grid with Code
-  window.promptJoinPrivateGrid = async function() {
-    const inputCode = prompt('🔑 Ingresa el código del Grid Privado (ej. MESA8):');
-    if (!inputCode || !inputCode.trim()) return;
-    const code = inputCode.trim().toUpperCase();
+  // Unlock Private Grid with Code (Unified & Reusable)
+  window.unlockGridWithCode = async function(rawCode, silent = false) {
+    if (!rawCode || !rawCode.trim()) {
+      if (!silent) alert('🔑 Por favor ingresa el código del Grid Privado.');
+      return false;
+    }
+    const code = rawCode.trim().toUpperCase();
 
     // Check if in ALL_GRIDS or fetch from Firestore
     let found = ALL_GRIDS.find(g => g.code === code);
@@ -755,19 +758,42 @@
           };
           ALL_GRIDS.push(found);
         }
-      } catch(e) {}
+      } catch(e) {
+        console.warn('[Grids] Error searching grid by code:', e);
+      }
     }
 
     if (found) {
-      const unlocked = JSON.parse(sessionStorage.getItem('unlocked_private_grids') || '[]');
+      const activeUser = getActiveUser();
+      const userKey = activeUser ? activeUser.uid : 'anon';
+      const unlocked = JSON.parse(sessionStorage.getItem('unlocked_private_grids_' + userKey) || sessionStorage.getItem('unlocked_private_grids') || '[]');
       if (!unlocked.includes(code)) unlocked.push(code);
+      sessionStorage.setItem('unlocked_private_grids_' + userKey, JSON.stringify(unlocked));
       sessionStorage.setItem('unlocked_private_grids', JSON.stringify(unlocked));
 
+      if (typeof window.activateTab === 'function') {
+        window.activateTab('tab-grids');
+      }
       selectGrid(code);
       renderGrids();
-      alert(`🎉 ¡Grid Privado (${code}) encontrado! Ya puedes seleccionarlo abajo para unirte y apartar tus casillas.`);
+
+      if (!silent) {
+        alert(`🎉 ¡Grid Privado (${code}) encontrado! Ya puedes seleccionarlo abajo para unirte y apartar tus casillas.`);
+      }
+      return true;
     } else {
-      alert(`❌ No se encontró ningún Grid con el código "${code}". Verifica el código con el anfitrión de la mesa.`);
+      if (!silent) {
+        alert(`❌ No se encontró ningún Grid con el código "${code}". Verifica el código con el anfitrión de la mesa.`);
+      }
+      return false;
+    }
+  };
+
+  // Join Private Grid with Code
+  window.promptJoinPrivateGrid = async function() {
+    const inputCode = prompt('🔑 Ingresa el código del Grid Privado (ej. MESA8):');
+    if (inputCode) {
+      await window.unlockGridWithCode(inputCode, false);
     }
   };
 

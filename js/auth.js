@@ -1,7 +1,7 @@
-// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v215.22)
+// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v215.23)
 (function() {
   'use strict';
-  console.log('%c🚀 DRINKS & WINS v215.22 CARGADO EXITOSAMENTE', 'background: #ffd100; color: #000; font-weight: bold; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
+  console.log('%c🚀 DRINKS & WINS v215.23 CARGADO EXITOSAMENTE', 'background: #ffd100; color: #000; font-weight: bold; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
 
   window.currentUser = null;
   window.isAdmin = false;
@@ -430,6 +430,14 @@
         localStorage.removeItem('player_nick');
         localStorage.removeItem('bww_q_name');
         localStorage.removeItem('bww_player_id');
+        sessionStorage.removeItem('unlocked_surv_tournaments');
+        sessionStorage.removeItem('unlocked_private_grids');
+        sessionStorage.removeItem('unlocked_quinielas');
+        try {
+          Object.keys(sessionStorage).forEach(k => {
+            if (k && k.startsWith('unlocked_')) sessionStorage.removeItem(k);
+          });
+        } catch(e) {}
         window.currentUser = null;
         if (firebase.auth && firebase.auth()) {
           await firebase.auth().signOut();

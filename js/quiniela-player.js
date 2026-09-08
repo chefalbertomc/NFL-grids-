@@ -167,7 +167,8 @@
       const params = new URLSearchParams(window.location.search);
       const targetQId = (params.get('q') || params.get('quiniela') || params.get('code') || '').trim().toUpperCase();
       const u = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
-      const unlockedSession = JSON.parse(sessionStorage.getItem('unlocked_quinielas') || '[]');
+      const userKey = u ? u.uid : 'anon';
+      const unlockedSession = JSON.parse(sessionStorage.getItem('unlocked_quinielas_' + userKey) || sessionStorage.getItem('unlocked_quinielas') || '[]');
 
       const list = [];
       snap.forEach(doc => {
@@ -367,6 +368,66 @@
   window.parseMatchTimestamp = parseMatchTimestamp;
   window.openQuiniela = openQuiniela;
   window.backToQuinielasCatalog = showCatalogView;
+
+  // Unlock Quiniela with Code (Unified & Reusable)
+  window.unlockQuinielaWithCode = async function(rawCode, silent = false) {
+    if (!rawCode || !rawCode.trim()) {
+      if (!silent) alert('🔑 Por favor ingresa el Código de Acceso de la Quiniela.');
+      return false;
+    }
+    const cleanCode = rawCode.trim().toUpperCase();
+
+    let found = allQuinielas.find(q => (q.code && q.code.toUpperCase() === cleanCode) || q.id.toUpperCase() === cleanCode);
+    if (!found && db) {
+      try {
+        const snap = await db.collection('quinielas').get();
+        snap.forEach(d => {
+          const dt = d.data() || {};
+          if ((dt.code && dt.code.toUpperCase() === cleanCode) || d.id.toUpperCase() === cleanCode) {
+            found = { id: d.id, ...dt };
+          }
+        });
+      } catch(e) {
+        console.warn('[QPlayer] Error looking up quiniela by code:', e);
+      }
+    }
+
+    if (found) {
+      const u = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+      const userKey = u ? u.uid : 'anon';
+      const unlocked = JSON.parse(sessionStorage.getItem('unlocked_quinielas_' + userKey) || sessionStorage.getItem('unlocked_quinielas') || '[]');
+      if (!unlocked.includes(found.id)) unlocked.push(found.id);
+      sessionStorage.setItem('unlocked_quinielas_' + userKey, JSON.stringify(unlocked));
+      sessionStorage.setItem('unlocked_quinielas', JSON.stringify(unlocked));
+
+      if (!allQuinielas.some(q => q.id === found.id)) {
+        allQuinielas.unshift(found);
+      }
+      renderQuinielasCatalog();
+
+      if (typeof window.activateTab === 'function') {
+        window.activateTab('tab-pools');
+      }
+      openQuiniela(found.id);
+
+      if (!silent) {
+        alert(`🎉 ¡Quiniela "${found.name}" (${(found.isPrivate === true || found.visibility === 'private') ? 'Grupo Privado 🔒' : 'Pública 🌐'}) desbloqueada!\n\n🔑 Código: ${found.code || cleanCode}`);
+      }
+      return true;
+    } else {
+      if (!silent) {
+        alert(`❌ No se encontró ninguna Quiniela con el código "${cleanCode}". Verifica el código con tu anfitrión.`);
+      }
+      return false;
+    }
+  };
+
+  window.promptJoinPrivateQuiniela = async function() {
+    const code = prompt('🔑 Ingresa el Código de Acceso de la Quiniela Privada:');
+    if (code) {
+      await window.unlockQuinielaWithCode(code, false);
+    }
+  };
 
   // Intelligent Lock Check: Lock if manual lock is on, or if first game started / kickoff date has passed
   
