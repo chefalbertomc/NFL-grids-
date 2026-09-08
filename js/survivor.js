@@ -216,7 +216,7 @@
           <h3 style="color:#ffd100; margin-top:10px;">No hay Torneos Survivor Activos</h3>
           <p class="hint-text">Pide a tu mesero o administrador que inicie un nuevo torneo Survivor para participar.</p>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.12</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.18</span></footer>
       `;
       return;
     }
@@ -577,7 +577,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.12</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.18</span>
       </footer>
     `;
   }
