@@ -485,6 +485,11 @@
       const ref = db.collection('quinielas').doc();
       const isHybrid = document.getElementById('chkIsHybrid')?.checked === true;
       const storeVal = document.getElementById('qStore')?.value || 'Juriquilla';
+      const isPrivate = (document.getElementById('qVisibility')?.value === 'private');
+      const hostNameInput = (document.getElementById('qHostName')?.value || '').trim();
+      const authUser = window.currentUser || (typeof firebase !== 'undefined' && firebase.auth ? firebase.auth().currentUser : null);
+      const hostName = hostNameInput || (authUser ? (authUser.displayName || authUser.email || 'Admin General') : 'Admin General');
+
       await ref.set({
         id: ref.id,
         name,
@@ -494,12 +499,17 @@
         active: true,
         autoApprove: document.getElementById('chkAutoApprove')?.checked === true,
         isHybrid: isHybrid,
+        isPrivate: isPrivate,
+        visibility: isPrivate ? 'private' : 'public',
+        hostName: hostName,
+        hostUid: authUser ? authUser.uid : '',
+        createdBy: authUser ? authUser.uid : '',
         createdAt: firebase.firestore.FieldValue.serverTimestamp
           ? firebase.firestore.FieldValue.serverTimestamp()
           : Date.now()
       });
 
-      alert(`✅ Quiniela / Pick'em "${name}" creada con ${matchCount} partidos.`);
+      alert(`✅ Quiniela / Pick'em "${name}" (${isPrivate ? 'PRIVADA 🔒' : 'PÚBLICA 🌐'}) creada con ${matchCount} partidos.\n👑 Anfitrión: ${hostName}`);
       if (document.getElementById('qName')) document.getElementById('qName').value = '';
       const hybridChk = document.getElementById('chkIsHybrid');
       if (hybridChk) hybridChk.checked = false;

@@ -140,6 +140,18 @@
     if (hostBadge) {
       hostBadge.textContent = tourn.hostName ? `👑 Host: ${tourn.hostName}` : '👑 Host: Admin General';
     }
+    const visBadge = document.getElementById('survAdminVisibilityBadge');
+    const btnToggleVis = document.getElementById('btnToggleSurvVisibility');
+    const isPriv = (tourn.isPrivate === true || tourn.visibility === 'private');
+    if (visBadge) {
+      visBadge.textContent = isPriv ? '🔒 Privado' : '🌐 Público';
+      visBadge.style.background = isPriv ? 'rgba(255,193,7,0.2)' : 'rgba(59,130,246,0.2)';
+      visBadge.style.color = isPriv ? '#ffc107' : '#60a5fa';
+      visBadge.style.borderColor = isPriv ? '#ffc107' : '#3b82f6';
+    }
+    if (btnToggleVis) {
+      btnToggleVis.textContent = isPriv ? '🌐 Hacer Público' : '🔒 Hacer Privado';
+    }
 
     if (weekInp) {
       weekInp.value = tourn.activeWeek || 1;
@@ -242,6 +254,10 @@
 
     const id = 'surv_' + Date.now();
 
+    const isPrivate = (document.getElementById('newSurvVisibility')?.value === 'private');
+    const hostNameInput = (document.getElementById('newSurvHostName')?.value || '').trim();
+    const hostName = hostNameInput || (user ? (user.displayName || user.email || 'Admin General') : 'Admin General');
+
     const newTournament = {
       id: id,
       code: code,
@@ -254,6 +270,11 @@
       totalWeeks: totalWeeks,
       activeWeek: 1,
       autoApprove: autoApprove,
+      isPrivate: isPrivate,
+      visibility: isPrivate ? 'private' : 'public',
+      hostName: hostName,
+      hostUid: user ? user.uid : '',
+      createdBy: user ? user.uid : '',
       status: 'active',
       createdAt: Date.now()
     };
@@ -262,10 +283,46 @@
       await db.collection('survivors').doc(id).set(newTournament);
       selectedTournamentId = id;
       window.closeCreateSurvivorModal();
-      alert(`🎉 ¡Torneo Survivor "${name}" creado exitosamente!\n🔑 Código de Acceso: ${code}\n❤️ Vidas por jugador: ${maxLives}`);
+      alert(`🎉 ¡Torneo Survivor "${name}" (${isPrivate ? 'PRIVADO 🔒' : 'PÚBLICO 🌐'}) creado exitosamente!\n🔑 Código de Acceso: ${code}\n👑 Anfitrión: ${hostName}\n❤️ Vidas: ${maxLives}`);
     } catch (err) {
       console.error('[SurvivorAdmin] Create tournament error:', err);
       alert('Error al crear torneo: ' + err.message);
+    }
+  };
+
+  window.adminChangeSurvivorHost = async function() {
+    if (!selectedTournamentId || !db) return;
+    const newHost = prompt('Ingresa el Nombre o Alias del Anfitrión / Capitán de este Torneo Survivor:');
+    if (!newHost || !newHost.trim()) return;
+    try {
+      await db.collection('survivors').doc(selectedTournamentId).update({
+        hostName: newHost.trim(),
+        updatedAt: Date.now()
+      });
+      alert(`👑 Anfitrión asignado a Survivor: ${newHost.trim()}`);
+      loadTournamentsList();
+    } catch(e) {
+      alert('Error al asignar anfitrión: ' + e.message);
+    }
+  };
+
+  window.adminToggleSurvivorVisibility = async function() {
+    if (!selectedTournamentId || !db) return;
+    try {
+      const doc = await db.collection('survivors').doc(selectedTournamentId).get();
+      if (!doc.exists) return;
+      const t = doc.data() || {};
+      const currentPriv = (t.isPrivate === true || t.visibility === 'private');
+      const newPriv = !currentPriv;
+      await db.collection('survivors').doc(selectedTournamentId).update({
+        isPrivate: newPriv,
+        visibility: newPriv ? 'private' : 'public',
+        updatedAt: Date.now()
+      });
+      alert(newPriv ? '🔒 Torneo configurado como GRUPO PRIVADO (Oculto del menú general).' : '🌐 Torneo configurado como PÚBLICO (Visible para toda la sucursal).');
+      loadTournamentsList();
+    } catch(e) {
+      alert('Error al cambiar visibilidad: ' + e.message);
     }
   };
 

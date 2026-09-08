@@ -100,11 +100,33 @@
           <div id="selectedGameInfo" style="font-weight: 800; font-size: 15px;"></div>
         </div>
 
-        <div style="margin-top: 12px; display: flex; align-items: center; gap: 8px;">
-          <input type="checkbox" id="chkGridAutoApprove" style="width: 18px; height: 18px; cursor: pointer;" checked />
-          <label for="chkGridAutoApprove" style="font-size: 12.5px; font-weight: 800; cursor: pointer; color: #ffd100; user-select: none; margin: 0;">
-            ⚡ Auto-aprobar participantes (entrar directo sin esperar mesero)
-          </label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;">
+          <div class="form-group" style="margin: 0;">
+            <label style="font-size: 11px; font-weight: 800; color: #ffd100;">Tipo de Acceso / Visibilidad</label>
+            <select id="selectGridVisibility" style="font-size: 13px; font-weight: 800;">
+              <option value="public" selected>🌐 Público (Visible para toda la sucursal)</option>
+              <option value="private">🔒 Grupo Privado (Oculto - Solo con link o código)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin: 0;">
+            <label style="font-size: 11px; font-weight: 800; color: #ffd100;">👑 Anfitrión / Capitán del Grid</label>
+            <input type="text" id="gridHostNameInput" placeholder="Ej. Beto / Mesa 8 / Carlos" style="font-size: 13px; font-weight: 800;" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+          <div class="form-group" style="margin: 0;">
+            <label style="font-size: 11px; font-weight: 800; color: #ffd100;">Código de Acceso (Opcional)</label>
+            <input type="text" id="gridCustomCodeInput" placeholder="Vacío = Auto-generar (ej. MESA8)" style="font-size: 13px; font-weight: 900; text-transform: uppercase;" />
+          </div>
+          <div class="form-group" style="margin: 0; display: flex; align-items: flex-end;">
+            <div style="background: rgba(255,209,0,0.06); padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(255,209,0,0.2); width: 100%;">
+              <label for="chkGridAutoApprove" style="font-size: 11.5px; font-weight: 800; cursor: pointer; color: #ffd100; user-select: none; margin: 0; display: flex; align-items: center; gap: 6px;">
+                <input type="checkbox" id="chkGridAutoApprove" style="width: 16px; height: 16px; cursor: pointer;" checked />
+                <span>⚡ Auto-aprobar entradas</span>
+              </label>
+            </div>
+          </div>
         </div>
 
         <button id="btnCreateGame" class="btn btn-primary" style="margin-top: 14px;">Crear Grid de Juego</button>
@@ -137,11 +159,19 @@
 
         <!-- Host / Anfitrión Asignado del Grid -->
         <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,209,0,0.06); padding:8px 12px; border-radius:10px; border:1px solid rgba(255,209,0,0.25); margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-          <div>
-            <span style="font-size:11px; color:var(--text-muted);">👑 Administrador / Anfitrión de este Grid:</span>
-            <strong id="gridHostDisplay" style="color:#ffd100; font-size:13px; margin-left:6px;">Admin General (Sin asignar)</strong>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:11px; color:var(--text-muted);">👑 Anfitrión:</span>
+            <strong id="gridHostDisplay" style="color:#ffd100; font-size:13px;">Admin General</strong>
+            <span id="gridVisibilityBadge" class="badge" style="font-size:10.5px; padding:2px 8px; border-radius:6px; background:rgba(59,130,246,0.2); color:#60a5fa; border:1px solid #3b82f6; font-weight:800;">🌐 Público</span>
           </div>
-          <span style="font-size:11px; color:#aaa;">(Puedes nombrarlo abajo en la lista de jugadores aprobados con el botón 👑 Host)</span>
+          <div style="display:flex; gap:6px;">
+            <button type="button" onclick="window.adminChangeGridHost()" class="btn btn-secondary" style="width:auto; padding:4px 10px; font-size:11px; font-weight:800; border-color:#ffd100; color:#ffd100;">
+              ✏️ Cambiar Anfitrión
+            </button>
+            <button type="button" onclick="window.adminToggleGridVisibility()" id="btnToggleGridVisibility" class="btn btn-secondary" style="width:auto; padding:4px 10px; font-size:11px; font-weight:800;">
+              🔒 Cambiar a Privado
+            </button>
+          </div>
         </div>
 
         <div class="flex-row" style="flex-wrap: wrap; margin-bottom: 16px; gap: 8px;">
@@ -257,6 +287,20 @@
               <option value="Paseo Qro">Paseo Qro</option>
               <option value="Todas las Sucursales">Todas las Sucursales</option>
             </select>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="font-size:11px; font-weight:800; color:#ffd100;">Tipo de Acceso / Visibilidad</label>
+            <select id="qVisibility" style="font-size:13px; font-weight:800;">
+              <option value="public" selected>🌐 Pública (Visible para toda la sucursal)</option>
+              <option value="private">🔒 Grupo Privado (Oculto - Solo con link o código)</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:0;">
+            <label style="font-size:11px; font-weight:800; color:#ffd100;">👑 Anfitrión / Capitán</label>
+            <input type="text" id="qHostName" placeholder="Ej. Beto / Amigos del Fútbol" style="font-size:13px; font-weight:800;" />
           </div>
         </div>
 
@@ -445,6 +489,9 @@
                 <span id="survAdminCodeBadge" class="badge" style="background:#ffd100; color:#000; font-weight:900; font-size:11px;">🔑 CÓDIGO: SURV26</span>
                 <span id="survAdminLivesBadge" class="badge" style="background:rgba(255,255,255,0.1); color:#fff; font-weight:800; font-size:11px;">❤️ 3 Vidas Iniciales</span>
                 <span id="survAdminHostBadge" class="badge" style="background:rgba(255,209,0,0.15); color:#ffd100; font-weight:800; font-size:11px;">👑 Host: Admin General</span>
+                <span id="survAdminVisibilityBadge" class="badge" style="background:rgba(59,130,246,0.2); color:#60a5fa; border:1px solid #3b82f6; font-weight:800; font-size:11px;">🌐 Público</span>
+                <button type="button" onclick="window.adminChangeSurvivorHost()" class="btn btn-secondary" style="width:auto; padding:2px 8px; font-size:10.5px; font-weight:800; border-color:#ffd100; color:#ffd100;">✏️ Cambiar Host</button>
+                <button type="button" onclick="window.adminToggleSurvivorVisibility()" id="btnToggleSurvVisibility" class="btn btn-secondary" style="width:auto; padding:2px 8px; font-size:10.5px; font-weight:800;">🔒 Cambiar a Privado</button>
               </div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -1276,6 +1323,20 @@
         <div class="form-group" style="margin-bottom:0;">
           <label style="font-size:11px; font-weight:800; color:#ffd100;">Código de Acceso*</label>
           <input type="text" id="newSurvCode" placeholder="Ej. SURV26" style="font-weight:900; font-size:13px; text-transform:uppercase;"/>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11px; font-weight:800; color:#ffd100;">Tipo de Acceso / Visibilidad</label>
+          <select id="newSurvVisibility" style="font-weight:800; font-size:13px;">
+            <option value="public" selected>🌐 Torneo Público (Toda la sucursal)</option>
+            <option value="private">🔒 Grupo Privado (Oculto - Solo con link o código)</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11px; font-weight:800; color:#ffd100;">👑 Anfitrión / Capitán</label>
+          <input type="text" id="newSurvHostName" placeholder="Ej. Beto / Capitán Amigos" style="font-weight:800; font-size:13px;"/>
         </div>
       </div>
 

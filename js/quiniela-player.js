@@ -164,11 +164,28 @@
     if (catalogUnsubscribe) catalogUnsubscribe();
 
     function processQuinielasSnap(snap) {
+      const params = new URLSearchParams(window.location.search);
+      const targetQId = (params.get('q') || params.get('quiniela') || params.get('code') || '').trim().toUpperCase();
+      const u = (typeof firebase !== 'undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+      const unlockedSession = JSON.parse(sessionStorage.getItem('unlocked_quinielas') || '[]');
+
       const list = [];
       snap.forEach(doc => {
         const q = doc.data();
         if (q.active !== false) {
-          list.push({ id: doc.id, ...q });
+          const item = { id: doc.id, ...q };
+          const isPriv = (item.isPrivate === true || item.visibility === 'private');
+          if (!isPriv) {
+            list.push(item);
+          } else {
+            const isTarget = targetQId && (item.id.toUpperCase() === targetQId || (item.code && item.code.toUpperCase() === targetQId));
+            const isUnlocked = unlockedSession.includes(item.id);
+            const isHost = u && (item.hostUid === u.uid || item.createdBy === u.uid || u.email === 'chefalbertomc@gmail.com' || u.email === 'sguerra70@hotmail.com');
+            const isMine = myParticipations && myParticipations[item.id];
+            if (isTarget || isUnlocked || isHost || isMine) {
+              list.push(item);
+            }
+          }
         }
       });
 
@@ -179,12 +196,13 @@
       renderQuinielasCatalog();
 
       // Check if URL has quiniela ID
-      const params = new URLSearchParams(window.location.search);
-      const targetQId = params.get('q') || params.get('quiniela');
-      if (targetQId && !activeQuiniela && allQuinielas.some(q => q.id === targetQId)) {
-        const poolTabBtn = document.querySelector('[data-target="tab-pools"]');
-        if (poolTabBtn) poolTabBtn.click();
-        openQuiniela(targetQId);
+      if (targetQId && !activeQuiniela && allQuinielas.some(q => q.id.toUpperCase() === targetQId || (q.code && q.code.toUpperCase() === targetQId))) {
+        const matched = allQuinielas.find(q => q.id.toUpperCase() === targetQId || (q.code && q.code.toUpperCase() === targetQId));
+        if (matched) {
+          const poolTabBtn = document.querySelector('[data-target="tab-pools"]');
+          if (poolTabBtn) poolTabBtn.click();
+          openQuiniela(matched.id);
+        }
       }
     }
 
@@ -542,7 +560,11 @@
           <!-- Header -->
           <div class="q-catalog-card-header">
             <div>
-              <span class="q-catalog-league-tag">${q.leagueLabel || 'TORNEO'}</span>
+              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-bottom:4px;">
+                <span class="q-catalog-league-tag">${q.leagueLabel || 'TORNEO'}</span>
+                ${q.isPrivate ? '<span class="badge warning" style="font-size:10px; padding:2px 6px;">🔒 Grupo Privado</span>' : '<span class="badge" style="font-size:10px; padding:2px 6px; background:rgba(59,130,246,0.2); color:#60a5fa; border:1px solid #3b82f6;">🌐 Público</span>'}
+                ${q.hostName ? `<span style="font-size:11px; color:#ffd100; font-weight:800;">👑 ${q.hostName}</span>` : ''}
+              </div>
               <h4 class="q-catalog-title">${q.name}</h4>
             </div>
             ${statusBadge}

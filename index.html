@@ -373,9 +373,14 @@
             <h3 class="card-title" style="margin:0;">Juegos de Cuadrícula Disponibles</h3>
             <p class="card-subtitle" style="margin:0;">Selecciona un juego para unirte o ver tu tablero en tiempo real.</p>
           </div>
-          <button type="button" class="btn btn-secondary" onclick="window.openHowToPlayModal()" style="width:auto; padding:6px 14px; font-size:12px; font-weight:900; border-radius:10px; background:rgba(255,102,0,0.15); border:1px solid #ff6600; color:#ff6600; display:inline-flex; align-items:center; gap:6px;">
-            ❓ ¿Cómo Jugar?
-          </button>
+          <div style="display:flex; gap:6px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-secondary" onclick="window.promptJoinPrivateGrid()" style="width:auto; padding:6px 12px; font-size:12px; font-weight:900; border-radius:10px; border-color:#ffd100; color:#ffd100; display:inline-flex; align-items:center; gap:5px;">
+              <span>🔑</span> Unirme con Código
+            </button>
+            <button type="button" class="btn btn-secondary" onclick="window.openHowToPlayModal()" style="width:auto; padding:6px 14px; font-size:12px; font-weight:900; border-radius:10px; background:rgba(255,102,0,0.15); border:1px solid #ff6600; color:#ff6600; display:inline-flex; align-items:center; gap:6px;">
+              ❓ ¿Cómo Jugar?
+            </button>
+          </div>
         </div>
         
         <div class="form-group">

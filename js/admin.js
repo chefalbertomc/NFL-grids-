@@ -527,7 +527,13 @@
     }
 
     const { homeName, awayName, gameId, league } = selectedEspnGame;
-    const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const customCode = (document.getElementById('gridCustomCodeInput')?.value || '').trim().toUpperCase();
+    const code = customCode || Math.random().toString(36).substring(2, 8).toUpperCase();
+
+    const isPrivate = (document.getElementById('selectGridVisibility')?.value === 'private');
+    const hostNameInput = (document.getElementById('gridHostNameInput')?.value || '').trim();
+    const hostName = hostNameInput || (user ? (user.displayName || user.email || 'Admin') : 'Admin General');
+    const autoApprove = document.getElementById('chkGridAutoApprove')?.checked === true;
 
     try {
       await db.collection('games').doc(code).set({
@@ -546,10 +552,15 @@
         numsTop: [],
         numsLeft: [],
         cells: {},
-        autoApprove: document.getElementById('chkGridAutoApprove')?.checked === true
+        autoApprove: autoApprove,
+        isPrivate: isPrivate,
+        visibility: isPrivate ? 'private' : 'public',
+        hostName: hostName,
+        hostUid: user ? user.uid : '',
+        createdBy: user ? user.uid : ''
       });
 
-      alert(`✅ Grid creado: ${awayName} vs ${homeName}\nCódigo: ${code}`);
+      alert(`✅ Grid ${isPrivate ? 'PRIVADO 🔒' : 'PÚBLICO 🌐'} creado: ${awayName} vs ${homeName}\nCódigo: ${code}\nAnfitrión: ${hostName}`);
       selectedEspnGame = null;
       const preview = document.getElementById('selectedGamePreview');
       const pickerContainer = document.getElementById('gamePickerContainer');
@@ -586,6 +597,19 @@
       if (hostEl) {
         hostEl.textContent = g.hostName ? `👑 ${g.hostName}` : 'Admin General (Sin asignar)';
       }
+      const visBadge = document.getElementById('gridVisibilityBadge');
+      const btnVis = document.getElementById('btnToggleGridVisibility');
+      const isPriv = (g.isPrivate === true || g.visibility === 'private');
+      if (visBadge) {
+        visBadge.textContent = isPriv ? '🔒 Privado' : '🌐 Público';
+        visBadge.style.background = isPriv ? 'rgba(255,193,7,0.2)' : 'rgba(59,130,246,0.2)';
+        visBadge.style.color = isPriv ? '#ffc107' : '#60a5fa';
+        visBadge.style.borderColor = isPriv ? '#ffc107' : '#3b82f6';
+      }
+      if (btnVis) {
+        btnVis.textContent = isPriv ? '🌐 Hacer Público' : '🔒 Hacer Privado';
+      }
+
       renderAdminGrid(g);
       attachPlayersListener(code);
 
@@ -595,6 +619,42 @@
       console.error('[admin] Error loading grid detail:', err);
     }
   }
+
+  window.adminChangeGridHost = async function() {
+    if (!currentGridCode || !db) return;
+    const newHost = prompt('Ingresa el Nombre o Alias del Anfitrión / Capitán de este Grid:');
+    if (!newHost || !newHost.trim()) return;
+    try {
+      await db.collection('games').doc(currentGridCode).update({
+        hostName: newHost.trim(),
+        updatedAt: Date.now()
+      });
+      alert(`👑 Anfitrión asignado: ${newHost.trim()}`);
+      loadGameDetail();
+    } catch(e) {
+      alert('Error al asignar anfitrión: ' + e.message);
+    }
+  };
+
+  window.adminToggleGridVisibility = async function() {
+    if (!currentGridCode || !db) return;
+    try {
+      const doc = await db.collection('games').doc(currentGridCode).get();
+      if (!doc.exists) return;
+      const g = doc.data() || {};
+      const currentPriv = (g.isPrivate === true || g.visibility === 'private');
+      const newPriv = !currentPriv;
+      await db.collection('games').doc(currentGridCode).update({
+        isPrivate: newPriv,
+        visibility: newPriv ? 'private' : 'public',
+        updatedAt: Date.now()
+      });
+      alert(newPriv ? '🔒 Grid configurado como GRUPO PRIVADO (Oculto del menú público).' : '🌐 Grid configurado como PÚBLICO (Visible para toda la sucursal).');
+      loadGameDetail();
+    } catch(e) {
+      alert('Error al cambiar visibilidad: ' + e.message);
+    }
+  };
 
   let currentApprovedPlayersList = [];
 

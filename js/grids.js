@@ -83,6 +83,10 @@
           store: d.store || d.tienda || '',
           locked: !!d.locked,
           autoApprove: d.autoApprove !== false,
+          isPrivate: d.isPrivate === true || d.visibility === 'private',
+          hostName: d.hostName || '',
+          hostUid: d.hostUid || '',
+          createdBy: d.createdBy || '',
           cells: cells,
           size: totalSize,
           free: freeCount,
@@ -278,15 +282,39 @@
   function renderGrids() {
     if (!gridsList) return;
     const filter = filterStore ? filterStore.value : '';
-    const filtered = ALL_GRIDS.filter(g => !filter || g.store === filter);
+    const activeUser = getActiveUser();
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlJoinCode = (urlParams.get('join') || urlParams.get('code') || '').trim().toUpperCase();
+    const sessionUnlockedGrids = JSON.parse(sessionStorage.getItem('unlocked_private_grids') || '[]');
+
+    const filtered = ALL_GRIDS.filter(g => {
+      // Store filter
+      if (filter && g.store !== filter) return false;
+
+      // Private grid visibility filter:
+      if (g.isPrivate) {
+        const isUrlTarget = urlJoinCode && (g.code === urlJoinCode);
+        const isRegistered = !!MY_REGISTRATIONS[g.code];
+        const isUnlocked = sessionUnlockedGrids.includes(g.code);
+        const isHost = activeUser && (
+          g.hostUid === activeUser.uid ||
+          g.createdBy === activeUser.uid ||
+          activeUser.email === 'chefalbertomc@gmail.com' ||
+          activeUser.email === 'sguerra70@hotmail.com'
+        );
+        // Only show if user has the direct link, is in the game, unlocked with code, or is the host/superadmin!
+        if (!isUrlTarget && !isRegistered && !isUnlocked && !isHost) {
+          return false;
+        }
+      }
+      return true;
+    });
 
     if (filtered.length === 0) {
       gridsList.innerHTML = '<div class="text-center hint-text py-4">— No hay grids disponibles —</div>';
       if (joinGridForm) joinGridForm.style.display = 'none';
       return;
     }
-
-    const activeUser = getActiveUser();
 
     gridsList.innerHTML = '';
     filtered.forEach(g => {
@@ -353,6 +381,13 @@
         <span class="badge" style="font-weight: 800; font-size:11px; padding:3px 7px;">🔑 ${g.code}</span>
         ${g.store ? `<span class="badge accent" style="font-size:11px; padding:3px 7px;">${g.store}</span>` : ''}
       `;
+
+      if (g.isPrivate) {
+        badgesHtml += `<span class="badge" style="background:rgba(255,193,7,0.2); color:#ffc107; font-weight:900; border:1px solid rgba(255,193,7,0.4); font-size:11px; padding:3px 7px;">🔒 Grupo Privado</span>`;
+      }
+      if (g.hostName) {
+        badgesHtml += `<span class="badge" style="background:rgba(255,209,0,0.15); color:#ffd100; font-weight:800; font-size:11px; padding:3px 7px;">👑 ${g.hostName}</span>`;
+      }
 
       if (g.locked) {
         badgesHtml += `<span class="badge danger" style="font-weight:800; font-size:11px; padding:3px 7px;">🔒 Bloqueado</span>`;
@@ -693,6 +728,48 @@
       }
     }
   }
+
+  // Join Private Grid with Code
+  window.promptJoinPrivateGrid = async function() {
+    const inputCode = prompt('🔑 Ingresa el código del Grid Privado (ej. MESA8):');
+    if (!inputCode || !inputCode.trim()) return;
+    const code = inputCode.trim().toUpperCase();
+
+    // Check if in ALL_GRIDS or fetch from Firestore
+    let found = ALL_GRIDS.find(g => g.code === code);
+    if (!found && db) {
+      try {
+        const doc = await db.collection('games').doc(code).get();
+        if (doc.exists) {
+          const d = doc.data() || {};
+          found = {
+            code: code,
+            home: d.homeTeam || d.home || '',
+            away: d.awayTeam || d.away || '',
+            store: d.store || '',
+            isPrivate: true,
+            hostName: d.hostName || '',
+            cells: d.cells || {},
+            size: d.size || 100,
+            free: 0
+          };
+          ALL_GRIDS.push(found);
+        }
+      } catch(e) {}
+    }
+
+    if (found) {
+      const unlocked = JSON.parse(sessionStorage.getItem('unlocked_private_grids') || '[]');
+      if (!unlocked.includes(code)) unlocked.push(code);
+      sessionStorage.setItem('unlocked_private_grids', JSON.stringify(unlocked));
+
+      selectGrid(code);
+      renderGrids();
+      alert(`🎉 ¡Grid Privado (${code}) encontrado! Ya puedes seleccionarlo abajo para unirte y apartar tus casillas.`);
+    } else {
+      alert(`❌ No se encontró ningún Grid con el código "${code}". Verifica el código con el anfitrión de la mesa.`);
+    }
+  };
 
   // Refresh when user returns to app
   document.addEventListener('visibilitychange', () => {

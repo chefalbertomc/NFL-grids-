@@ -110,19 +110,40 @@
     if (!db) return;
 
     function processSnap(snap) {
-      activeTournaments = [];
-      snap.forEach(doc => {
-        activeTournaments.push({ id: doc.id, ...doc.data() });
-      });
-
-      // Check URL query param for tournament code or ID
+      const u = getCurrentUser();
       const urlParams = new URLSearchParams(window.location.search);
       const paramCode = (urlParams.get('code') || urlParams.get('s') || '').trim().toUpperCase();
+      const unlockedPrivateTourns = JSON.parse(sessionStorage.getItem('unlocked_surv_tournaments') || '[]');
+
+      const allTourns = [];
+      snap.forEach(doc => {
+        allTourns.push({ id: doc.id, ...doc.data() });
+      });
+
+      // Privacy Filter:
+      activeTournaments = allTourns.filter(t => {
+        const isPrivate = (t.isPrivate === true || t.visibility === 'private');
+        if (!isPrivate) return true; // Public tournaments always show
+
+        const isTargetCode = paramCode && ((t.code && t.code.toUpperCase() === paramCode) || t.id.toUpperCase() === paramCode);
+        const isUnlockedSession = unlockedPrivateTourns.includes(t.id) || (t.code && unlockedPrivateTourns.includes(t.code.toUpperCase()));
+        const isHost = u && (
+          t.hostUid === u.uid ||
+          t.createdBy === u.uid ||
+          u.email === 'chefalbertomc@gmail.com' ||
+          u.email === 'sguerra70@hotmail.com'
+        );
+
+        return isTargetCode || isUnlockedSession || isHost;
+      });
 
       if (paramCode) {
-        const foundByCode = activeTournaments.find(t => (t.code && t.code.toUpperCase() === paramCode) || t.id === paramCode);
+        const foundByCode = allTourns.find(t => (t.code && t.code.toUpperCase() === paramCode) || t.id.toUpperCase() === paramCode);
         if (foundByCode) {
           currentTournamentId = foundByCode.id;
+          if (!activeTournaments.some(t => t.id === foundByCode.id)) {
+            activeTournaments.unshift(foundByCode);
+          }
         }
       }
 
@@ -177,19 +198,40 @@
   };
 
   // Join Tournament with Private Code Prompt
-  window.promptJoinWithCode = function() {
+  window.promptJoinWithCode = async function() {
     const code = prompt('🔑 Ingresa el Código de Acceso del Torneo Survivor (Ej. SURV26):');
-    if (!code) return;
+    if (!code || !code.trim()) return;
     const cleanCode = code.trim().toUpperCase();
-    const found = activeTournaments.find(t => (t.code && t.code.toUpperCase() === cleanCode) || t.id === cleanCode);
+
+    let found = activeTournaments.find(t => (t.code && t.code.toUpperCase() === cleanCode) || t.id.toUpperCase() === cleanCode);
+    if (!found && db) {
+      try {
+        const snap = await db.collection('survivors').get();
+        snap.forEach(d => {
+          const dt = d.data() || {};
+          if ((dt.code && dt.code.toUpperCase() === cleanCode) || d.id.toUpperCase() === cleanCode) {
+            found = { id: d.id, ...dt };
+          }
+        });
+      } catch(e) {}
+    }
+
     if (found) {
+      const unlocked = JSON.parse(sessionStorage.getItem('unlocked_surv_tournaments') || '[]');
+      if (!unlocked.includes(found.id)) unlocked.push(found.id);
+      sessionStorage.setItem('unlocked_surv_tournaments', JSON.stringify(unlocked));
+
+      if (!activeTournaments.some(t => t.id === found.id)) {
+        activeTournaments.unshift(found);
+      }
       window.selectSurvivorTournament(found.id);
+      alert(`🎉 ¡Torneo "${found.name}" (${found.isPrivate ? 'Grupo Privado 🔒' : 'Público 🌐'}) encontrado!`);
       setTimeout(() => {
         const joinBox = document.getElementById('survJoinSection');
         if (joinBox) joinBox.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     } else {
-      alert(`❌ No se encontró ningún torneo con el código "${cleanCode}". Verifica con tu mesero.`);
+      alert(`❌ No se encontró ningún torneo con el código "${cleanCode}". Verifica el código con tu anfitrión.`);
     }
   };
 
@@ -258,7 +300,7 @@
     let selectorHtml = '';
     const opts = activeTournaments.map(trn => `
       <option value="${trn.id}" ${trn.id === t.id ? 'selected' : ''}>
-        ${trn.name} [${trn.store || 'General'}] • Sem. ${trn.activeWeek || 1}/${trn.totalWeeks || 18} (Código: ${trn.code || 'SURV'})
+        ${trn.isPrivate ? '🔒 ' : '🌐 '}${trn.name} [${trn.store || 'General'}] • Sem. ${trn.activeWeek || 1}/${trn.totalWeeks || 18} (Código: ${trn.code || 'SURV'})
       </option>
     `).join('');
 
@@ -533,7 +575,9 @@
           <div>
             <h3 style="margin:0; font-size:18px; font-weight:950; color:#ffffff; letter-spacing:-0.3px;">${t.name}</h3>
             <div style="font-size:11.5px; color:#ffd100; font-weight:800; margin-top:2px;">
+              ${t.isPrivate ? '<span class="badge warning" style="font-size:10px; padding:2px 6px; margin-right:4px;">🔒 Grupo Privado</span>' : '<span class="badge" style="font-size:10px; padding:2px 6px; margin-right:4px; background:rgba(59,130,246,0.2); color:#60a5fa; border:1px solid #3b82f6;">🌐 Público</span>'}
               🔑 Código: <strong>${t.code || 'SURV'}</strong> • 📍 Sucursal: ${t.store || 'General'} • 📅 Sem. ${activeWeek}/${totalWeeks}
+              ${t.hostName ? ` • 👑 Anfitrión: <strong>${escapeHtml(t.hostName)}</strong>` : ''}
             </div>
           </div>
           <div>${heroBadgeHtml}</div>
