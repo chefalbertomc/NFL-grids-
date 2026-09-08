@@ -3,6 +3,7 @@
   'use strict';
 
   let db = null;
+  let user = null;
   let activeTournaments = [];
   let selectedTournamentId = null;
   let unsubTournament = null;
@@ -19,6 +20,11 @@
   ];
 
   window.initSurvivorAdmin = function() {
+    if (typeof firebase !== 'undefined' && firebase.auth && firebase.auth()) {
+      firebase.auth().onAuthStateChanged(u => {
+        user = u;
+      });
+    }
     if (window.db) {
       db = window.db;
       const filterEl = document.getElementById('survAdminFilterStore');
@@ -294,6 +300,9 @@
     const id = 'surv_' + Date.now();
     const isPrivate = (document.getElementById('newSurvVisibility')?.value === 'private');
 
+    const authUser = user || window.currentUser || (typeof firebase !== 'undefined' && firebase.auth && firebase.auth() ? firebase.auth().currentUser : null);
+    const creatorUid = authUser ? authUser.uid : '';
+
     const newTournament = {
       id: id,
       code: code,
@@ -311,7 +320,7 @@
       visibility: isPrivate ? 'private' : 'public',
       hostName: 'Sin Asignar',
       hostUid: null,
-      createdBy: user ? user.uid : '',
+      createdBy: creatorUid,
       status: 'active',
       createdAt: Date.now()
     };
