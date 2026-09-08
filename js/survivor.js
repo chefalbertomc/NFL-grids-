@@ -8,6 +8,7 @@
   let currentTournamentId = null;
   let currentTournament = null;
   let tournamentPlayers = {}; // { [playerId]: playerData }
+  let pendingSurvivorPick = null; // { tournId, teamAbbr, teamName, logo, color, week }
   let unsubTournament = null;
   let unsubPlayers = null;
 
@@ -174,6 +175,7 @@
   function selectTournament(tournId) {
     currentTournamentId = tournId;
     currentTournament = activeTournaments.find(t => t.id === tournId) || null;
+    pendingSurvivorPick = null;
 
     if (unsubTournament) unsubTournament();
     if (unsubPlayers) unsubPlayers();
@@ -311,7 +313,7 @@
           </div>
           <p class="hint-text" style="font-size:11px; margin:0;">¿No tienes código? Pídeselo a tu anfitrión o mesero para unirte.</p>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.23</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.24</span></footer>
       `;
       return;
     }
@@ -500,23 +502,80 @@
         const keyName = (tm.name || '').toUpperCase();
         const usedInWeek = previousUsedTeams[keyAbbr] || previousUsedTeams[keyName];
         const isUsed = usedInWeek !== undefined;
-        const isSelected = currentPick && (currentPick.team === tm.abbr || currentPick.team === tm.name);
+        const isSaved = currentPick && (currentPick.team === tm.abbr || currentPick.team === tm.name);
+        const isPending = pendingSurvivorPick && (pendingSurvivorPick.teamAbbr === tm.abbr || pendingSurvivorPick.teamName === tm.name);
 
         let cardClass = 'surv-team-card';
         if (isUsed || isWeekLocked) cardClass += ' used-team';
-        if (isSelected) cardClass += ' selected';
+        if (isPending) {
+          cardClass += ' pending-pick';
+        } else if (isSaved) {
+          cardClass += ' selected';
+        }
 
-        const clickAttr = (isUsed || isWeekLocked) ? '' : `onclick="window.selectWeeklySurvivorTeam('${t.id}', '${tm.abbr}', '${tm.name}', '${tm.logo}', '${tm.color}')"`;
+        const clickAttr = (isUsed || isWeekLocked) ? '' : `onclick="window.stageSurvivorPick('${t.id}', '${tm.abbr}', '${tm.name}', '${tm.logo}', '${tm.color}')"`;
 
         teamCardsHtml += `
           <div class="${cardClass}" style="--team-bg: ${tm.color}33; ${isUsed ? 'opacity: 0.35; filter: grayscale(100%); pointer-events: none;' : ''}" ${clickAttr}>
             ${isUsed ? `<span class="surv-used-badge" style="background:#ff3333; color:#ffffff; font-weight:900;">🔒 Usado Sem. ${usedInWeek}</span>` : ''}
-            ${isSelected ? `<span class="surv-selected-check">✓</span>` : ''}
+            ${!isUsed && isPending ? `<span class="surv-pending-badge">⏳ POR GUARDAR</span>` : ''}
+            ${!isUsed && !isPending && isSaved ? `<span class="surv-selected-check" title="Equipo Guardado en Base de Datos">✓</span>` : ''}
             <img src="${tm.logo}" class="surv-team-logo" alt="${tm.name}" onerror="this.src='img/logo.jpg'"/>
             <span class="surv-team-name">${tm.name}</span>
           </div>
         `;
       });
+
+      let saveBarHtml = '';
+      if (!isWeekLocked) {
+        if (pendingSurvivorPick) {
+          const isChanging = currentPick && currentPick.team && (pendingSurvivorPick.teamAbbr !== currentPick.team && pendingSurvivorPick.teamName !== currentPick.teamName);
+          saveBarHtml = `
+            <div id="survSavePickBar" class="surv-save-bar">
+              <div style="display:flex; align-items:center; gap:14px;">
+                <img src="${pendingSurvivorPick.logo}" style="width:44px; height:44px; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.8));" onerror="this.src='img/logo.jpg'"/>
+                <div>
+                  <div style="font-size:11px; color:#ffd100; font-weight:900; letter-spacing:0.05em; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+                    <span>⏳</span> ${isChanging ? 'Cambio Seleccionado (Sin Guardar)' : 'Equipo Seleccionado (Sin Guardar)'}
+                  </div>
+                  <div style="font-size:17px; font-weight:950; color:#ffffff;">
+                    ${pendingSurvivorPick.teamName}
+                  </div>
+                  <div style="font-size:11px; color:#bbb;">
+                    ${isChanging ? `Reemplazará a tu pick guardado actual (${currentPick.teamName || currentPick.team}). Presiona el botón verde para confirmar.` : `Presiona "Guardar Pick" para confirmar tu elección oficial de la Semana ${activeWeek}.`}
+                  </div>
+                </div>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary" onclick="window.cancelSurvivorPendingPick()" style="padding:9px 14px; font-size:12px; font-weight:800; border-radius:10px; border-color:rgba(255,255,255,0.25); color:#ccc;">
+                  ✕ Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" id="btnConfirmSurvivorPick" onclick="window.confirmSaveSurvivorPick()" style="padding:10px 20px; font-size:13.5px; font-weight:950; border-radius:10px; background:linear-gradient(135deg, #00e676, #00b0ff); color:#000; border:none; box-shadow:0 0 16px rgba(0,230,118,0.5); cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                  <span>💾</span> <span>Guardar Pick Semana ${activeWeek}</span>
+                </button>
+              </div>
+            </div>
+          `;
+        } else if (currentPick && currentPick.team) {
+          saveBarHtml = `
+            <div style="margin-top:14px; background:rgba(0,230,118,0.08); border:1.5px solid rgba(0,230,118,0.3); border-radius:12px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <img src="${currentPick.logo || 'img/logo.jpg'}" style="width:28px; height:28px; object-fit:contain;" onerror="this.src='img/logo.jpg'"/>
+                <div style="font-size:12px; color:#fff;">
+                  Tu pick guardado oficial es <strong style="color:#00e676;">${currentPick.teamName || currentPick.team}</strong>. Si deseas cambiarlo antes de que empiece la jornada, toca otro equipo arriba y pulsa Guardar.
+                </div>
+              </div>
+              <span class="badge success" style="font-size:10px; font-weight:900;">✓ GUARDADO</span>
+            </div>
+          `;
+        } else {
+          saveBarHtml = `
+            <div style="margin-top:14px; background:rgba(255,209,0,0.06); border:1px dashed rgba(255,209,0,0.3); border-radius:12px; padding:10px 14px; text-align:center; font-size:12px; color:#ffd100; font-weight:700;">
+              👉 Toca cualquier equipo disponible arriba para seleccionarlo. Aparecerá el botón para <strong>Guardar</strong> tu elección.
+            </div>
+          `;
+        }
+      }
 
       pickSectionHtml = `
         <section class="card highlight" style="margin-bottom:16px;">
@@ -531,12 +590,15 @@
               <span>🔒</span> <span>Picks BLOQUEADOS para la Semana ${activeWeek}. ¡El primer partido ya ha iniciado! Todos los logos de los participantes son ahora visibles en la tabla.</span>
             </div>
           ` : `
-            <p class="hint-text" style="font-size:11.5px; margin-bottom:8px;">Toca un equipo para elegirlo. Tus elecciones son privadas con 🔒 hasta que inicie el primer partido de la semana.</p>
+            <p class="hint-text" style="font-size:11.5px; margin-bottom:8px;">
+              Toca un equipo para pre-seleccionarlo y presiona <strong>"💾 Guardar Pick"</strong> para confirmar. Tus elecciones son privadas con 🔒 hasta que inicie el primer partido de la semana.
+            </p>
           `}
 
           <div class="surv-team-picker-grid">
             ${teamCardsHtml}
           </div>
+          ${saveBarHtml}
         </section>
       `;
     }
@@ -692,7 +754,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.23</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.24</span>
       </footer>
     `;
   }
@@ -913,17 +975,111 @@
     }
   };
 
-  // Select Weekly Team Pick Handler
-  window.selectWeeklySurvivorTeam = async function(tournId, teamAbbr, teamName, logo, color) {
-    const u = getCurrentUser();
-    if (!u) return;
-
+  // Stage Survivor Pick (Pre-selection without immediate saving)
+  window.stageSurvivorPick = function(tournId, teamAbbr, teamName, logo, color) {
     if (!currentTournament) return;
     const activeWeek = currentTournament.activeWeek || 1;
 
     if (currentTournament.locked) {
       alert(`🔒 La Semana ${activeWeek} está bloqueada porque ya iniciaron los partidos. No se pueden modificar selecciones.`);
       return;
+    }
+
+    const u = getCurrentUser();
+    if (!u) {
+      alert('Debes iniciar sesión para seleccionar tu equipo.');
+      return;
+    }
+
+    const myPlayer = tournamentPlayers[u.uid] || Object.values(tournamentPlayers).find(p => p.id === u.uid || p.uid === u.uid);
+    const startWeek = currentTournament.startWeek || 1;
+
+    // Strict validation: cannot choose a team used in previous weeks
+    if (myPlayer && myPlayer.picks) {
+      for (const [wKey, pick] of Object.entries(myPlayer.picks)) {
+        const wNum = parseInt(wKey, 10);
+        if (wNum >= startWeek && wNum < activeWeek && pick) {
+          const pickedAbbr = (pick.team || '').toUpperCase();
+          const pickedName = (pick.teamName || '').toUpperCase();
+          if (pickedAbbr === teamAbbr.toUpperCase() || pickedName === teamName.toUpperCase()) {
+            alert(`🚫 No puedes elegir a ${teamName}.\n\nYa utilizaste a este equipo en la Semana ${wNum}.\nEn Survivor solo puedes elegir a cada equipo 1 sola vez durante todo el torneo.`);
+            return;
+          }
+        }
+      }
+    }
+
+    pendingSurvivorPick = {
+      tournId,
+      teamAbbr,
+      teamName,
+      logo,
+      color,
+      week: activeWeek
+    };
+
+    renderSurvivorApp();
+
+    // Smoothly scroll down to the save bar so the user sees it immediately
+    setTimeout(() => {
+      const bar = document.getElementById('survSavePickBar');
+      if (bar) {
+        bar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }, 40);
+  };
+
+  // Cancel Pending Pick
+  window.cancelSurvivorPendingPick = function() {
+    pendingSurvivorPick = null;
+    renderSurvivorApp();
+  };
+
+  // Confirm and Save Survivor Pick to Firestore
+  window.confirmSaveSurvivorPick = async function() {
+    if (!pendingSurvivorPick) return;
+
+    const u = getCurrentUser();
+    if (!u) {
+      alert('Debes iniciar sesión para guardar tu selección.');
+      return;
+    }
+
+    if (!currentTournament) return;
+    const activeWeek = currentTournament.activeWeek || 1;
+
+    if (currentTournament.locked) {
+      alert(`🔒 La Semana ${activeWeek} está bloqueada. No se pueden registrar selecciones.`);
+      pendingSurvivorPick = null;
+      renderSurvivorApp();
+      return;
+    }
+
+    const { tournId, teamAbbr, teamName, logo, color } = pendingSurvivorPick;
+
+    // Double check used teams against previous weeks
+    const myPlayer = tournamentPlayers[u.uid] || Object.values(tournamentPlayers).find(p => p.id === u.uid || p.uid === u.uid);
+    const startWeek = currentTournament.startWeek || 1;
+    if (myPlayer && myPlayer.picks) {
+      for (const [wKey, pick] of Object.entries(myPlayer.picks)) {
+        const wNum = parseInt(wKey, 10);
+        if (wNum >= startWeek && wNum < activeWeek && pick) {
+          const pickedAbbr = (pick.team || '').toUpperCase();
+          const pickedName = (pick.teamName || '').toUpperCase();
+          if (pickedAbbr === teamAbbr.toUpperCase() || pickedName === teamName.toUpperCase()) {
+            alert(`🚫 No puedes elegir a ${teamName}. Ya utilizaste a este equipo en la Semana ${wNum}. En Survivor solo puedes elegir a cada equipo 1 sola vez por torneo.`);
+            pendingSurvivorPick = null;
+            renderSurvivorApp();
+            return;
+          }
+        }
+      }
+    }
+
+    const btn = document.getElementById('btnConfirmSurvivorPick');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span>⏳</span> <span>Guardando...</span>';
     }
 
     try {
@@ -937,11 +1093,20 @@
           pickedAt: Date.now()
         }
       });
-      console.log(`[Survivor] Pick guardado: ${teamName} para Semana ${activeWeek}`);
+      console.log(`[Survivor] Pick guardado y confirmado: ${teamName} para Semana ${activeWeek}`);
+      pendingSurvivorPick = null;
+      alert(`🎉 ¡Pick guardado con éxito!\n\nTu equipo confirmado para la Semana ${activeWeek} es: ${teamName}.\n¡Mucho éxito en la jornada!`);
     } catch (err) {
       alert('Error al guardar pick: ' + err.message);
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>💾</span> <span>Guardar Pick Semana ' + activeWeek + '</span>';
+      }
     }
   };
+
+  // Keep backward compatibility alias
+  window.selectWeeklySurvivorTeam = window.stageSurvivorPick;
 
   // Co-Admin Control Functions
   window.coAdminToggleLock = async function(tournId, newLocked) {

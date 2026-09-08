@@ -503,6 +503,15 @@
             </div>
           </div>
           <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            <div style="display:inline-flex; align-items:center; background:rgba(255,255,255,0.06); border-radius:8px; border:1px solid rgba(255,255,255,0.12); padding:2px 4px; gap:3px;" title="Ajuste manual de vidas">
+              <button type="button" class="btn btn-secondary" onclick="window.adjustSurvivorPlayerLives('${p.id}', -1)" style="padding:2px 6px; font-size:10px; width:auto; border:none; background:rgba(255,0,51,0.25); color:#ff4444; border-radius:5px;" title="Restar 1 Vida (-1 💔)">
+                -1 💔
+              </button>
+              <span style="font-size:11px; font-weight:900; color:#fff; min-width:14px; text-align:center;">${lives}</span>
+              <button type="button" class="btn btn-secondary" onclick="window.adjustSurvivorPlayerLives('${p.id}', 1)" style="padding:2px 6px; font-size:10px; width:auto; border:none; background:rgba(0,230,118,0.25); color:#00e676; border-radius:5px;" title="Sumar 1 Vida (+1 ❤️)">
+                +1 ❤️
+              </button>
+            </div>
             <button class="btn btn-secondary" onclick="window.openSurvivorPicksModal('${p.id}')" style="padding:4px 8px; font-size:10.5px; width:auto; border-color:#3b82f6; color:#3b82f6;" title="Ver todos los picks semana por semana">
               🔍 Picks
             </button>
@@ -592,6 +601,30 @@
       await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(pId).delete();
     } catch (err) {
       alert('Error: ' + err.message);
+    }
+  };
+
+  window.adjustSurvivorPlayerLives = async function(pId, delta) {
+    if (!selectedTournamentId || !db) return;
+    const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const maxLives = tourn ? (tourn.maxLives || 3) : 3;
+    const p = tournamentPlayers[pId];
+    if (!p) return;
+
+    const currentLives = p.lives !== undefined ? p.lives : (p.isAlive !== false ? maxLives : 0);
+    const newLives = Math.max(0, Math.min(maxLives, currentLives + delta));
+    const isAlive = newLives > 0;
+    const currWeek = tourn ? (tourn.activeWeek || 1) : 1;
+
+    try {
+      await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(pId).update({
+        lives: newLives,
+        isAlive: isAlive,
+        eliminatedWeek: isAlive ? null : currWeek
+      });
+      console.log(`[Survivor Admin] Vidas ajustadas para ${p.nickname || pId}: ${newLives}/${maxLives} (isAlive: ${isAlive})`);
+    } catch (err) {
+      alert('Error al ajustar vidas: ' + err.message);
     }
   };
 

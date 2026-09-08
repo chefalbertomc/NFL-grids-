@@ -4196,8 +4196,55 @@ tr.fg-live-active-row {
 }
 
 .surv-team-card.selected {
-  border-color: #ff6600 !important;
-  box-shadow: 0 0 16px rgba(255, 102, 0, 0.5), inset 0 0 10px rgba(255, 102, 0, 0.2) !important;
+  border-color: #00e676 !important;
+  box-shadow: 0 0 16px rgba(0, 230, 118, 0.5), inset 0 0 10px rgba(0, 230, 118, 0.2) !important;
+}
+
+.surv-team-card.pending-pick {
+  border-color: #ffd100 !important;
+  box-shadow: 0 0 20px rgba(255, 209, 0, 0.7), inset 0 0 12px rgba(255, 209, 0, 0.25) !important;
+  transform: translateY(-2px);
+  animation: survPulsePick 1.4s infinite alternate;
+}
+
+@keyframes survPulsePick {
+  0% { box-shadow: 0 0 8px rgba(255, 209, 0, 0.4); }
+  100% { box-shadow: 0 0 22px rgba(255, 209, 0, 0.95); }
+}
+
+.surv-pending-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #ffd100;
+  color: #000;
+  font-size: 8.5px;
+  font-weight: 950;
+  padding: 2px 6px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+.surv-save-bar {
+  background: linear-gradient(135deg, rgba(20, 26, 40, 0.98), rgba(10, 14, 24, 0.98));
+  border: 2px solid #ffd100;
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 209, 0, 0.25);
+  animation: survSlideUp 0.25s ease-out;
+}
+
+@keyframes survSlideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .surv-team-card.used-team {
