@@ -135,6 +135,15 @@
           </div>
         </div>
 
+        <!-- Host / Anfitrión Asignado del Grid -->
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,209,0,0.06); padding:8px 12px; border-radius:10px; border:1px solid rgba(255,209,0,0.25); margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <div>
+            <span style="font-size:11px; color:var(--text-muted);">👑 Administrador / Anfitrión de este Grid:</span>
+            <strong id="gridHostDisplay" style="color:#ffd100; font-size:13px; margin-left:6px;">Admin General (Sin asignar)</strong>
+          </div>
+          <span style="font-size:11px; color:#aaa;">(Puedes nombrarlo abajo en la lista de jugadores aprobados con el botón 👑 Host)</span>
+        </div>
+
         <div class="flex-row" style="flex-wrap: wrap; margin-bottom: 16px; gap: 8px;">
           <button id="btnLock" class="btn btn-secondary" style="flex: 1; min-width: 100px;">🔒 Bloquear</button>
           <button id="btnUnlock" class="btn btn-secondary" style="flex: 1; min-width: 100px;">🔓 Desbloquear</button>
@@ -435,14 +444,21 @@
               <div style="display:flex; align-items:center; gap:6px; margin-top:6px; flex-wrap:wrap;">
                 <span id="survAdminCodeBadge" class="badge" style="background:#ffd100; color:#000; font-weight:900; font-size:11px;">🔑 CÓDIGO: SURV26</span>
                 <span id="survAdminLivesBadge" class="badge" style="background:rgba(255,255,255,0.1); color:#fff; font-weight:800; font-size:11px;">❤️ 3 Vidas Iniciales</span>
+                <span id="survAdminHostBadge" class="badge" style="background:rgba(255,209,0,0.15); color:#ffd100; font-weight:800; font-size:11px;">👑 Host: Admin General</span>
               </div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
               <button type="button" id="btnEvaluateSurvivorESPN" class="btn btn-primary" onclick="window.evaluateSurvivorESPN()" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; background:#00e676; color:#000; border-color:#00e676; display:inline-flex; align-items:center; gap:5px;">
-                <span>⚡</span> Calificar Semana con ESPN (1-Click)
+                <span>⚡</span> Calificar Semana (ESPN)
               </button>
               <button type="button" class="btn btn-secondary" onclick="window.shareSurvivorWhatsApp()" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; background:rgba(37,211,102,0.15); border-color:#25d366; color:#25d366; display:inline-flex; align-items:center; gap:5px;">
-                <span>📲</span> Compartir WhatsApp
+                <span>📲</span> WhatsApp
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="window.copySurvivorShareLink()" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; border-color:var(--accent-color); color:var(--accent-color); display:inline-flex; align-items:center; gap:5px;" title="Copiar enlace para unirse">
+                <span>📋</span> Copiar Link
+              </button>
+              <button type="button" class="btn btn-danger" onclick="window.deleteSurvivorTournament()" style="width:auto; padding:8px 14px; font-size:12px; font-weight:900; display:inline-flex; align-items:center; gap:5px;" title="Eliminar este torneo de Survivor definitivamente">
+                <span>🗑️</span> Eliminar Torneo
               </button>
             </div>
           </div>
@@ -1313,6 +1329,27 @@
       <div style="display:flex; gap:8px;">
         <button type="button" class="btn btn-secondary" onclick="window.closeCreateSurvivorModal()" style="flex:1;">Cancelar</button>
         <button type="button" class="btn btn-primary" onclick="window.createSurvivorTournament()" style="flex:1; font-weight:900;">Crear Torneo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Visualizador de Picks de Survivor -->
+  <div id="modalSurvivorPicks" class="login-modal-overlay" style="display:none; z-index:10020;">
+    <div class="login-modal-box" style="max-width:500px; background:#14181f; border:1.5px solid #3b82f6; border-radius:20px; box-shadow:0 16px 50px rgba(0,0,0,0.85); padding:20px 22px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px;">
+        <div>
+          <h3 id="modalPicksPlayerName" style="color:#3b82f6; font-size:16px; font-weight:950; margin:0;">📋 Picks del Concursante</h3>
+          <span class="hint-text" style="font-size:11px;">Historial semana por semana en este torneo Survivor.</span>
+        </div>
+        <button type="button" onclick="window.closeSurvivorPicksModal()" style="background:rgba(255,255,255,0.1); border:none; color:#fff; font-size:18px; width:28px; height:28px; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center;">&times;</button>
+      </div>
+
+      <div id="modalPicksContent" style="margin-bottom:16px;">
+        <div class="hint-text py-4 text-center">Cargando picks...</div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="window.closeSurvivorPicksModal()" style="width:auto; padding:8px 20px;">Cerrar</button>
       </div>
     </div>
   </div>

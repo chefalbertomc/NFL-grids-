@@ -136,6 +136,10 @@
     if (titleEl) titleEl.textContent = `🏆 ${tourn.name} (${tourn.store || 'Todas'})`;
     if (codeBadge) codeBadge.textContent = `🔑 CÓDIGO: ${tourn.code || tourn.id.substring(0, 8).toUpperCase()}`;
     if (livesBadge) livesBadge.textContent = `❤️ ${tourn.maxLives || 3} Vidas Iniciales`;
+    const hostBadge = document.getElementById('survAdminHostBadge');
+    if (hostBadge) {
+      hostBadge.textContent = tourn.hostName ? `👑 Host: ${tourn.hostName}` : '👑 Host: Admin General';
+    }
 
     if (weekInp) {
       weekInp.value = tourn.activeWeek || 1;
@@ -354,6 +358,9 @@
             </div>
           </div>
           <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+            <button class="btn btn-secondary" onclick="window.openSurvivorPicksModal('${p.id}')" style="padding:4px 8px; font-size:10.5px; width:auto; border-color:#3b82f6; color:#3b82f6;" title="Ver todos los picks semana por semana">
+              🔍 Picks
+            </button>
             ${p.isHost ? `
               <button class="btn btn-warning" onclick="window.toggleSurvivorHost('${p.id}', false)" style="padding:4px 8px; font-size:10.5px; width:auto; border-color:#ffd100; color:#ffd100; background:rgba(255,209,0,0.15);" title="Quitar permisos de Admin de este Torneo">
                 ⭐ Co-Admin (Quitar)
@@ -365,7 +372,7 @@
             `}
             ${!isAlive ? `
               <button class="btn btn-secondary" onclick="window.reviveSurvivorPlayer('${p.id}')" style="padding:4px 8px; font-size:10.5px; width:auto; border-color:#00e676; color:#00e676;" title="Devolver vida a este jugador">
-                💚 Revivir (3 Vidas)
+                💚 Revivir
               </button>
             ` : `
               <button class="btn btn-danger" onclick="window.eliminateSurvivorPlayer('${p.id}')" style="padding:4px 8px; font-size:10.5px; width:auto;" title="Marcar como eliminado">
@@ -615,17 +622,196 @@
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
+  // Copiar Enlace Directo de Survivor
+  window.copySurvivorShareLink = function() {
+    const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    if (!tourn) return;
+    const origin = window.location.origin;
+    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    const shareUrl = `${origin}${path}index.html?tab=tab-survivor&code=${encodeURIComponent(tourn.code || tourn.id)}`;
+    
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        alert('📋 ¡Enlace copiado al portapapeles!\nPuedes pegarlo en cualquier grupo de WhatsApp.');
+      }).catch(() => {
+        prompt('Copia el enlace para compartir:', shareUrl);
+      });
+    } else {
+      prompt('Copia el enlace para compartir:', shareUrl);
+    }
+  };
+
   // Toggle Host / Co-Admin Role for Player
   window.toggleSurvivorHost = async function(playerId, makeHost) {
     if (!selectedTournamentId || !db) return;
     try {
+      const p = tournamentPlayers[playerId];
+      const hostName = p ? (p.nickname || p.playerName || 'Jugador') : 'Jugador';
+      
       await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(playerId).update({
         isHost: makeHost,
         updatedAt: Date.now()
       });
-      alert(makeHost ? `👑 ¡Jugador nombrado Co-Admin del Torneo!` : `⭐ Permisos de Co-Admin removidos.`);
+
+      // Si se nombra Host, también se registra en el documento del torneo
+      if (makeHost) {
+        await db.collection('survivors').doc(selectedTournamentId).update({
+          hostUid: playerId,
+          hostName: hostName,
+          updatedAt: Date.now()
+        });
+      } else {
+        const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+        if (tourn && tourn.hostUid === playerId) {
+          await db.collection('survivors').doc(selectedTournamentId).update({
+            hostUid: null,
+            hostName: null,
+            updatedAt: Date.now()
+          });
+        }
+      }
+
+      alert(makeHost ? `👑 ¡${hostName} ha sido nombrado Administrador (Host) de este Torneo!` : `⭐ Permisos de Administrador removidos.`);
     } catch (err) {
       alert('Error al actualizar permisos de admin: ' + err.message);
+    }
+  };
+
+  // Modal para ver TODOS los picks históricos de un jugador
+  window.openSurvivorPicksModal = function(playerId) {
+    const player = tournamentPlayers[playerId];
+    if (!player) return;
+    const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const totalWeeks = tourn ? (tourn.totalWeeks || 18) : 18;
+    const activeWeek = tourn ? (tourn.activeWeek || 1) : 1;
+    const maxLives = tourn ? (tourn.maxLives || 3) : 3;
+
+    const modal = document.getElementById('modalSurvivorPicks');
+    const titleEl = document.getElementById('modalPicksPlayerName');
+    const bodyEl = document.getElementById('modalPicksContent');
+    if (!modal || !bodyEl) {
+      alert(`No se encontró el contenedor del visor de picks.`);
+      return;
+    }
+
+    if (titleEl) {
+      titleEl.textContent = `📋 Picks de ${player.nickname || player.playerName} (${player.waiter || 'Mesa / Directo'})`;
+    }
+
+    const picks = player.picks || {};
+    let weeksHtml = '';
+
+    for (let w = 1; w <= totalWeeks; w++) {
+      const p = picks[w] || picks[String(w)];
+      const isPast = w < activeWeek;
+      const isCurrent = w === activeWeek;
+      const isFuture = w > activeWeek;
+
+      let statusBadge = '<span class="badge" style="background:#333; color:#888; font-size:10px;">Sin pick</span>';
+      let pickDetail = '<span style="color:#666;">—</span>';
+
+      if (p) {
+        const team = p.teamName || p.team || 'Equipo';
+        const logo = p.logo || '';
+        const logoImg = logo ? `<img src="${logo}" style="width:20px; height:20px; object-fit:contain; vertical-align:middle; margin-right:6px;" onerror="this.style.display='none'"/>` : '🏈 ';
+
+        if (p.result === 'win') {
+          statusBadge = '<span class="badge success" style="font-size:10px; font-weight:800;">✅ Victoria (+1 pt)</span>';
+        } else if (p.result === 'loss') {
+          statusBadge = '<span class="badge danger" style="font-size:10px; font-weight:800;">💀 Derrota (-1 vida)</span>';
+        } else if (p.result === 'tie') {
+          statusBadge = '<span class="badge warning" style="font-size:10px; font-weight:800;">⚖️ Empate</span>';
+        } else {
+          statusBadge = '<span class="badge" style="background:#ffd100; color:#000; font-weight:900; font-size:10px;">⏳ En Curso / Pendiente</span>';
+        }
+
+        pickDetail = `<span style="font-weight:800; color:#ffffff;">${logoImg}${team}</span>`;
+      }
+
+      weeksHtml += `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:9px 12px; border-bottom:1px solid rgba(255,255,255,0.06); ${isCurrent ? 'background:rgba(255,209,0,0.1); border-left:3px solid #ffd100;' : ''}">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <strong style="color:${isCurrent ? '#ffd100' : '#888'}; font-size:12px;">Semana ${w}:</strong>
+            ${pickDetail}
+          </div>
+          <div>${statusBadge}</div>
+        </div>
+      `;
+    }
+
+    const lives = player.lives !== undefined ? player.lives : (player.isAlive !== false ? maxLives : 0);
+    const heartIcons = '❤️'.repeat(Math.max(0, lives)) + '🖤'.repeat(Math.max(0, maxLives - lives));
+
+    bodyEl.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.4); padding:10px 14px; border-radius:10px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.06);">
+        <div>
+          <div style="font-size:11px; color:var(--text-muted);">Estado del Jugador:</div>
+          <div style="font-size:14px; font-weight:900; color:${player.isAlive !== false ? '#00e676' : '#ff0033'};">
+            ${player.isAlive !== false ? `${heartIcons} ${lives}/${maxLives} Vidas` : '💀 ELIMINADO'}
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px; color:var(--text-muted);">Puntos Totales:</div>
+          <div style="font-size:16px; font-weight:900; color:#ffd100;">${player.totalPoints || 0} Pts</div>
+        </div>
+      </div>
+      <div style="max-height:360px; overflow-y:auto; border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:rgba(10,14,22,0.8);">
+        ${weeksHtml}
+      </div>
+    `;
+
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+    modal.style.opacity = '1';
+    modal.style.pointerEvents = 'auto';
+  };
+
+  window.closeSurvivorPicksModal = function() {
+    const modal = document.getElementById('modalSurvivorPicks');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+      modal.style.opacity = '0';
+      modal.style.pointerEvents = 'none';
+    }
+  };
+
+  // Eliminar Torneo Survivor por Completo (Cascada)
+  window.deleteSurvivorTournament = async function(tournId) {
+    const targetId = tournId || selectedTournamentId;
+    if (!targetId || !db) {
+      alert('Selecciona primero un torneo Survivor para eliminar.');
+      return;
+    }
+    const tourn = activeTournaments.find(t => t.id === targetId);
+    const name = tourn ? tourn.name : 'este torneo';
+
+    const conf1 = confirm(`🚨 ¿Estás seguro de ELIMINAR definitivamente el Torneo Survivor "${name}"?\n\nEsta acción borrará a todos los participantes inscritos, sus selecciones y el torneo completo.`);
+    if (!conf1) return;
+
+    const conf2 = prompt(`Escribe "ELIMINAR" para confirmar el borrado del torneo:`);
+    if (conf2 !== 'ELIMINAR') {
+      alert('Operación cancelada. El texto no coincidió.');
+      return;
+    }
+
+    try {
+      // 1. Borrar todos los jugadores en la subcolección
+      const playersSnap = await db.collection('survivors').doc(targetId).collection('players').get();
+      const batch = db.batch();
+      playersSnap.forEach(pDoc => {
+        batch.delete(pDoc.ref);
+      });
+      await batch.commit();
+
+      // 2. Borrar documento del torneo
+      await db.collection('survivors').doc(targetId).delete();
+
+      selectedTournamentId = null;
+      alert(`🗑️ El Torneo Survivor "${name}" ha sido eliminado exitosamente.`);
+    } catch (err) {
+      console.error('[SurvivorAdmin] Error al eliminar torneo:', err);
+      alert('Error al eliminar el torneo: ' + err.message);
     }
   };
 

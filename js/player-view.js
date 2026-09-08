@@ -285,6 +285,7 @@
       game = { id: doc.id, ...doc.data() };
       
       updateGameHeader(game);
+      renderHostControls();
       startPlayersListener();
       renderGrid(game);
 
@@ -357,6 +358,7 @@
         }
 
         updatePlayerUI();
+        renderHostControls();
         if (game) renderGrid(game);
       }, err => {
         console.error('[player-view] Players listen error:', err);
@@ -781,6 +783,253 @@
 
   window.addEventListener('resize', checkOrientationTip);
   window.addEventListener('orientationchange', checkOrientationTip);
+
+  // --- HOST CONTROL PANEL LOGIC (FOR GAME CREATOR / ADMIN) ---
+  function isUserGameHost() {
+    const currentUid = user ? user.uid : (window.currentUser ? window.currentUser.uid : null);
+    const currentEmail = (user && user.email) ? user.email.toLowerCase() : (window.currentUser && window.currentUser.email ? window.currentUser.email.toLowerCase() : '');
+
+    const SUPER_ADMINS = [
+      'chefalbertomc@gmail.com',
+      'sguerra70@hotmail.com',
+      'admin@steelersnationqro.com',
+      'admin@drinksandwins.com'
+    ];
+    if (currentEmail && SUPER_ADMINS.includes(currentEmail)) return true;
+
+    if (!game) return false;
+    if (currentUid && (game.hostUid === currentUid || game.createdBy === currentUid)) return true;
+    if (activePlayer && (activePlayer.isHost === true || activePlayer.role === 'admin')) return true;
+
+    return false;
+  }
+
+  let hostControlsInitialized = false;
+
+  function renderHostControls() {
+    const panel = document.getElementById('hostGridControlPanel');
+    if (!panel) return;
+
+    if (!isUserGameHost()) {
+      panel.style.display = 'none';
+      return;
+    }
+
+    panel.style.display = 'block';
+
+    const btnLock = document.getElementById('btnHostToggleLock');
+    if (btnLock) {
+      const isLocked = game && game.locked;
+      btnLock.textContent = isLocked ? '🔓 Desbloquear Grid' : '🔒 Bloquear Grid';
+      btnLock.style.color = isLocked ? '#00e676' : '#ffffff';
+      btnLock.style.borderColor = isLocked ? '#00e676' : 'rgba(255,255,255,0.2)';
+    }
+
+    const btnNumbers = document.getElementById('btnHostToggleNumbers');
+    if (btnNumbers) {
+      btnNumbers.textContent = game && game.showNumbers ? '🙈 Ocultar Números' : '👁️ Mostrar Números';
+    }
+
+    const btnAutoApprove = document.getElementById('btnHostToggleAutoApprove');
+    if (btnAutoApprove) {
+      const isAuto = game && game.autoApprove !== false;
+      btnAutoApprove.textContent = isAuto ? '⚡ Auto-Aprobar: ON' : '⚡ Auto-Aprobar: OFF';
+      btnAutoApprove.style.color = isAuto ? '#00e676' : '#ffc107';
+      btnAutoApprove.style.borderColor = isAuto ? '#00e676' : '#ffc107';
+    }
+
+    // Pending Section
+    const pendingSec = document.getElementById('hostPendingSection');
+    const pendingList = document.getElementById('hostPendingList');
+    const pendingCount = document.getElementById('hostPendingCount');
+
+    if (pendingSec && pendingList) {
+      if (pendingPlayers.length > 0) {
+        pendingSec.style.display = 'block';
+        if (pendingCount) pendingCount.textContent = pendingPlayers.length;
+
+        pendingList.innerHTML = pendingPlayers.map(p => `
+          <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.3); padding:6px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); flex-wrap:wrap; gap:6px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <img src="${p.userPhoto || 'img/logo.jpg'}" style="width:28px; height:28px; border-radius:50%; object-fit:cover;" onerror="this.src='img/logo.jpg'"/>
+              <div>
+                <strong style="color:#ffd100; font-size:12.5px;">${p.nickname || p.playerName || 'Jugador'}</strong>
+                <span style="font-size:10.5px; color:#aaa; margin-left:6px;">${p.waiter ? `🤵 ${p.waiter}` : 'Mesa Directa'} • 🎟️ ${p.quota || 5} celdas</span>
+              </div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button onclick="window.hostApprovePlayer('${p.id}', ${p.quota || 5})" class="btn btn-primary" style="padding:4px 10px; font-size:11px; width:auto; background:#00e676; color:#000; border:none; font-weight:900;">
+                ✓ Aprobar
+              </button>
+              <button onclick="window.hostRejectPlayer('${p.id}')" class="btn btn-danger" style="padding:4px 10px; font-size:11px; width:auto;">
+                ✕ Rechazar
+              </button>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        pendingSec.style.display = 'none';
+      }
+    }
+
+    if (!hostControlsInitialized) {
+      hostControlsInitialized = true;
+      setupHostControlEvents();
+    }
+  }
+
+  function setupHostControlEvents() {
+    const btnLock = document.getElementById('btnHostToggleLock');
+    if (btnLock) {
+      btnLock.addEventListener('click', async () => {
+        if (!code || !db) return;
+        const newLocked = !(game && game.locked);
+        btnLock.disabled = true;
+        try {
+          await db.collection('games').doc(code).update({ locked: newLocked });
+          alert(newLocked ? '🔒 Grid bloqueado para nuevas selecciones.' : '🔓 Grid desbloqueado.');
+        } catch(e) {
+          alert('Error: ' + e.message);
+        } finally {
+          btnLock.disabled = false;
+        }
+      });
+    }
+
+    const btnGen = document.getElementById('btnHostGenNumbers');
+    if (btnGen) {
+      btnGen.addEventListener('click', async () => {
+        if (!code || !db) return;
+        if (!confirm('🎲 ¿Generar números aleatorios para los ejes (0 al 9)?')) return;
+        btnGen.disabled = true;
+        try {
+          const top = [0,1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+          const left = [0,1,2,3,4,5,6,7,8,9].sort(() => Math.random() - 0.5);
+          await db.collection('games').doc(code).update({
+            numsTop: top,
+            numsLeft: left,
+            showNumbers: true
+          });
+          alert('🎲 ¡Números aleatorios generados y revelados!');
+        } catch(e) {
+          alert('Error: ' + e.message);
+        } finally {
+          btnGen.disabled = false;
+        }
+      });
+    }
+
+    const btnToggleNumbers = document.getElementById('btnHostToggleNumbers');
+    if (btnToggleNumbers) {
+      btnToggleNumbers.addEventListener('click', async () => {
+        if (!code || !db) return;
+        const newShow = !(game && game.showNumbers);
+        btnToggleNumbers.disabled = true;
+        try {
+          await db.collection('games').doc(code).update({ showNumbers: newShow });
+        } catch(e) {
+          alert('Error: ' + e.message);
+        } finally {
+          btnToggleNumbers.disabled = false;
+        }
+      });
+    }
+
+    const btnAutoApprove = document.getElementById('btnHostToggleAutoApprove');
+    if (btnAutoApprove) {
+      btnAutoApprove.addEventListener('click', async () => {
+        if (!code || !db) return;
+        const newAuto = !(game && game.autoApprove !== false);
+        btnAutoApprove.disabled = true;
+        try {
+          await db.collection('games').doc(code).update({ autoApprove: newAuto });
+        } catch(e) {
+          alert('Error: ' + e.message);
+        } finally {
+          btnAutoApprove.disabled = false;
+        }
+      });
+    }
+
+    const btnShareWa = document.getElementById('btnHostShareWhatsApp');
+    if (btnShareWa) {
+      btnShareWa.addEventListener('click', () => {
+        const home = game?.homeTeam || game?.home || 'Local';
+        const away = game?.awayTeam || game?.away || 'Visitante';
+        const joinUrl = `${window.location.origin}${window.location.pathname}?code=${encodeURIComponent(code)}`;
+        const text = `🏈 *¡Únete a mi Grid en Drinks & Wins!*\n\n🏆 *Partido:* ${away} @ ${home}\n🔑 *Código:* ${code}\n\n👉 *Entra aquí para elegir tus casillas:*\n${joinUrl}`;
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+      });
+    }
+
+    const btnCopy = document.getElementById('btnHostCopyLink');
+    if (btnCopy) {
+      btnCopy.addEventListener('click', () => {
+        const joinUrl = `${window.location.origin}${window.location.pathname}?code=${encodeURIComponent(code)}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(joinUrl).then(() => {
+            alert('📋 ¡Enlace copiado al portapapeles!');
+          }).catch(() => {
+            prompt('Copia este enlace:', joinUrl);
+          });
+        } else {
+          prompt('Copia este enlace:', joinUrl);
+        }
+      });
+    }
+
+    const btnDelete = document.getElementById('btnHostDeleteGrid');
+    if (btnDelete) {
+      btnDelete.addEventListener('click', async () => {
+        if (!code || !db) return;
+        const conf1 = confirm(`🚨 ¿Estás seguro de ELIMINAR definitivamente este Grid (${code})?\nSe borrarán todas las casillas y jugadores.`);
+        if (!conf1) return;
+        const conf2 = prompt(`Escribe "ELIMINAR" para confirmar:`);
+        if (conf2 !== 'ELIMINAR') {
+          alert('Operación cancelada.');
+          return;
+        }
+        btnDelete.disabled = true;
+        try {
+          const playersSnap = await db.collection('games').doc(code).collection('players').get();
+          const batch = db.batch();
+          playersSnap.forEach(d => batch.delete(d.ref));
+          await batch.commit();
+          await db.collection('games').doc(code).delete();
+          alert('🗑️ Grid eliminado.');
+          window.location.href = 'index.html?tab=tab-grids';
+        } catch(e) {
+          alert('Error al eliminar: ' + e.message);
+          btnDelete.disabled = false;
+        }
+      });
+    }
+  }
+
+  // Global window functions for host approve/reject
+  window.hostApprovePlayer = async function(playerDocId, quota) {
+    if (!code || !db) return;
+    try {
+      await db.collection('games').doc(code).collection('players').doc(playerDocId).update({
+        approved: true,
+        status: 'approved',
+        quota: quota || 5,
+        pack: quota || 5
+      });
+    } catch(e) {
+      alert('Error al aprobar jugador: ' + e.message);
+    }
+  };
+
+  window.hostRejectPlayer = async function(playerDocId) {
+    if (!code || !db) return;
+    if (!confirm('¿Rechazar y eliminar la solicitud de este participante?')) return;
+    try {
+      await db.collection('games').doc(code).collection('players').doc(playerDocId).delete();
+    } catch(e) {
+      alert('Error al rechazar jugador: ' + e.message);
+    }
+  };
 
   // Run initialization
   init();

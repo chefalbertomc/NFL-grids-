@@ -582,6 +582,10 @@
       }
 
       const g = doc.data() || {};
+      const hostEl = document.getElementById('gridHostDisplay');
+      if (hostEl) {
+        hostEl.textContent = g.hostName ? `👑 ${g.hostName}` : 'Admin General (Sin asignar)';
+      }
       renderAdminGrid(g);
       attachPlayersListener(code);
 
@@ -910,7 +914,8 @@
         </div>
         <div class="flex-row" style="gap: 6px; align-items:center;">
           ${isApproved 
-            ? `<button class="btn btn-primary" data-player-id="${id}" data-action="update-quota" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; color: var(--bg-color); border-radius:8px;">💾 Guardar Cuota</button>
+            ? `<button class="btn btn-secondary" data-player-id="${id}" data-action="toggle-host" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; border-radius:8px; border-color:#ffd100; color:#ffd100;" title="Nombrar o remover Administrador de este Grid">${p.isHost ? '⭐ Quitar Host' : '👑 Host'}</button>
+               <button class="btn btn-primary" data-player-id="${id}" data-action="update-quota" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; color: var(--bg-color); border-radius:8px;">💾 Cuota</button>
                <button class="btn btn-secondary" data-player-id="${id}" data-action="reset" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; border-radius:8px;">🔄 Reset</button>
                <button class="btn btn-danger" data-player-id="${id}" data-action="remove" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; border-radius:8px;">🗑️</button>`
             : `<button class="btn btn-primary" data-player-id="${id}" data-action="approve" style="padding: 7px 14px; font-size: 12px; font-weight:900; width: auto; color: var(--bg-color); border-radius:8px; background:#00e676; border-color:#00e676;">✅ Aprobar</button>
@@ -942,7 +947,28 @@
       const quotaInput = document.getElementById('quota_' + playerDocId);
       const updatedQuota = quotaInput ? (Number(quotaInput.value) || 5) : 5;
 
-      if (action === 'approve') {
+      if (action === 'toggle-host') {
+        const pSnap = await pref.get();
+        const pData = pSnap.exists ? pSnap.data() : {};
+        const isNowHost = !pData.isHost;
+        await pref.update({ isHost: isNowHost });
+        const hostEl = document.getElementById('gridHostDisplay');
+        if (isNowHost) {
+          await db.collection('games').doc(currentGridCode).update({
+            hostUid: playerDocId,
+            hostName: pData.nickname || pData.name || 'Jugador'
+          });
+          if (hostEl) hostEl.textContent = `👑 ${pData.nickname || pData.name || 'Jugador'}`;
+          alert(`👑 ¡${pData.nickname || pData.name} ahora es Administrador (Host) de este Grid!`);
+        } else {
+          await db.collection('games').doc(currentGridCode).update({
+            hostUid: null,
+            hostName: null
+          });
+          if (hostEl) hostEl.textContent = 'Admin General (Sin asignar)';
+          alert(`⭐ Permisos de Administrador removidos.`);
+        }
+      } else if (action === 'approve') {
         await pref.update({ 
           approved: true, 
           status: 'approved',

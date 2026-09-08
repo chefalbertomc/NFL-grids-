@@ -53,6 +53,60 @@
       </div>
     </div>
 
+    <!-- HOST CONTROL PANEL (VISIBLE SOLO PARA EL ADMIN/ANFITRIÓN DE ESTE GRID) -->
+    <div id="hostGridControlPanel" class="card" style="display:none; margin-bottom: 12px; border: 1.5px solid #ffd100; background: linear-gradient(135deg, rgba(255,209,0,0.12) 0%, rgba(18,24,38,0.98) 100%); border-radius: 14px; padding: 12px 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.7);">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+        <div>
+          <div style="font-size: 14px; font-weight: 950; color: #ffd100; display: flex; align-items: center; gap: 6px;">
+            <span>👑</span> Panel del Anfitrión (Admin de este Grid)
+          </div>
+          <div style="font-size: 11px; color: #bbb; margin-top: 2px;">
+            Tienes permisos especiales para gestionar este juego desde tu celular.
+          </div>
+        </div>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <button type="button" id="btnHostToggleLock" class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 11.5px; font-weight: 800;">
+            🔒 Bloquear Grid
+          </button>
+          <button type="button" id="btnHostGenNumbers" class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 11.5px; font-weight: 800; border-color: #ffd100; color: #ffd100;">
+            🎲 Generar Números
+          </button>
+          <button type="button" id="btnHostToggleNumbers" class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 11.5px; font-weight: 800;">
+            👁️ Mostrar Números
+          </button>
+          <button type="button" id="btnHostToggleAutoApprove" class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 11.5px; font-weight: 800; border-color: #00e676; color: #00e676;">
+            ⚡ Auto-Aprobar: ON
+          </button>
+        </div>
+      </div>
+
+      <!-- Solicitudes Pendientes para Grupos Privados -->
+      <div id="hostPendingSection" style="display:none; margin-top: 8px; background: rgba(255,193,7,0.12); border: 1px solid rgba(255,193,7,0.35); border-radius: 10px; padding: 8px 12px;">
+        <div style="font-size: 12px; font-weight: 900; color: #ffc107; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+          <span>⌛ Solicitudes Pendientes de Aprobación:</span>
+          <span id="hostPendingCount" class="badge warning" style="font-size: 10px; font-weight: 900;">0</span>
+        </div>
+        <div id="hostPendingList" style="display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto;"></div>
+      </div>
+
+      <!-- Barra secundaria: WhatsApp, Copiar Link y Eliminar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.06); flex-wrap: wrap; gap: 8px;">
+        <div style="display: flex; gap: 6px;">
+          <button type="button" id="btnHostShareWhatsApp" class="btn btn-secondary" style="width: auto; padding: 5px 12px; font-size: 11px; background: rgba(37,211,102,0.15); border-color: #25d366; color: #25d366; font-weight: 800;">
+            💬 WhatsApp
+          </button>
+          <button type="button" id="btnHostCopyLink" class="btn btn-secondary" style="width: auto; padding: 5px 12px; font-size: 11px; font-weight: 800;">
+            📋 Copiar Link
+          </button>
+        </div>
+        <div>
+          <button type="button" id="btnHostDeleteGrid" class="btn btn-danger" style="width: auto; padding: 5px 12px; font-size: 11px; font-weight: 800;" title="Eliminar este Grid de forma definitiva">
+            🗑️ Eliminar Grid
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Header Hero Card (Ultra-Slim Single-Row Layout) -->
     <div class="card" style="margin-bottom: 10px; background: linear-gradient(135deg, rgba(20, 28, 42, 0.95), rgba(10, 14, 22, 0.98)); border: 1px solid rgba(255, 102, 0, 0.25); border-radius: 14px; padding: 8px 12px; box-shadow: 0 6px 20px rgba(0,0,0,0.6);">
       <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">

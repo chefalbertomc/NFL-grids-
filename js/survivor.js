@@ -15,6 +15,16 @@
   let matrixStatusFilter = 'all'; // 'all', 'alive', 'elim'
   let matrixDisplayMode = localStorage.getItem('bww_surv_display_mode') || 'both'; // 'both', 'names', 'photos'
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   const NFL_TEAMS = [
     { abbr: 'ARI', name: 'Arizona Cardinals', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/ari.png', color: '#97233F' },
     { abbr: 'ATL', name: 'Atlanta Falcons', logo: 'https://a.espncdn.com/i/teamlogos/nfl/500/atl.png', color: '#a71930' },
@@ -216,7 +226,11 @@
     const myPlayer = u ? (tournamentPlayers[u.uid] || Object.values(tournamentPlayers).find(p => p.id === u.uid || p.uid === u.uid)) : null;
     const isJoined = !!myPlayer;
     const isApproved = myPlayer ? (myPlayer.status !== 'rejected' && myPlayer.approved !== false) : false;
-    const isHost = myPlayer ? (myPlayer.isHost === true || myPlayer.role === 'admin' || myPlayer.isCoAdmin === true) : false;
+    const isHost = (
+      (u && t && (t.hostUid === u.uid || t.createdBy === u.uid)) ||
+      (u && (u.email === 'chefalbertomc@gmail.com' || u.email === 'sguerra70@hotmail.com')) ||
+      (myPlayer && (myPlayer.isHost === true || myPlayer.role === 'admin' || myPlayer.isCoAdmin === true))
+    );
     const maxLives = t.maxLives || 3;
     const myLives = myPlayer ? (myPlayer.lives !== undefined ? myPlayer.lives : (myPlayer.isAlive !== false ? maxLives : 0)) : maxLives;
     const isAlive = myPlayer ? (myPlayer.isAlive !== false && myLives > 0) : false;
@@ -419,22 +433,58 @@
     if (isHost) {
       const isWeekLocked = !!t.locked;
       const pendingPlayers = Object.values(tournamentPlayers).filter(p => p.status === 'pending' || p.approved === false);
+      const approvedPlayersList = Object.values(tournamentPlayers).filter(p => p.status !== 'rejected' && p.approved !== false);
 
       let pendingListHtml = '';
       if (pendingPlayers.length > 0) {
         pendingListHtml = `
-          <div style="margin-top:10px; background:rgba(255,193,7,0.1); border:1px solid rgba(255,193,7,0.3); border-radius:10px; padding:10px 12px;">
-            <div style="font-size:12px; font-weight:900; color:#ffc107; margin-bottom:6px;">⌛ Solicitudes Pendientes (${pendingPlayers.length}):</div>
+          <div style="margin-top:12px; background:rgba(255,193,7,0.12); border:1px solid rgba(255,193,7,0.35); border-radius:12px; padding:12px;">
+            <div style="font-size:12.5px; font-weight:900; color:#ffd100; margin-bottom:8px; display:flex; align-items:center; gap:6px;">
+              <span>⌛</span> Solicitudes Pendientes (${pendingPlayers.length})
+            </div>
             ${pendingPlayers.map(p => `
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:12px; border-bottom:1px solid rgba(255,255,255,0.05); padding-bottom:4px;">
-                <span>👤 <strong>${p.nickname || p.playerName}</strong> (${p.waiter || 'Mesa Directa'})</span>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; font-size:12px; border-bottom:1px solid rgba(255,255,255,0.06); padding-bottom:6px;">
+                <div>
+                  <span style="color:#fff; font-weight:800;">👤 ${escapeHtml(p.nickname || p.playerName || 'Participante')}</span>
+                  <span style="font-size:10.5px; color:#aaa; display:block;">Mesa / Mesero: ${escapeHtml(p.waiter || 'Directo')}</span>
+                </div>
                 <div style="display:flex; gap:6px;">
-                  <button onclick="window.coAdminApprovePlayer('${t.id}', '${p.id}', true)" class="btn btn-primary" style="padding:4px 10px; font-size:10.5px; width:auto; background:#00e676; color:#000; border:none; font-weight:900;">✓ Aprobar</button>
-                  <button onclick="window.coAdminApprovePlayer('${t.id}', '${p.id}', false)" class="btn btn-danger" style="padding:4px 10px; font-size:10.5px; width:auto;">✕ Rechazar</button>
+                  <button type="button" onclick="window.coAdminApprovePlayer('${t.id}', '${p.id}', true)" class="btn btn-primary" style="padding:5px 12px; font-size:11px; width:auto; background:#00e676; color:#000; border:none; font-weight:900; border-radius:8px;">✓ Aprobar</button>
+                  <button type="button" onclick="window.coAdminApprovePlayer('${t.id}', '${p.id}', false)" class="btn btn-danger" style="padding:5px 12px; font-size:11px; width:auto; border-radius:8px;">✕ Rechazar</button>
                 </div>
               </div>
             `).join('')}
           </div>
+        `;
+      }
+
+      // Contestants quick management accordion
+      let contestantsListHtml = '';
+      if (approvedPlayersList.length > 0) {
+        contestantsListHtml = `
+          <details style="margin-top:12px; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px 12px;">
+            <summary style="font-size:12px; font-weight:800; color:#ffd100; cursor:pointer; user-select:none;">
+              👥 Administrar Concursantes (${approvedPlayersList.length}) — Ver picks / Expulsar
+            </summary>
+            <div style="margin-top:10px; display:flex; flex-direction:column; gap:6px; max-height:260px; overflow-y:auto;">
+              ${approvedPlayersList.map(p => {
+                const pLives = p.lives !== undefined ? p.lives : (p.isAlive !== false ? (t.maxLives || 3) : 0);
+                const pAlive = p.isAlive !== false && pLives > 0;
+                return `
+                  <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(255,255,255,0.03); padding:6px 10px; border-radius:8px; font-size:11.5px;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <span>${pAlive ? `❤️ ${pLives}` : '💀 0'}</span>
+                      <strong style="color:#fff;">${escapeHtml(p.nickname || p.playerName || 'Jugador')}</strong>
+                    </div>
+                    <div style="display:flex; gap:6px;">
+                      <button type="button" onclick="window.coAdminViewPlayerPicks('${p.id}')" class="btn btn-secondary" style="padding:3px 8px; font-size:10.5px; width:auto; border-color:#3b82f6; color:#3b82f6;" title="Ver selecciones">🔍 Picks</button>
+                      <button type="button" onclick="window.coAdminDeletePlayer('${t.id}', '${p.id}', '${escapeHtml(p.nickname || p.playerName || 'Jugador')}')" class="btn btn-danger" style="padding:3px 8px; font-size:10.5px; width:auto;" title="Expulsar concursante">🗑️</button>
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </details>
         `;
       }
 
@@ -443,17 +493,29 @@
           <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
             <div>
               <h4 style="margin:0; font-size:15px; font-weight:950; color:#ffd100; display:flex; align-items:center; gap:6px;">
-                <span>👑</span> Panel de Anfitrión (Co-Admin)
+                <span>👑</span> Panel de Anfitrión (Admin del Juego)
               </h4>
-              <span class="hint-text" style="font-size:11px;">Tienes permisos especiales para gestionar este torneo desde tu celular.</span>
+              <span class="hint-text" style="font-size:11px;">
+                ${t.hostName ? `Anfitrión actual: <strong>${escapeHtml(t.hostName)}</strong> • ` : ''}Controla entradas, picks y concursantes de este torneo.
+              </span>
             </div>
-            <div>
-              <button type="button" onclick="window.coAdminToggleLock('${t.id}', ${!isWeekLocked})" class="btn ${isWeekLocked ? 'btn-secondary' : 'btn-primary'}" style="width:auto; padding:7px 14px; font-size:12px; font-weight:900; ${isWeekLocked ? 'border-color:#00e676; color:#00e676;' : 'background:#ffd100; color:#000; border:none;'}">
-                ${isWeekLocked ? '🔓 Desbloquear Picks' : '🔒 Bloquear Picks (Inició Partido)'}
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button type="button" onclick="window.coAdminToggleLock('${t.id}', ${!isWeekLocked})" class="btn ${isWeekLocked ? 'btn-secondary' : 'btn-primary'}" style="width:auto; padding:7px 12px; font-size:11.5px; font-weight:900; ${isWeekLocked ? 'border-color:#00e676; color:#00e676;' : 'background:#ffd100; color:#000; border:none;'}">
+                ${isWeekLocked ? '🔓 Desbloquear Picks' : '🔒 Bloquear Picks'}
+              </button>
+              <button type="button" onclick="window.coAdminShareWhatsApp('${t.id}', '${t.code || ''}', '${escapeHtml(t.name)}')" class="btn btn-secondary" style="width:auto; padding:7px 12px; font-size:11.5px; font-weight:900; border-color:#25d366; color:#25d366;" title="Compartir por WhatsApp">
+                📲 WhatsApp
+              </button>
+              <button type="button" onclick="window.coAdminCopyLink('${t.id}', '${t.code || ''}')" class="btn btn-secondary" style="width:auto; padding:7px 12px; font-size:11.5px; font-weight:900;" title="Copiar enlace directo">
+                📋 Enlace
+              </button>
+              <button type="button" onclick="window.coAdminDeleteTournament('${t.id}', '${escapeHtml(t.name)}')" class="btn btn-danger" style="width:auto; padding:7px 12px; font-size:11.5px; font-weight:900;" title="Eliminar torneo">
+                🗑️ Eliminar
               </button>
             </div>
           </div>
           ${pendingListHtml}
+          ${contestantsListHtml}
         </section>
       `;
     }
@@ -601,11 +663,24 @@
       }
 
       // Player Name & Avatar cell based on matrixDisplayMode
+      const isHostUser = (
+        (currentUser && tourn && (tourn.hostUid === currentUser.uid || tourn.createdBy === currentUser.uid)) ||
+        (currentUser && (currentUser.email === 'chefalbertomc@gmail.com' || currentUser.email === 'sguerra70@hotmail.com')) ||
+        (tournamentPlayers[currentUser?.uid]?.isHost === true || tournamentPlayers[currentUser?.uid]?.role === 'admin' || tournamentPlayers[currentUser?.uid]?.isCoAdmin === true)
+      );
+
+      const hostPicksBtn = isHostUser ? `
+        <button type="button" onclick="window.coAdminViewPlayerPicks('${p.id}')" style="background:rgba(59,130,246,0.18); border:1px solid #3b82f6; color:#60a5fa; border-radius:5px; font-size:10px; font-weight:800; padding:1px 5px; cursor:pointer; margin-top:2px; display:inline-flex; align-items:center; gap:2px;" title="Ver selecciones">
+          🔍 Picks
+        </button>
+      ` : '';
+
       let playerDisplayHtml = '';
       if (matrixDisplayMode === 'photos') {
         playerDisplayHtml = `
-          <div class="surv-player-badge" style="justify-content:center;">
+          <div class="surv-player-badge" style="justify-content:center; flex-direction:column; align-items:center;">
             <img src="${photoSrc}" class="surv-player-avatar ${isAlive ? 'alive' : 'elim'}" onerror="this.src='img/logo.jpg'" alt="${p.nickname}"/>
+            ${hostPicksBtn}
           </div>
         `;
       } else if (matrixDisplayMode === 'names') {
@@ -614,6 +689,7 @@
             <div style="display:flex; flex-direction:column;">
               <span class="surv-player-name ${isMe ? 'me' : ''}">${p.nickname || p.playerName} ${isMe ? '(TÚ)' : ''}</span>
               ${!isAlive ? '<span style="font-size:9.5px; color:#ff3333; margin-top:2px;">💀 Eliminado</span>' : ''}
+              ${hostPicksBtn}
             </div>
           </div>
         `;
@@ -625,6 +701,7 @@
             <div style="display:flex; flex-direction:column; text-align:left;">
               <span class="surv-player-name ${isMe ? 'me' : ''}">${p.nickname || p.playerName} ${isMe ? '(TÚ)' : ''}</span>
               ${!isAlive ? '<span style="font-size:9.5px; color:#ff3333; margin-top:2px;">💀 Eliminado</span>' : ''}
+              ${hostPicksBtn}
             </div>
           </div>
         `;
@@ -765,6 +842,159 @@
     } catch (err) {
       alert('Error al actualizar participante: ' + err.message);
     }
+  };
+
+  window.coAdminDeletePlayer = async function(tournId, playerId, playerName) {
+    if (!confirm(`¿Estás seguro de expulsar/eliminar a "${playerName}" de este torneo Survivor?\n\nEsta acción borrará sus vidas y selecciones registradas.`)) {
+      return;
+    }
+    try {
+      await db.collection('survivors').doc(tournId).collection('players').doc(playerId).delete();
+      alert(`🗑️ Concursante "${playerName}" eliminado exitosamente.`);
+    } catch (err) {
+      alert('Error al eliminar concursante: ' + err.message);
+    }
+  };
+
+  window.coAdminShareWhatsApp = function(tournId, code, tournName) {
+    const shareUrl = `${window.location.origin}${window.location.pathname}?tab=survivor&code=${encodeURIComponent(code || 'SURV')}`;
+    const msg = `🏆 ¡Únete a nuestro Torneo Survivor en Drinks & Wins! 🏈\n\n📌 Torneo: ${tournName}\n🔑 Código de acceso: ${code || 'SURV'}\n\nIngresa aquí para elegir a tu equipo:\n${shareUrl}`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+  };
+
+  window.coAdminCopyLink = async function(tournId, code) {
+    const shareUrl = `${window.location.origin}${window.location.pathname}?tab=survivor&code=${encodeURIComponent(code || 'SURV')}`;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareUrl);
+      } else {
+        const inp = document.createElement('input');
+        inp.value = shareUrl;
+        document.body.appendChild(inp);
+        inp.select();
+        document.execCommand('copy');
+        document.body.removeChild(inp);
+      }
+      alert('📋 ¡Enlace copiado al portapapeles!\n\n' + shareUrl);
+    } catch (e) {
+      alert('Enlace del torneo:\n' + shareUrl);
+    }
+  };
+
+  window.coAdminDeleteTournament = async function(tournId, tournName) {
+    const confirmInput = prompt(`⚠️ ATENCIÓN: Esta acción eliminará por completo el torneo "${tournName}" y a todos sus concursantes.\n\nPara confirmar la eliminación permanente, escribe "ELIMINAR":`);
+    if (confirmInput !== 'ELIMINAR') {
+      alert('Acción cancelada. No se eliminó el torneo.');
+      return;
+    }
+    try {
+      // 1. Delete players subcollection
+      const snap = await db.collection('survivors').doc(tournId).collection('players').get();
+      const batch = db.batch();
+      snap.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+
+      // 2. Delete tournament document
+      await db.collection('survivors').doc(tournId).delete();
+
+      alert(`✅ El torneo "${tournName}" ha sido eliminado exitosamente.`);
+      currentTournament = null;
+      if (window.loadSurvivorTournaments) {
+        window.loadSurvivorTournaments();
+      } else {
+        window.location.reload();
+      }
+    } catch (err) {
+      alert('Error al eliminar torneo: ' + err.message);
+    }
+  };
+
+  window.closeClientSurvivorPicksModal = function() {
+    const modal = document.getElementById('modalClientSurvivorPicks');
+    if (modal) {
+      modal.style.display = 'none';
+      modal.classList.remove('active');
+    }
+  };
+
+  window.coAdminViewPlayerPicks = function(playerId) {
+    const p = tournamentPlayers[playerId];
+    if (!p) {
+      alert('No se encontró la información del participante.');
+      return;
+    }
+    const modal = document.getElementById('modalClientSurvivorPicks');
+    const nameEl = document.getElementById('modalClientPicksPlayerName');
+    const contentEl = document.getElementById('modalClientPicksContent');
+    if (!modal || !contentEl) return;
+
+    if (nameEl) {
+      nameEl.innerHTML = `📋 Picks: <strong>${escapeHtml(p.nickname || p.playerName || 'Concursante')}</strong>`;
+    }
+
+    const t = currentTournament || activeTournaments[0];
+    const totalWeeks = t ? (t.totalWeeks || 18) : 18;
+    const activeWeek = t ? (t.activeWeek || 1) : 1;
+    const maxLives = t ? (t.maxLives || 3) : 3;
+    const lives = p.lives !== undefined ? p.lives : (p.isAlive !== false ? maxLives : 0);
+    const picks = p.picks || {};
+
+    let listHtml = `
+      <div style="margin-bottom:12px; display:flex; justify-content:space-between; background:rgba(255,255,255,0.04); padding:8px 12px; border-radius:10px; font-size:12px;">
+        <span>Vidas: <strong style="color:#ffd100;">${p.isAlive !== false ? `❤️ ${lives}/${maxLives}` : '💀 0 (Eliminado)'}</strong></span>
+        <span>Puntos: <strong>${p.totalPoints || 0} pts</strong></span>
+      </div>
+      <div style="max-height:320px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
+    `;
+
+    let hasAnyPick = false;
+    for (let w = 1; w <= totalWeeks; w++) {
+      const pick = picks[w];
+      if (pick && pick.team) {
+        hasAnyPick = true;
+        const res = pick.result || (w < activeWeek ? 'loss' : (w === activeWeek ? 'live' : 'pending'));
+        let resBadge = '';
+        if (res === 'win') {
+          resBadge = `<span style="background:rgba(0,230,118,0.2); color:#00e676; border:1px solid #00e676; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:900;">✓ VICTORIA</span>`;
+        } else if (res === 'loss' || res === 'no_pick') {
+          resBadge = `<span style="background:rgba(255,51,51,0.2); color:#ff3333; border:1px solid #ff3333; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:900;">✕ DERROTA</span>`;
+        } else if (res === 'live') {
+          resBadge = `<span style="background:rgba(255,209,0,0.2); color:#ffd100; border:1px solid #ffd100; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:900;">⚡ EN JUEGO</span>`;
+        } else {
+          resBadge = `<span style="background:rgba(255,255,255,0.1); color:#aaa; border:1px solid #666; padding:2px 6px; border-radius:6px; font-size:10px; font-weight:900;">⌛ PENDIENTE</span>`;
+        }
+
+        listHtml += `
+          <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.06); padding:8px 12px; border-radius:10px; font-size:12px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-weight:900; color:#ffd100; min-width:32px;">S${w}</span>
+              <img src="${pick.logo || 'img/logo.jpg'}" style="width:24px; height:24px; object-fit:contain;" onerror="this.src='img/logo.jpg'" alt="${pick.team}"/>
+              <span style="font-weight:800; color:#fff;">${escapeHtml(pick.teamName || pick.team)}</span>
+            </div>
+            <div>${resBadge}</div>
+          </div>
+        `;
+      } else if (w <= activeWeek) {
+        listHtml += `
+          <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.15); border:1px solid rgba(255,255,255,0.03); padding:6px 12px; border-radius:10px; font-size:11.5px; opacity:0.6;">
+            <span style="font-weight:900; color:#888; min-width:32px;">S${w}</span>
+            <span style="color:#777; font-style:italic;">Sin selección registrada</span>
+            <span style="color:#666;">—</span>
+          </div>
+        `;
+      }
+    }
+    if (!hasAnyPick) {
+      listHtml = `<div class="hint-text text-center py-4">Este participante aún no tiene ningún pick registrado.</div>`;
+    } else {
+      listHtml += `</div>`;
+    }
+
+    contentEl.innerHTML = listHtml;
+    modal.style.display = 'flex';
+    modal.classList.add('active');
   };
 
   // Initialize
