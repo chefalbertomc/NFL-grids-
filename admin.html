@@ -14,7 +14,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ffd100" />
   <title>Admin Dashboard — Drinks & Wins</title>
-  <link rel="stylesheet" href="css/styles.css?v=215.18"/>
+  <link rel="stylesheet" href="css/styles.css?v=215.19"/>
   <style>
     /* Styling overrides for admin features */
     .admin-tab-content {
@@ -35,7 +35,7 @@
         <img src="img/logo.jpg" alt="Drinks & Wins by Beto" class="app-brand-logo" />
         <div>
           <h1 class="header-title gradient-text">Panel de Administración</h1>
-          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v215.18</span></p>
+          <p class="hint-text">Drinks & Wins by Beto • <span class="app-version-badge">v215.19</span></p>
         </div>
       </div>
       <a href="index.html" class="btn btn-secondary" style="width: auto; padding: 8px 14px; text-decoration: none; font-size: 13px; font-weight: 800; border-radius: 10px; display: inline-flex; align-items: center; gap: 6px;">
@@ -108,9 +108,10 @@
               <option value="private">🔒 Grupo Privado (Oculto - Solo con link o código)</option>
             </select>
           </div>
-          <div class="form-group" style="margin: 0;">
-            <label style="font-size: 11px; font-weight: 800; color: #ffd100;">👑 Anfitrión / Capitán del Grid</label>
-            <input type="text" id="gridHostNameInput" placeholder="Ej. Beto / Mesa 8 / Carlos" style="font-size: 13px; font-weight: 800;" />
+          <div class="form-group" style="margin: 0; display:flex; flex-direction:column; justify-content:center;">
+            <div style="background:rgba(255,209,0,0.06); padding:8px 12px; border-radius:10px; border:1px solid rgba(255,209,0,0.2); font-size:11px; color:#ffd100;">
+              💡 <strong>Anfitrión:</strong> Se asigna desde los jugadores unidos usando el botón <strong>👑 Host</strong>.
+            </div>
           </div>
         </div>
 
@@ -263,7 +264,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.18</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.19</span>
       </footer>
     </main>
 
@@ -298,9 +299,10 @@
               <option value="private">🔒 Grupo Privado (Oculto - Solo con link o código)</option>
             </select>
           </div>
-          <div class="form-group" style="margin-bottom:0;">
-            <label style="font-size:11px; font-weight:800; color:#ffd100;">👑 Anfitrión / Capitán</label>
-            <input type="text" id="qHostName" placeholder="Ej. Beto / Amigos del Fútbol" style="font-size:13px; font-weight:800;" />
+          <div class="form-group" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:center;">
+            <div style="background:rgba(255,209,0,0.06); padding:8px 12px; border-radius:10px; border:1px solid rgba(255,209,0,0.2); font-size:11px; color:#ffd100;">
+              💡 <strong>Anfitrión:</strong> Se asigna desde los participantes que se unan a la quiniela.
+            </div>
           </div>
         </div>
 
@@ -430,7 +432,7 @@
       </section>
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.18</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.19</span>
       </footer>
     </main>
 
@@ -570,7 +572,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.18</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.19</span>
       </footer>
     </main>
 
@@ -847,7 +849,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.18</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.19</span>
       </footer>
     </main>
 
@@ -945,7 +947,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.18</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.19</span>
       </footer>
     </main>
 
@@ -1070,7 +1072,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.18</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.19</span>
       </footer>
     </main>
 
@@ -1125,7 +1127,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.18</span>
+        <span>DRINKS & WINS ADMIN</span> • <span class="ver">v215.19</span>
       </footer>
     </main>
   </div>
@@ -1335,13 +1337,6 @@
           </select>
         </div>
         <div class="form-group" style="margin-bottom:0;">
-          <label style="font-size:11px; font-weight:800; color:#ffd100;">👑 Anfitrión / Capitán</label>
-          <input type="text" id="newSurvHostName" placeholder="Ej. Beto / Capitán Amigos" style="font-weight:800; font-size:13px;"/>
-        </div>
-      </div>
-
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
-        <div class="form-group" style="margin-bottom:0;">
           <label style="font-size:11px; font-weight:800; color:#ffd100;">Vidas por Participante</label>
           <select id="newSurvLives" style="font-weight:800; font-size:13px;">
             <option value="3" selected>❤️❤️❤️ 3 Vidas (Recomendado)</option>
@@ -1351,10 +1346,21 @@
             <option value="5">❤️❤️❤️❤️❤️ 5 Vidas</option>
           </select>
         </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
         <div class="form-group" style="margin-bottom:0;">
-          <label style="font-size:11px; font-weight:800; color:#ffd100;">Número Total Semanas</label>
-          <input type="number" id="newSurvWeeks" value="18" min="1" max="40" style="font-weight:800; font-size:13px;"/>
+          <label style="font-size:11px; font-weight:800; color:#00e676;">📅 Iniciar a Partir de Semana:*</label>
+          <input type="number" id="newSurvStartWeek" value="1" min="1" max="40" style="font-weight:900; font-size:14px; text-align:center; color:#00e676; border-color:#00e676;" placeholder="Ej. 1, 2, 3..."/>
         </div>
+        <div class="form-group" style="margin-bottom:0;">
+          <label style="font-size:11px; font-weight:800; color:#ffd100;">Semana Final / Total Semanas:*</label>
+          <input type="number" id="newSurvWeeks" value="18" min="1" max="40" style="font-weight:800; font-size:14px; text-align:center;"/>
+        </div>
+      </div>
+
+      <div style="background:rgba(255,209,0,0.06); border:1px solid rgba(255,209,0,0.2); border-radius:10px; padding:8px 12px; margin-bottom:10px; font-size:11px; color:#ffd100; line-height:1.4;">
+        💡 <strong>Anfitrión:</strong> Se asigna desde la lista de participantes una vez creado el torneo, en cuanto el capitán o cliente se haya unido con el código.
       </div>
 
       <div class="form-group" style="margin-bottom:10px;">
@@ -1420,16 +1426,16 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
-  <!-- Firebase Logic (v215.18) -->
-  <script src="js/firebase-config.js?v=215.18"></script>
-  <script src="js/auth.js?v=215.18"></script>
-  <script src="js/team-logos.js?v=215.18"></script>
-  <script src="js/admin.js?v=215.18"></script>
-  <script src="js/quiniela-admin.js?v=215.18"></script>
-  <script src="js/survivor-admin.js?v=215.18"></script>
-  <script src="js/bingo-admin.js?v=215.18"></script>
-  <script src="js/trivia-admin.js?v=215.18"></script>
-  <script src="js/promotional-cards.js?v=215.18"></script>
+  <!-- Firebase Logic (v215.19) -->
+  <script src="js/firebase-config.js?v=215.19"></script>
+  <script src="js/auth.js?v=215.19"></script>
+  <script src="js/team-logos.js?v=215.19"></script>
+  <script src="js/admin.js?v=215.19"></script>
+  <script src="js/quiniela-admin.js?v=215.19"></script>
+  <script src="js/survivor-admin.js?v=215.19"></script>
+  <script src="js/bingo-admin.js?v=215.19"></script>
+  <script src="js/trivia-admin.js?v=215.19"></script>
+  <script src="js/promotional-cards.js?v=215.19"></script>
 
   <!-- Admin Tab Switching for Top Tabs -->
   <script>

@@ -258,7 +258,7 @@
           <h3 style="color:#ffd100; margin-top:10px;">No hay Torneos Survivor Activos</h3>
           <p class="hint-text">Pide a tu mesero o administrador que inicie un nuevo torneo Survivor para participar.</p>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.18</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.19</span></footer>
       `;
       return;
     }
@@ -276,7 +276,8 @@
     const maxLives = t.maxLives || 3;
     const myLives = myPlayer ? (myPlayer.lives !== undefined ? myPlayer.lives : (myPlayer.isAlive !== false ? maxLives : 0)) : maxLives;
     const isAlive = myPlayer ? (myPlayer.isAlive !== false && myLives > 0) : false;
-    const activeWeek = t.activeWeek || 1;
+    const startWeek = t.startWeek || 1;
+    const activeWeek = t.activeWeek || startWeek;
     const totalWeeks = t.totalWeeks || 18;
 
     // Get previous picked teams for no-repeat rule
@@ -284,7 +285,7 @@
     if (myPlayer && myPlayer.picks) {
       Object.keys(myPlayer.picks).forEach(wKey => {
         const wNum = parseInt(wKey, 10);
-        if (wNum < activeWeek) {
+        if (wNum >= startWeek && wNum < activeWeek) {
           const p = myPlayer.picks[wKey];
           if (p) {
             if (p.team) previousUsedTeams[p.team.toUpperCase()] = wNum;
@@ -298,11 +299,17 @@
 
     // Tournament Selector Header & Private Code Button
     let selectorHtml = '';
-    const opts = activeTournaments.map(trn => `
-      <option value="${trn.id}" ${trn.id === t.id ? 'selected' : ''}>
-        ${trn.isPrivate ? '🔒 ' : '🌐 '}${trn.name} [${trn.store || 'General'}] • Sem. ${trn.activeWeek || 1}/${trn.totalWeeks || 18} (Código: ${trn.code || 'SURV'})
-      </option>
-    `).join('');
+    const opts = activeTournaments.map(trn => {
+      const sw = trn.startWeek || 1;
+      const aw = trn.activeWeek || sw;
+      const tw = trn.totalWeeks || 18;
+      const startNote = sw > 1 ? ` (Inició Sem. ${sw})` : '';
+      return `
+        <option value="${trn.id}" ${trn.id === t.id ? 'selected' : ''}>
+          ${trn.isPrivate ? '🔒 ' : '🌐 '}${trn.name} [${trn.store || 'General'}] • Sem. ${aw}/${tw}${startNote} (Código: ${trn.code || 'SURV'})
+        </option>
+      `;
+    }).join('');
 
     selectorHtml = `
       <div style="margin-bottom:12px; background:rgba(0,0,0,0.3); padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,0.08); display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
@@ -621,7 +628,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.18</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.19</span>
       </footer>
     `;
   }
@@ -652,10 +659,11 @@
       return (b.totalPoints || 0) - (a.totalPoints || 0);
     });
 
-    // Build Table Header (Player + Week 1..maxWeeks + Total Score)
+    // Build Table Header (Player + Week startWeek..maxWeeks + Total Score)
+    const startWeek = tourn.startWeek || 1;
     const displayWeeksCount = Math.max(activeWeek, Math.min(totalWeeks, 18));
     let weekThs = '';
-    for (let w = 1; w <= displayWeeksCount; w++) {
+    for (let w = startWeek; w <= displayWeeksCount; w++) {
       weekThs += `<th class="surv-col-week" style="${w === activeWeek ? 'color:#00e676; border-bottom-color:#00e676;' : ''}">${w}</th>`;
     }
 
@@ -667,7 +675,7 @@
       const photoSrc = p.photoURL || p.userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nickname || p.playerName || 'J')}&background=ffd100&color=000&bold=true`;
 
       let cellsHtml = '';
-      for (let w = 1; w <= displayWeeksCount; w++) {
+      for (let w = startWeek; w <= displayWeeksCount; w++) {
         const pick = p.picks?.[w];
         if (pick && pick.team) {
           const res = pick.result || (w < activeWeek ? 'loss' : (w === activeWeek ? 'live' : 'pending'));
@@ -979,8 +987,9 @@
     }
 
     const t = currentTournament || activeTournaments[0];
+    const startWeek = t ? (t.startWeek || 1) : 1;
     const totalWeeks = t ? (t.totalWeeks || 18) : 18;
-    const activeWeek = t ? (t.activeWeek || 1) : 1;
+    const activeWeek = t ? (t.activeWeek || startWeek) : startWeek;
     const maxLives = t ? (t.maxLives || 3) : 3;
     const lives = p.lives !== undefined ? p.lives : (p.isAlive !== false ? maxLives : 0);
     const picks = p.picks || {};
@@ -994,7 +1003,7 @@
     `;
 
     let hasAnyPick = false;
-    for (let w = 1; w <= totalWeeks; w++) {
+    for (let w = startWeek; w <= totalWeeks; w++) {
       const pick = picks[w];
       if (pick && pick.team) {
         hasAnyPick = true;

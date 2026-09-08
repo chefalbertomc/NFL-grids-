@@ -133,12 +133,32 @@
     const codeBadge = document.getElementById('survAdminCodeBadge');
     const livesBadge = document.getElementById('survAdminLivesBadge');
 
+    const startWeek = tourn.startWeek || 1;
+    const totalWeeks = tourn.totalWeeks || 18;
+    const activeWeek = tourn.activeWeek || startWeek;
+
     if (titleEl) titleEl.textContent = `🏆 ${tourn.name} (${tourn.store || 'Todas'})`;
     if (codeBadge) codeBadge.textContent = `🔑 CÓDIGO: ${tourn.code || tourn.id.substring(0, 8).toUpperCase()}`;
     if (livesBadge) livesBadge.textContent = `❤️ ${tourn.maxLives || 3} Vidas Iniciales`;
+
+    let startBadge = document.getElementById('survAdminStartWeekBadge');
+    if (!startBadge && livesBadge && livesBadge.parentNode) {
+      startBadge = document.createElement('span');
+      startBadge.id = 'survAdminStartWeekBadge';
+      startBadge.className = 'badge';
+      startBadge.style.background = 'rgba(0,230,118,0.15)';
+      startBadge.style.color = '#00e676';
+      startBadge.style.fontWeight = '800';
+      startBadge.style.fontSize = '11px';
+      livesBadge.parentNode.insertBefore(startBadge, livesBadge.nextSibling);
+    }
+    if (startBadge) {
+      startBadge.textContent = `📅 Inicia: Sem. ${startWeek} / Fin: Sem. ${totalWeeks}`;
+    }
+
     const hostBadge = document.getElementById('survAdminHostBadge');
     if (hostBadge) {
-      hostBadge.textContent = tourn.hostName ? `👑 Host: ${tourn.hostName}` : '👑 Host: Admin General';
+      hostBadge.textContent = tourn.hostName && tourn.hostName !== 'Sin Asignar' ? `👑 Host: ${tourn.hostName}` : '👑 Host: Sin Asignar';
     }
     const visBadge = document.getElementById('survAdminVisibilityBadge');
     const btnToggleVis = document.getElementById('btnToggleSurvVisibility');
@@ -154,8 +174,9 @@
     }
 
     if (weekInp) {
-      weekInp.value = tourn.activeWeek || 1;
-      weekInp.max = tourn.totalWeeks || 18;
+      weekInp.min = startWeek;
+      weekInp.max = totalWeeks;
+      weekInp.value = activeWeek;
     }
     if (autoApproveChk) autoApproveChk.checked = tourn.autoApprove !== false;
     if (lockedChk) lockedChk.checked = !!tourn.locked;
@@ -184,7 +205,22 @@
     const autoApproveChk = document.getElementById('survAdminAutoApprove');
     const lockedChk = document.getElementById('survAdminLocked');
 
-    const newWeek = parseInt(weekInp.value, 10) || 1;
+    const currentTourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const startWeek = currentTourn?.startWeek || 1;
+    const totalWeeks = currentTourn?.totalWeeks || 18;
+    const newWeek = parseInt(weekInp.value, 10) || startWeek;
+
+    if (newWeek < startWeek) {
+      alert(`⚠️ La semana activa no puede ser menor a la semana de inicio del torneo (Semana ${startWeek}).`);
+      weekInp.value = startWeek;
+      return;
+    }
+    if (newWeek > totalWeeks) {
+      alert(`⚠️ La semana activa no puede ser mayor a la semana final (${totalWeeks}).`);
+      weekInp.value = totalWeeks;
+      return;
+    }
+
     const autoApprove = autoApproveChk ? autoApproveChk.checked : true;
     const isLocked = lockedChk ? lockedChk.checked : false;
 
@@ -249,14 +285,14 @@
     const leagueIdx = parseInt(leagueSel?.value || '0', 10);
     const leagueObj = LEAGUES[leagueIdx] || LEAGUES[0];
     const store = storeSel ? storeSel.value : 'Juriquilla';
-    const totalWeeks = parseInt(weeksInp?.value || '18', 10) || 18;
+    const startWeekInp = document.getElementById('newSurvStartWeek');
+    const startWeek = Math.max(1, parseInt(startWeekInp?.value || '1', 10) || 1);
+    let totalWeeks = parseInt(weeksInp?.value || '18', 10) || 18;
+    if (totalWeeks < startWeek) totalWeeks = startWeek;
     const autoApprove = autoApproveChk ? autoApproveChk.checked : true;
 
     const id = 'surv_' + Date.now();
-
     const isPrivate = (document.getElementById('newSurvVisibility')?.value === 'private');
-    const hostNameInput = (document.getElementById('newSurvHostName')?.value || '').trim();
-    const hostName = hostNameInput || (user ? (user.displayName || user.email || 'Admin General') : 'Admin General');
 
     const newTournament = {
       id: id,
@@ -267,13 +303,14 @@
       leagueSlug: leagueObj.slug,
       leagueLabel: leagueObj.label,
       store: store,
+      startWeek: startWeek,
       totalWeeks: totalWeeks,
-      activeWeek: 1,
+      activeWeek: startWeek,
       autoApprove: autoApprove,
       isPrivate: isPrivate,
       visibility: isPrivate ? 'private' : 'public',
-      hostName: hostName,
-      hostUid: user ? user.uid : '',
+      hostName: 'Sin Asignar',
+      hostUid: null,
       createdBy: user ? user.uid : '',
       status: 'active',
       createdAt: Date.now()
@@ -283,7 +320,9 @@
       await db.collection('survivors').doc(id).set(newTournament);
       selectedTournamentId = id;
       window.closeCreateSurvivorModal();
-      alert(`🎉 ¡Torneo Survivor "${name}" (${isPrivate ? 'PRIVADO 🔒' : 'PÚBLICO 🌐'}) creado exitosamente!\n🔑 Código de Acceso: ${code}\n👑 Anfitrión: ${hostName}\n❤️ Vidas: ${maxLives}`);
+      alert(`🎉 ¡Torneo Survivor "${name}" (${isPrivate ? 'PRIVADO 🔒' : 'PÚBLICO 🌐'}) creado exitosamente!\n🔑 Código de Acceso: ${code}\n📅 Inicia en: Semana ${startWeek} (hasta Sem. ${totalWeeks})\n❤️ Vidas Iniciales: ${maxLives}\n\n💡 Recuerda: Una vez que los participantes se unan, podrás seleccionar al Anfitrión desde la lista con el botón "👑 Nombrar Host".`);
+      await loadTournamentsList();
+      onSurvivorTournamentChange(id);
     } catch (err) {
       console.error('[SurvivorAdmin] Create tournament error:', err);
       alert('Error al crear torneo: ' + err.message);
@@ -292,15 +331,51 @@
 
   window.adminChangeSurvivorHost = async function() {
     if (!selectedTournamentId || !db) return;
-    const newHost = prompt('Ingresa el Nombre o Alias del Anfitrión / Capitán de este Torneo Survivor:');
-    if (!newHost || !newHost.trim()) return;
     try {
-      await db.collection('survivors').doc(selectedTournamentId).update({
-        hostName: newHost.trim(),
-        updatedAt: Date.now()
+      const currentTourn = activeTournaments.find(t => t.id === selectedTournamentId);
+      const players = Object.values(tournamentPlayers).filter(p => p.status !== 'rejected');
+
+      if (players.length === 0) {
+        alert(`⚠️ Aún no se ha unido ningún jugador a este Torneo Survivor.\n\nPide a los participantes que se unan usando el código "${currentTourn?.code || ''}".\n\nEn cuanto se unan, aparecerán en la lista de abajo y podrás seleccionarlo como Anfitrión con el botón "👑 Nombrar Host" o desde aquí.`);
+        return;
+      }
+
+      let msg = `👑 SELECCIONAR ANFITRIÓN DEL TORNEO\n\nElige qué participante será el Anfitrión/Capitán de "${currentTourn?.name}":\n\n`;
+      players.forEach((p, idx) => {
+        const isCurrent = (p.isHost || currentTourn?.hostUid === p.id) ? ' ⭐ (ACTUAL ANFITRIÓN)' : '';
+        msg += `${idx + 1}. ${p.nickname || p.playerName || 'Jugador'}${isCurrent}\n`;
       });
-      alert(`👑 Anfitrión asignado a Survivor: ${newHost.trim()}`);
-      loadTournamentsList();
+      msg += `\nEscribe el número del jugador que deseas nombrar (o 0 para quitar anfitrión):`;
+
+      const choice = prompt(msg);
+      if (choice === null) return;
+      const num = parseInt(choice, 10);
+      if (isNaN(num)) return;
+
+      if (num === 0) {
+        await db.collection('survivors').doc(selectedTournamentId).update({
+          hostUid: null,
+          hostName: 'Sin Asignar',
+          updatedAt: Date.now()
+        });
+        for (const p of players) {
+          if (p.isHost) {
+            await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(p.id).update({ isHost: false });
+            p.isHost = false;
+          }
+        }
+        alert('⭐ Permisos de Anfitrión removidos.');
+        loadTournamentsList();
+        return;
+      }
+
+      const selectedPlayer = players[num - 1];
+      if (!selectedPlayer) {
+        alert('Número de participante no válido.');
+        return;
+      }
+
+      await window.toggleSurvivorHost(selectedPlayer.id, true);
     } catch(e) {
       alert('Error al asignar anfitrión: ' + e.message);
     }
@@ -705,10 +780,24 @@
       const p = tournamentPlayers[playerId];
       const hostName = p ? (p.nickname || p.playerName || 'Jugador') : 'Jugador';
       
+      // Si se nombra Host a este jugador, desmarcar a cualquier otro previo
+      if (makeHost) {
+        for (const otherId in tournamentPlayers) {
+          if (otherId !== playerId && tournamentPlayers[otherId].isHost) {
+            await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(otherId).update({
+              isHost: false,
+              updatedAt: Date.now()
+            });
+            tournamentPlayers[otherId].isHost = false;
+          }
+        }
+      }
+
       await db.collection('survivors').doc(selectedTournamentId).collection('players').doc(playerId).update({
         isHost: makeHost,
         updatedAt: Date.now()
       });
+      if (p) p.isHost = makeHost;
 
       // Si se nombra Host, también se registra en el documento del torneo
       if (makeHost) {
@@ -722,13 +811,14 @@
         if (tourn && tourn.hostUid === playerId) {
           await db.collection('survivors').doc(selectedTournamentId).update({
             hostUid: null,
-            hostName: null,
+            hostName: 'Sin Asignar',
             updatedAt: Date.now()
           });
         }
       }
 
       alert(makeHost ? `👑 ¡${hostName} ha sido nombrado Administrador (Host) de este Torneo!` : `⭐ Permisos de Administrador removidos.`);
+      loadTournamentsList();
     } catch (err) {
       alert('Error al actualizar permisos de admin: ' + err.message);
     }
@@ -739,8 +829,9 @@
     const player = tournamentPlayers[playerId];
     if (!player) return;
     const tourn = activeTournaments.find(t => t.id === selectedTournamentId);
+    const startWeek = tourn ? (tourn.startWeek || 1) : 1;
     const totalWeeks = tourn ? (tourn.totalWeeks || 18) : 18;
-    const activeWeek = tourn ? (tourn.activeWeek || 1) : 1;
+    const activeWeek = tourn ? (tourn.activeWeek || startWeek) : startWeek;
     const maxLives = tourn ? (tourn.maxLives || 3) : 3;
 
     const modal = document.getElementById('modalSurvivorPicks');
@@ -758,7 +849,7 @@
     const picks = player.picks || {};
     let weeksHtml = '';
 
-    for (let w = 1; w <= totalWeeks; w++) {
+    for (let w = startWeek; w <= totalWeeks; w++) {
       const p = picks[w] || picks[String(w)];
       const isPast = w < activeWeek;
       const isCurrent = w === activeWeek;

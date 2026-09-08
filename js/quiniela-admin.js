@@ -484,11 +484,8 @@
     try {
       const ref = db.collection('quinielas').doc();
       const isHybrid = document.getElementById('chkIsHybrid')?.checked === true;
-      const storeVal = document.getElementById('qStore')?.value || 'Juriquilla';
       const isPrivate = (document.getElementById('qVisibility')?.value === 'private');
-      const hostNameInput = (document.getElementById('qHostName')?.value || '').trim();
       const authUser = window.currentUser || (typeof firebase !== 'undefined' && firebase.auth ? firebase.auth().currentUser : null);
-      const hostName = hostNameInput || (authUser ? (authUser.displayName || authUser.email || 'Admin General') : 'Admin General');
 
       await ref.set({
         id: ref.id,
@@ -501,15 +498,15 @@
         isHybrid: isHybrid,
         isPrivate: isPrivate,
         visibility: isPrivate ? 'private' : 'public',
-        hostName: hostName,
-        hostUid: authUser ? authUser.uid : '',
+        hostName: 'Sin Asignar',
+        hostUid: null,
         createdBy: authUser ? authUser.uid : '',
         createdAt: firebase.firestore.FieldValue.serverTimestamp
           ? firebase.firestore.FieldValue.serverTimestamp()
           : Date.now()
       });
 
-      alert(`✅ Quiniela / Pick'em "${name}" (${isPrivate ? 'PRIVADA 🔒' : 'PÚBLICA 🌐'}) creada con ${matchCount} partidos.\n👑 Anfitrión: ${hostName}`);
+      alert(`✅ Quiniela / Pick'em "${name}" (${isPrivate ? 'PRIVADA 🔒' : 'PÚBLICA 🌐'}) creada con ${matchCount} partidos.\n\n💡 Recuerda: Puedes asignar al Anfitrión una vez que los participantes se hayan unido.`);
       if (document.getElementById('qName')) document.getElementById('qName').value = '';
       const hybridChk = document.getElementById('chkIsHybrid');
       if (hybridChk) hybridChk.checked = false;
@@ -823,7 +820,8 @@
         </div>
         <div class="flex-row" style="gap: 6px; align-items:center;">
           ${isApproved 
-            ? `<button class="btn btn-secondary" data-q-player-id="${id}" data-action="reject" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; border-radius:8px; color:#ff4444;">✕ Desaprobar</button>
+            ? `<button class="btn btn-secondary" data-q-player-id="${id}" data-action="toggle-host" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; border-radius:8px; border-color:#ffd100; color:#ffd100;" title="Nombrar o remover Anfitrión de esta Quiniela">${p.isHost ? '⭐ Quitar Host' : '👑 Host'}</button>
+               <button class="btn btn-secondary" data-q-player-id="${id}" data-action="reject" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; border-radius:8px; color:#ff4444;">✕ Desaprobar</button>
                <button class="btn btn-danger" data-q-player-id="${id}" data-action="delete" style="padding: 6px 10px; font-size: 11.5px; font-weight:800; width: auto; border-radius:8px;">🗑️</button>`
             : `<button class="btn btn-primary" data-q-player-id="${id}" data-action="approve" style="padding: 7px 14px; font-size: 12px; font-weight:900; width: auto; color: var(--bg-color); border-radius:8px; background:#00e676; border-color:#00e676;">✅ Aprobar</button>
                <button class="btn btn-secondary" data-q-player-id="${id}" data-action="reject" style="padding: 7px 10px; font-size: 12px; font-weight:800; width: auto; border-radius:8px; color:#ff4444;">✕ Rechazar</button>
@@ -849,7 +847,25 @@
     const pref = db.collection('quinielas').doc(quinielaId).collection('picks').doc(playerDocId);
 
     try {
-      if (action === 'approve') {
+      if (action === 'toggle-host') {
+        const pSnap = await pref.get();
+        const pData = pSnap.exists ? pSnap.data() : {};
+        const isNowHost = !pData.isHost;
+        await pref.update({ isHost: isNowHost });
+        if (isNowHost) {
+          await db.collection('quinielas').doc(quinielaId).update({
+            hostUid: playerDocId,
+            hostName: pData.playerName || pData.nickname || 'Jugador'
+          });
+          alert(`👑 ¡${pData.playerName || pData.nickname || 'Jugador'} ahora es Anfitrión (Host) de esta Quiniela!`);
+        } else {
+          await db.collection('quinielas').doc(quinielaId).update({
+            hostUid: null,
+            hostName: 'Sin Asignar'
+          });
+          alert(`⭐ Permisos de Anfitrión removidos.`);
+        }
+      } else if (action === 'approve') {
         await pref.update({ approved: true, status: 'approved' });
       } else if (action === 'reject') {
         await pref.update({ approved: false, status: 'rejected' });

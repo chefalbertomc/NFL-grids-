@@ -529,10 +529,7 @@
     const { homeName, awayName, gameId, league } = selectedEspnGame;
     const customCode = (document.getElementById('gridCustomCodeInput')?.value || '').trim().toUpperCase();
     const code = customCode || Math.random().toString(36).substring(2, 8).toUpperCase();
-
     const isPrivate = (document.getElementById('selectGridVisibility')?.value === 'private');
-    const hostNameInput = (document.getElementById('gridHostNameInput')?.value || '').trim();
-    const hostName = hostNameInput || (user ? (user.displayName || user.email || 'Admin') : 'Admin General');
     const autoApprove = document.getElementById('chkGridAutoApprove')?.checked === true;
 
     try {
@@ -555,12 +552,12 @@
         autoApprove: autoApprove,
         isPrivate: isPrivate,
         visibility: isPrivate ? 'private' : 'public',
-        hostName: hostName,
-        hostUid: user ? user.uid : '',
+        hostName: 'Sin Asignar',
+        hostUid: null,
         createdBy: user ? user.uid : ''
       });
 
-      alert(`✅ Grid ${isPrivate ? 'PRIVADO 🔒' : 'PÚBLICO 🌐'} creado: ${awayName} vs ${homeName}\nCódigo: ${code}\nAnfitrión: ${hostName}`);
+      alert(`✅ Grid ${isPrivate ? 'PRIVADO 🔒' : 'PÚBLICO 🌐'} creado: ${awayName} vs ${homeName}\nCódigo: ${code}\n\n💡 Recuerda: Puedes nombrar al Anfitrión desde la lista de jugadores una vez que se hayan unido con el botón 👑 Host.`);
       selectedEspnGame = null;
       const preview = document.getElementById('selectedGamePreview');
       const pickerContainer = document.getElementById('gamePickerContainer');
@@ -573,20 +570,18 @@
       loadGameDetail();
     } catch (err) {
       if (err.code === 'permission-denied' || String(err).includes('permission')) {
-        alert(`Error de Permisos en Firebase.\n\nTu UID: ${user ? user.uid : 'No autenticado'}`);
+        alert('⚠️ Error de permisos al crear juego. Verifica tu conexión de Administrador.');
       } else {
-        alert('Error al crear el grid: ' + err.message);
+        alert('Error al crear juego: ' + err.message);
       }
     }
   }
 
   async function loadGameDetail() {
-    const code = selectGame.value;
-    if (!code) return;
-
-    currentGridCode = code;
+    if (selectGame && selectGame.value) currentGridCode = selectGame.value;
+    if (!currentGridCode || !db) return;
     try {
-      const doc = await db.collection('games').doc(code).get();
+      const doc = await db.collection('games').doc(currentGridCode).get();
       if (!doc.exists) {
         alert('El grid seleccionado no existe.');
         return;
@@ -595,7 +590,7 @@
       const g = doc.data() || {};
       const hostEl = document.getElementById('gridHostDisplay');
       if (hostEl) {
-        hostEl.textContent = g.hostName ? `👑 ${g.hostName}` : 'Admin General (Sin asignar)';
+        hostEl.textContent = g.hostName && g.hostName !== 'Sin Asignar' ? `👑 ${g.hostName}` : '👑 Sin Asignar';
       }
       const visBadge = document.getElementById('gridVisibilityBadge');
       const btnVis = document.getElementById('btnToggleGridVisibility');
@@ -611,7 +606,7 @@
       }
 
       renderAdminGrid(g);
-      attachPlayersListener(code);
+      attachPlayersListener(currentGridCode);
 
       // Start auto ESPN sync whenever a game is loaded
       startAutoSync();
@@ -622,14 +617,63 @@
 
   window.adminChangeGridHost = async function() {
     if (!currentGridCode || !db) return;
-    const newHost = prompt('Ingresa el Nombre o Alias del Anfitrión / Capitán de este Grid:');
-    if (!newHost || !newHost.trim()) return;
     try {
+      const snap = await db.collection('games').doc(currentGridCode).collection('players').get();
+      const players = [];
+      snap.forEach(doc => {
+        players.push({ id: doc.id, ...doc.data() });
+      });
+
+      if (players.length === 0) {
+        alert(`⚠️ Aún no se ha unido ningún jugador a este Grid.\n\nPide a los participantes que se unan con el código "${currentGridCode}".\n\nEn cuanto se unan, podrás seleccionarlo como Anfitrión con el botón "👑 Host" en su tarjeta o desde aquí.`);
+        return;
+      }
+
+      let msg = `👑 SELECCIONAR ANFITRIÓN DEL GRID (${currentGridCode})\n\nElige el participante que será el Anfitrión/Capitán de este Grid:\n\n`;
+      players.forEach((p, idx) => {
+        const isCurrent = p.isHost ? ' ⭐ (ACTUAL HOST 👑)' : '';
+        msg += `${idx + 1}. ${p.nickname || p.name || 'Jugador'}${isCurrent}\n`;
+      });
+      msg += `\nEscribe el número del jugador que deseas nombrar (o 0 para desasignar):`;
+
+      const choice = prompt(msg);
+      if (choice === null) return;
+      const num = parseInt(choice, 10);
+      if (isNaN(num)) return;
+
+      if (num === 0) {
+        await db.collection('games').doc(currentGridCode).update({ hostUid: null, hostName: 'Sin Asignar', updatedAt: Date.now() });
+        for (const p of players) {
+          if (p.isHost) {
+            await db.collection('games').doc(currentGridCode).collection('players').doc(p.id).update({ isHost: false });
+          }
+        }
+        alert('⭐ Permisos de Anfitrión removidos.');
+        loadGameDetail();
+        return;
+      }
+
+      const selectedPlayer = players[num - 1];
+      if (!selectedPlayer) {
+        alert('Número no válido.');
+        return;
+      }
+
+      const pName = selectedPlayer.nickname || selectedPlayer.name || 'Jugador';
+      // Desmarcar anteriores
+      for (const p of players) {
+        if (p.isHost && p.id !== selectedPlayer.id) {
+          await db.collection('games').doc(currentGridCode).collection('players').doc(p.id).update({ isHost: false });
+        }
+      }
+      // Marcar nuevo
+      await db.collection('games').doc(currentGridCode).collection('players').doc(selectedPlayer.id).update({ isHost: true });
       await db.collection('games').doc(currentGridCode).update({
-        hostName: newHost.trim(),
+        hostUid: selectedPlayer.id,
+        hostName: pName,
         updatedAt: Date.now()
       });
-      alert(`👑 Anfitrión asignado: ${newHost.trim()}`);
+      alert(`👑 ¡${pName} ahora es el Anfitrión (Host) de este Grid!`);
       loadGameDetail();
     } catch(e) {
       alert('Error al asignar anfitrión: ' + e.message);
