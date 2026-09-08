@@ -102,6 +102,10 @@
     }
   }
 
+  function loadTournamentsList() {
+    renderTournamentSelect();
+  }
+
   window.onSurvivorTournamentChange = function(tournId) {
     selectedTournamentId = tournId;
     loadSelectedTournament(tournId);
@@ -330,7 +334,7 @@
       selectedTournamentId = id;
       window.closeCreateSurvivorModal();
       alert(`🎉 ¡Torneo Survivor "${name}" (${isPrivate ? 'PRIVADO 🔒' : 'PÚBLICO 🌐'}) creado exitosamente!\n🔑 Código de Acceso: ${code}\n📅 Inicia en: Semana ${startWeek} (hasta Sem. ${totalWeeks})\n❤️ Vidas Iniciales: ${maxLives}\n\n💡 Recuerda: Una vez que los participantes se unan, podrás seleccionar al Anfitrión desde la lista con el botón "👑 Nombrar Host".`);
-      await loadTournamentsList();
+      renderTournamentSelect();
       onSurvivorTournamentChange(id);
     } catch (err) {
       console.error('[SurvivorAdmin] Create tournament error:', err);
@@ -374,7 +378,7 @@
           }
         }
         alert('⭐ Permisos de Anfitrión removidos.');
-        loadTournamentsList();
+        renderTournamentSelect();
         return;
       }
 
@@ -404,7 +408,7 @@
         updatedAt: Date.now()
       });
       alert(newPriv ? '🔒 Torneo configurado como GRUPO PRIVADO (Oculto del menú general).' : '🌐 Torneo configurado como PÚBLICO (Visible para toda la sucursal).');
-      loadTournamentsList();
+      renderTournamentSelect();
     } catch(e) {
       alert('Error al cambiar visibilidad: ' + e.message);
     }
@@ -827,7 +831,7 @@
       }
 
       alert(makeHost ? `👑 ¡${hostName} ha sido nombrado Administrador (Host) de este Torneo!` : `⭐ Permisos de Administrador removidos.`);
-      loadTournamentsList();
+      renderTournamentSelect();
     } catch (err) {
       alert('Error al actualizar permisos de admin: ' + err.message);
     }
