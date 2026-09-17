@@ -1264,6 +1264,7 @@
         btn.disabled = false;
         btn.innerHTML = '<span>💾</span> <span>Guardar Pick Semana ' + targetWeek + '</span>';
       }
+    }
   };
 
   // Switch viewing/picking week
