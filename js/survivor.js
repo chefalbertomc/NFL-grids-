@@ -9,6 +9,7 @@
   let currentTournament = null;
   let tournamentPlayers = {}; // { [playerId]: playerData }
   let pendingSurvivorPick = null; // { tournId, teamAbbr, teamName, logo, color, week }
+  let selectedSurvivorWeek = null;
   let unsubTournament = null;
   let unsubPlayers = null;
 
@@ -185,14 +186,35 @@
     unsubTournament = db.collection('survivors').doc(tournId).onSnapshot(doc => {
       if (doc.exists) {
         currentTournament = { id: doc.id, ...doc.data() };
+        if (!selectedSurvivorWeek && currentTournament.activeWeek) {
+          selectedSurvivorWeek = currentTournament.activeWeek;
+        }
         renderSurvivorApp();
+        checkAndSyncEspnWeek(currentTournament);
       }
     });
 
     unsubPlayers = db.collection('survivors').doc(tournId).collection('players').onSnapshot(snap => {
       tournamentPlayers = {};
       snap.forEach(pDoc => {
-        tournamentPlayers[pDoc.id] = { id: pDoc.id, ...pDoc.data() };
+        const pData = pDoc.data() || {};
+        // Auto-normalize if inflated differential points exist
+        if ((pData.totalPoints > 18) || (pData.aciertos === undefined && pData.picks)) {
+          let wins = 0;
+          if (pData.picks) {
+            Object.values(pData.picks).forEach(pk => {
+              if (pk && pk.result === 'win') wins++;
+            });
+          }
+          pData.aciertos = wins;
+          pData.totalWins = wins;
+          pData.totalPoints = wins;
+          const cUser = getCurrentUser();
+          if (cUser && (cUser.uid === pDoc.id || cUser.email === 'chefalbertomc@gmail.com' || cUser.email === 'sguerra70@hotmail.com')) {
+            pDoc.ref.update({ aciertos: wins, totalWins: wins, totalPoints: wins }).catch(() => {});
+          }
+        }
+        tournamentPlayers[pDoc.id] = { id: pDoc.id, ...pData };
       });
       const curUser = getCurrentUser();
       if (curUser && tournamentPlayers[curUser.uid]) {
@@ -313,7 +335,7 @@
           </div>
           <p class="hint-text" style="font-size:11px; margin:0;">¿No tienes código? Pídeselo a tu anfitrión o mesero para unirte.</p>
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.26</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.27</span></footer>
       `;
       return;
     }
@@ -335,12 +357,17 @@
     const activeWeek = t.activeWeek || startWeek;
     const totalWeeks = t.totalWeeks || 18;
 
-    // Get previous picked teams for no-repeat rule
+    if (!selectedSurvivorWeek || selectedSurvivorWeek < startWeek || selectedSurvivorWeek > totalWeeks) {
+      selectedSurvivorWeek = activeWeek;
+    }
+    const currentViewingWeek = selectedSurvivorWeek || activeWeek;
+
+    // Get previous picked teams for no-repeat rule (any week other than currentViewingWeek)
     const previousUsedTeams = {};
     if (myPlayer && myPlayer.picks) {
       Object.keys(myPlayer.picks).forEach(wKey => {
         const wNum = parseInt(wKey, 10);
-        if (wNum >= startWeek && wNum < activeWeek) {
+        if (wNum !== currentViewingWeek) {
           const p = myPlayer.picks[wKey];
           if (p) {
             if (p.team) previousUsedTeams[p.team.toUpperCase()] = wNum;
@@ -350,7 +377,7 @@
       });
     }
 
-    const currentPick = myPlayer?.picks?.[activeWeek];
+    const currentPick = myPlayer?.picks?.[currentViewingWeek];
 
     // Tournament Selector Header & Private Code Quick Bar
     let selectorHtml = '';
@@ -427,7 +454,7 @@
             <div style="display:flex; align-items:center; gap:10px;">
               <img src="${currentPick.logo || 'img/logo.jpg'}" style="width:32px; height:32px; object-fit:contain;" onerror="this.src='img/logo.jpg'"/>
               <div>
-                <div style="font-size:10px; color:var(--text-muted); font-weight:800;">TU PICK SEMANA ${activeWeek}:</div>
+                <div style="font-size:10px; color:var(--text-muted); font-weight:800;">TU PICK SEMANA ${currentViewingWeek}:</div>
                 <strong style="color:#ffffff; font-size:14px;">${currentPick.teamName || currentPick.team}</strong>
               </div>
             </div>
@@ -439,7 +466,7 @@
           <div class="surv-hero-current-pick" style="border-color:#ffd100; background:rgba(255,209,0,0.06);">
             <div style="display:flex; align-items:center; gap:8px;">
               <span style="font-size:18px;">⚠️</span>
-              <div style="font-size:12px; color:#ffd100; font-weight:800;">¡Aún no seleccionas tu equipo para la Semana ${activeWeek}! Tienes ${myLives} vidas ❤️</div>
+              <div style="font-size:12px; color:#ffd100; font-weight:800;">¡Aún no seleccionas tu equipo para la Semana ${currentViewingWeek}! Tienes ${myLives} vidas ❤️</div>
             </div>
           </div>
         `;
@@ -490,117 +517,215 @@
       `;
     }
 
-    // Pick Selector Grid (if player is alive and approved)
-    let pickSectionHtml = '';
-    if (isJoined && isApproved && isAlive) {
-      const isWeekLocked = !!t.locked;
-      const teamsList = t.sport === 'soccer' ? LIGAMX_TEAMS : NFL_TEAMS;
-      
-      let teamCardsHtml = '';
-      teamsList.forEach(tm => {
-        const keyAbbr = (tm.abbr || '').toUpperCase();
-        const keyName = (tm.name || '').toUpperCase();
-        const usedInWeek = previousUsedTeams[keyAbbr] || previousUsedTeams[keyName];
-        const isUsed = usedInWeek !== undefined;
-        const isSaved = currentPick && (currentPick.team === tm.abbr || currentPick.team === tm.name);
-        const isPending = pendingSurvivorPick && (pendingSurvivorPick.teamAbbr === tm.abbr || pendingSurvivorPick.teamName === tm.name);
+    // Week Selector Navigation Tabs
+    let weekSelectorHtml = '';
+    const maxTabsWeek = Math.max(activeWeek, Math.min(totalWeeks, 18));
+    let weekTabsBtns = '';
+    for (let w = startWeek; w <= maxTabsWeek; w++) {
+      const isSelected = (w === currentViewingWeek);
+      const isPast = (w < activeWeek);
+      const isCurrent = (w === activeWeek);
+      const myWeekPick = myPlayer?.picks?.[w];
+      const hasPick = !!(myWeekPick && myWeekPick.team);
+      const res = myWeekPick?.result;
 
-        let cardClass = 'surv-team-card';
-        if (isUsed || isWeekLocked) cardClass += ' used-team';
-        if (isPending) {
-          cardClass += ' pending-pick';
-        } else if (isSaved) {
-          cardClass += ' selected';
-        }
+      let statusIcon = '⌛';
+      let borderCol = 'rgba(255,255,255,0.15)';
+      let bgCol = 'rgba(255,255,255,0.04)';
+      let textCol = '#aaa';
 
-        const clickAttr = (isUsed || isWeekLocked) ? '' : `onclick="window.stageSurvivorPick('${t.id}', '${tm.abbr}', '${tm.name}', '${tm.logo}', '${tm.color}')"`;
-
-        teamCardsHtml += `
-          <div class="${cardClass}" style="--team-bg: ${tm.color}33; ${isUsed ? 'opacity: 0.35; filter: grayscale(100%); pointer-events: none;' : ''}" ${clickAttr}>
-            ${isUsed ? `<span class="surv-used-badge" style="background:#ff3333; color:#ffffff; font-weight:900;">🔒 Usado Sem. ${usedInWeek}</span>` : ''}
-            ${!isUsed && isPending ? `<span class="surv-pending-badge">⏳ POR GUARDAR</span>` : ''}
-            ${!isUsed && !isPending && isSaved ? `<span class="surv-selected-check" title="Equipo Guardado en Base de Datos">✓</span>` : ''}
-            <img src="${tm.logo}" class="surv-team-logo" alt="${tm.name}" onerror="this.src='img/logo.jpg'"/>
-            <span class="surv-team-name">${tm.name}</span>
-          </div>
-        `;
-      });
-
-      let saveBarHtml = '';
-      if (!isWeekLocked) {
-        if (pendingSurvivorPick) {
-          const isChanging = currentPick && currentPick.team && (pendingSurvivorPick.teamAbbr !== currentPick.team && pendingSurvivorPick.teamName !== currentPick.teamName);
-          saveBarHtml = `
-            <div id="survSavePickBar" class="surv-save-bar">
-              <div style="display:flex; align-items:center; gap:14px;">
-                <img src="${pendingSurvivorPick.logo}" style="width:44px; height:44px; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.8));" onerror="this.src='img/logo.jpg'"/>
-                <div>
-                  <div style="font-size:11px; color:#ffd100; font-weight:900; letter-spacing:0.05em; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
-                    <span>⏳</span> ${isChanging ? 'Cambio Seleccionado (Sin Guardar)' : 'Equipo Seleccionado (Sin Guardar)'}
-                  </div>
-                  <div style="font-size:17px; font-weight:950; color:#ffffff;">
-                    ${pendingSurvivorPick.teamName}
-                  </div>
-                  <div style="font-size:11px; color:#bbb;">
-                    ${isChanging ? `Reemplazará a tu pick guardado actual (${currentPick.teamName || currentPick.team}). Presiona el botón verde para confirmar.` : `Presiona "Guardar Pick" para confirmar tu elección oficial de la Semana ${activeWeek}.`}
-                  </div>
-                </div>
-              </div>
-              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <button type="button" class="btn btn-secondary" onclick="window.cancelSurvivorPendingPick()" style="padding:9px 14px; font-size:12px; font-weight:800; border-radius:10px; border-color:rgba(255,255,255,0.25); color:#ccc;">
-                  ✕ Cancelar
-                </button>
-                <button type="button" class="btn btn-primary" id="btnConfirmSurvivorPick" onclick="window.confirmSaveSurvivorPick()" style="padding:10px 20px; font-size:13.5px; font-weight:950; border-radius:10px; background:linear-gradient(135deg, #00e676, #00b0ff); color:#000; border:none; box-shadow:0 0 16px rgba(0,230,118,0.5); cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
-                  <span>💾</span> <span>Guardar Pick Semana ${activeWeek}</span>
-                </button>
-              </div>
-            </div>
-          `;
-        } else if (currentPick && currentPick.team) {
-          saveBarHtml = `
-            <div style="margin-top:14px; background:rgba(0,230,118,0.08); border:1.5px solid rgba(0,230,118,0.3); border-radius:12px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
-              <div style="display:flex; align-items:center; gap:10px;">
-                <img src="${currentPick.logo || 'img/logo.jpg'}" style="width:28px; height:28px; object-fit:contain;" onerror="this.src='img/logo.jpg'"/>
-                <div style="font-size:12px; color:#fff;">
-                  Tu pick guardado oficial es <strong style="color:#00e676;">${currentPick.teamName || currentPick.team}</strong>. Si deseas cambiarlo antes de que empiece la jornada, toca otro equipo arriba y pulsa Guardar.
-                </div>
-              </div>
-              <span class="badge success" style="font-size:10px; font-weight:900;">✓ GUARDADO</span>
-            </div>
-          `;
+      if (isCurrent) {
+        borderCol = '#ffd100';
+        bgCol = isSelected ? 'rgba(255,209,0,0.25)' : 'rgba(255,209,0,0.08)';
+        textCol = '#ffd100';
+        statusIcon = hasPick ? '✓ ⚡' : '⚡';
+      } else if (isPast) {
+        if (res === 'win') {
+          borderCol = '#00e676';
+          bgCol = isSelected ? 'rgba(0,230,118,0.25)' : 'rgba(0,230,118,0.08)';
+          textCol = '#00e676';
+          statusIcon = '✓';
+        } else if (res === 'loss' || res === 'no_pick') {
+          borderCol = '#ff3333';
+          bgCol = isSelected ? 'rgba(255,51,51,0.25)' : 'rgba(255,51,51,0.08)';
+          textCol = '#ff3333';
+          statusIcon = '✕';
         } else {
-          saveBarHtml = `
-            <div style="margin-top:14px; background:rgba(255,209,0,0.06); border:1px dashed rgba(255,209,0,0.3); border-radius:12px; padding:10px 14px; text-align:center; font-size:12px; color:#ffd100; font-weight:700;">
-              👉 Toca cualquier equipo disponible arriba para seleccionarlo. Aparecerá el botón para <strong>Guardar</strong> tu elección.
-            </div>
-          `;
+          statusIcon = hasPick ? '✓' : '—';
+          textCol = '#ddd';
         }
       }
 
-      pickSectionHtml = `
-        <section class="card highlight" style="margin-bottom:16px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:4px;">
-            <h4 style="margin:0; font-size:15px; font-weight:950; color:#ffd100; display:flex; align-items:center; gap:6px;">
-              <span>🎯</span> Selecciona tu Pick para la Semana ${activeWeek}
-            </h4>
-            <span class="badge" style="background:rgba(255,255,255,0.08); font-size:10px; color:#bbb;">Regla: 1 Solo Equipo por Torneo</span>
-          </div>
-          ${isWeekLocked ? `
-            <div style="font-size:12px; color:#ffd100; font-weight:900; padding:10px 14px; background:rgba(255,209,0,0.12); border-radius:10px; border:1px solid rgba(255,209,0,0.3); margin-bottom:10px; display:flex; align-items:center; gap:8px;">
-              <span>🔒</span> <span>Picks BLOQUEADOS para la Semana ${activeWeek}. ¡El primer partido ya ha iniciado! Todos los logos de los participantes son ahora visibles en la tabla.</span>
-            </div>
-          ` : `
-            <p class="hint-text" style="font-size:11.5px; margin-bottom:8px;">
-              Toca un equipo para pre-seleccionarlo y presiona <strong>"💾 Guardar Pick"</strong> para confirmar. Tus elecciones son privadas con 🔒 hasta que inicie el primer partido de la semana.
-            </p>
-          `}
-
-          <div class="surv-team-picker-grid">
-            ${teamCardsHtml}
-          </div>
-          ${saveBarHtml}
-        </section>
+      weekTabsBtns += `
+        <button type="button" onclick="window.setSurvivorWeek(${w})" 
+          style="padding:8px 14px; border-radius:10px; font-size:12px; font-weight:900; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap; transition:all 0.15s ease; border: 1.5px solid ${isSelected ? '#00e676' : borderCol}; background:${isSelected ? 'rgba(0,230,118,0.2)' : bgCol}; color:${isSelected ? '#ffffff' : textCol}; box-shadow:${isSelected ? '0 0 12px rgba(0,230,118,0.35)' : 'none'};">
+          <span>Semana ${w}</span>
+          <span style="font-size:11px;">${statusIcon}</span>
+          ${isCurrent ? '<span class="badge" style="background:#ffd100; color:#000; font-size:8.5px; padding:1px 5px; border-radius:4px; font-weight:950;">ACTUAL</span>' : ''}
+        </button>
       `;
+    }
+
+    weekSelectorHtml = `
+      <div style="margin-bottom:14px; background:rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.08); border-radius:14px; padding:10px 14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+          <div style="font-size:11px; font-weight:800; color:#ffd100; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+            <span>📅</span> Jornadas del Torneo:
+          </div>
+          <div style="font-size:11px; color:#aaa;">
+            Semana activa oficial: <strong style="color:#00e676;">Semana ${activeWeek}</strong>
+          </div>
+        </div>
+        <div style="display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; scrollbar-width:thin;">
+          ${weekTabsBtns}
+        </div>
+      </div>
+    `;
+
+    // Pick Selector Grid
+    let pickSectionHtml = '';
+    if (isJoined && isApproved && isAlive) {
+      const isWeekLocked = (currentViewingWeek === activeWeek) ? !!t.locked : (currentViewingWeek < activeWeek);
+
+      if (currentViewingWeek < activeWeek) {
+        // Past week summary
+        pickSectionHtml = `
+          <section class="card" style="margin-bottom:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+              <div>
+                <div style="font-size:11px; color:#aaa; font-weight:800; text-transform:uppercase;">Historial de Picks</div>
+                <h4 style="margin:2px 0 0 0; font-size:15px; font-weight:900; color:#fff;">Semana ${currentViewingWeek} (Finalizada)</h4>
+              </div>
+              <button type="button" class="btn btn-primary" onclick="window.setSurvivorWeek(${activeWeek})" style="width:auto; padding:6px 14px; font-size:12px; font-weight:900;">
+                👉 Ir a Semana ${activeWeek} (Semana Activa)
+              </button>
+            </div>
+            <div style="margin-top:12px; padding:12px; background:rgba(0,0,0,0.3); border-radius:10px; display:flex; align-items:center; gap:12px;">
+              ${currentPick && currentPick.team ? `
+                <img src="${currentPick.logo || 'img/logo.jpg'}" style="width:36px; height:36px; object-fit:contain;" onerror="this.src='img/logo.jpg'"/>
+                <div>
+                  <div style="font-size:13.5px; font-weight:900; color:#fff;">Tu equipo elegido fue: ${currentPick.teamName || currentPick.team}</div>
+                  <div style="font-size:11.5px; color:${currentPick.result === 'win' ? '#00e676' : '#ff4444'}; font-weight:800;">
+                    ${currentPick.result === 'win' ? '✓ Victoria — Mantienes tus vidas' : (currentPick.result === 'loss' ? '✕ Derrota — Perdiste 1 vida' : 'Semana concluida')}
+                  </div>
+                </div>
+              ` : `
+                <span style="font-size:20px;">⚠️</span>
+                <div style="font-size:12.5px; color:#aaa;">No registraste selección para la Semana ${currentViewingWeek}.</div>
+              `}
+            </div>
+          </section>
+        `;
+      } else {
+        // Active or future playable week
+        const teamsList = t.sport === 'soccer' ? LIGAMX_TEAMS : NFL_TEAMS;
+        
+        let teamCardsHtml = '';
+        teamsList.forEach(tm => {
+          const keyAbbr = (tm.abbr || '').toUpperCase();
+          const keyName = (tm.name || '').toUpperCase();
+          const usedInWeek = previousUsedTeams[keyAbbr] || previousUsedTeams[keyName];
+          const isUsed = usedInWeek !== undefined;
+          const isSaved = currentPick && (currentPick.team === tm.abbr || currentPick.team === tm.name);
+          const isPending = pendingSurvivorPick && (pendingSurvivorPick.teamAbbr === tm.abbr || pendingSurvivorPick.teamName === tm.name);
+
+          let cardClass = 'surv-team-card';
+          if (isUsed || isWeekLocked) cardClass += ' used-team';
+          if (isPending) {
+            cardClass += ' pending-pick';
+          } else if (isSaved) {
+            cardClass += ' selected';
+          }
+
+          const clickAttr = (isUsed || isWeekLocked) ? '' : `onclick="window.stageSurvivorPick('${t.id}', '${tm.abbr}', '${tm.name}', '${tm.logo}', '${tm.color}')"`;
+
+          teamCardsHtml += `
+            <div class="${cardClass}" style="--team-bg: ${tm.color}33; ${isUsed ? 'opacity: 0.35; filter: grayscale(100%); pointer-events: none;' : ''}" ${clickAttr}>
+              ${isUsed ? `<span class="surv-used-badge" style="background:#ff3333; color:#ffffff; font-weight:900;">🔒 Usado Sem. ${usedInWeek}</span>` : ''}
+              ${!isUsed && isPending ? `<span class="surv-pending-badge">⏳ POR GUARDAR</span>` : ''}
+              ${!isUsed && !isPending && isSaved ? `<span class="surv-selected-check" title="Equipo Guardado en Base de Datos">✓</span>` : ''}
+              <img src="${tm.logo}" class="surv-team-logo" alt="${tm.name}" onerror="this.src='img/logo.jpg'"/>
+              <span class="surv-team-name">${tm.name}</span>
+            </div>
+          `;
+        });
+
+        let saveBarHtml = '';
+        if (!isWeekLocked) {
+          if (pendingSurvivorPick) {
+            const isChanging = currentPick && currentPick.team && (pendingSurvivorPick.teamAbbr !== currentPick.team && pendingSurvivorPick.teamName !== currentPick.teamName);
+            saveBarHtml = `
+              <div id="survSavePickBar" class="surv-save-bar">
+                <div style="display:flex; align-items:center; gap:14px;">
+                  <img src="${pendingSurvivorPick.logo}" style="width:44px; height:44px; object-fit:contain; filter:drop-shadow(0 2px 6px rgba(0,0,0,0.8));" onerror="this.src='img/logo.jpg'"/>
+                  <div>
+                    <div style="font-size:11px; color:#ffd100; font-weight:900; letter-spacing:0.05em; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+                      <span>⏳</span> ${isChanging ? 'Cambio Seleccionado (Sin Guardar)' : 'Equipo Seleccionado (Sin Guardar)'}
+                    </div>
+                    <div style="font-size:17px; font-weight:950; color:#ffffff;">
+                      ${pendingSurvivorPick.teamName}
+                    </div>
+                    <div style="font-size:11px; color:#bbb;">
+                      ${isChanging ? `Reemplazará a tu pick guardado actual (${currentPick.teamName || currentPick.team}). Presiona el botón verde para confirmar.` : `Presiona "Guardar Pick" para confirmar tu elección oficial de la Semana ${currentViewingWeek}.`}
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                  <button type="button" class="btn btn-secondary" onclick="window.cancelSurvivorPendingPick()" style="padding:9px 14px; font-size:12px; font-weight:800; border-radius:10px; border-color:rgba(255,255,255,0.25); color:#ccc;">
+                    ✕ Cancelar
+                  </button>
+                  <button type="button" class="btn btn-primary" id="btnConfirmSurvivorPick" onclick="window.confirmSaveSurvivorPick()" style="padding:10px 20px; font-size:13.5px; font-weight:950; border-radius:10px; background:linear-gradient(135deg, #00e676, #00b0ff); color:#000; border:none; box-shadow:0 0 16px rgba(0,230,118,0.5); cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+                    <span>💾</span> <span>Guardar Pick Semana ${currentViewingWeek}</span>
+                  </button>
+                </div>
+              </div>
+            `;
+          } else if (currentPick && currentPick.team) {
+            saveBarHtml = `
+              <div style="margin-top:14px; background:rgba(0,230,118,0.08); border:1.5px solid rgba(0,230,118,0.3); border-radius:12px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <img src="${currentPick.logo || 'img/logo.jpg'}" style="width:28px; height:28px; object-fit:contain;" onerror="this.src='img/logo.jpg'"/>
+                  <div style="font-size:12px; color:#fff;">
+                    Tu pick guardado para la Semana ${currentViewingWeek} es <strong style="color:#00e676;">${currentPick.teamName || currentPick.team}</strong>. Si deseas cambiarlo antes de que empiece la jornada, toca otro equipo arriba y pulsa Guardar.
+                  </div>
+                </div>
+                <span class="badge success" style="font-size:10px; font-weight:900;">✓ GUARDADO</span>
+              </div>
+            `;
+          } else {
+            saveBarHtml = `
+              <div style="margin-top:14px; background:rgba(255,209,0,0.06); border:1px dashed rgba(255,209,0,0.3); border-radius:12px; padding:10px 14px; text-align:center; font-size:12px; color:#ffd100; font-weight:700;">
+                👉 Toca cualquier equipo disponible arriba para seleccionarlo. Aparecerá el botón para <strong>Guardar Pick Semana ${currentViewingWeek}</strong>.
+              </div>
+            `;
+          }
+        }
+
+        pickSectionHtml = `
+          <section class="card highlight" style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:4px;">
+              <h4 style="margin:0; font-size:15px; font-weight:950; color:#ffd100; display:flex; align-items:center; gap:6px;">
+                <span>🎯</span> Selecciona tu Pick para la Semana ${currentViewingWeek}
+              </h4>
+              <span class="badge" style="background:rgba(255,255,255,0.08); font-size:10px; color:#bbb;">Regla: 1 Solo Equipo por Torneo</span>
+            </div>
+            ${isWeekLocked ? `
+              <div style="font-size:12px; color:#ffd100; font-weight:900; padding:10px 14px; background:rgba(255,209,0,0.12); border-radius:10px; border:1px solid rgba(255,209,0,0.3); margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+                <span>🔒</span> <span>Picks BLOQUEADOS para la Semana ${currentViewingWeek}. ¡El primer partido ya ha iniciado! Todos los logos de los participantes son ahora visibles en la tabla.</span>
+              </div>
+            ` : `
+              <p class="hint-text" style="font-size:11.5px; margin-bottom:8px;">
+                Toca un equipo para pre-seleccionarlo y presiona <strong>"💾 Guardar Pick Semana ${currentViewingWeek}"</strong> para confirmar. Tus elecciones son privadas con 🔒 hasta que inicie el primer partido.
+              </p>
+            `}
+
+            <div class="surv-team-picker-grid">
+              ${teamCardsHtml}
+            </div>
+            ${saveBarHtml}
+          </section>
+        `;
+      }
     }
 
     // Co-Admin / Host Management Panel
@@ -719,6 +844,7 @@
       </section>
 
       ${joinSectionHtml}
+      ${weekSelectorHtml}
       ${pickSectionHtml}
 
       <!-- Full Matrix Grid Section -->
@@ -754,7 +880,7 @@
 
       <!-- Tab Footer Version Indicator -->
       <footer class="tab-footer-version">
-        <span>DRINKS & WINS</span> • <span class="ver">v215.26</span>
+        <span>DRINKS & WINS</span> • <span class="ver">v215.27</span>
       </footer>
     `;
   }
@@ -777,12 +903,19 @@
       filteredPlayers = players.filter(p => p.isAlive === false || p.lives === 0);
     }
 
-    // Sort: most lives first, then points desc
+    // Sort: most lives first, then aciertos / survived weeks desc
     filteredPlayers.sort((a, b) => {
       const livesA = a.lives !== undefined ? a.lives : (a.isAlive !== false ? maxLives : 0);
       const livesB = b.lives !== undefined ? b.lives : (b.isAlive !== false ? maxLives : 0);
       if (livesB !== livesA) return livesB - livesA;
-      return (b.totalPoints || 0) - (a.totalPoints || 0);
+      const winsA = (a.aciertos !== undefined && a.aciertos <= 18) ? a.aciertos : (
+        a.picks ? Object.values(a.picks).filter(pk => pk && pk.result === 'win').length : (a.totalPoints && a.totalPoints <= 18 ? a.totalPoints : 0)
+      );
+      const winsB = (b.aciertos !== undefined && b.aciertos <= 18) ? b.aciertos : (
+        b.picks ? Object.values(b.picks).filter(pk => pk && pk.result === 'win').length : (b.totalPoints && b.totalPoints <= 18 ? b.totalPoints : 0)
+      );
+      if (winsB !== winsA) return winsB - winsA;
+      return (a.nickname || a.playerName || '').localeCompare(b.nickname || b.playerName || '');
     });
 
     // Build Table Header (Player + Week startWeek..maxWeeks + Total Score)
@@ -805,7 +938,6 @@
         const pick = p.picks?.[w];
         if (pick && pick.team) {
           const res = pick.result || (w < activeWeek ? 'loss' : (w === activeWeek ? 'live' : 'pending'));
-          const diffText = pick.diff !== undefined ? (pick.diff > 0 ? `+${pick.diff}` : `${pick.diff}`) : '';
           
           // Ocultar la elección de la semana activa a otros jugadores (privacidad) mientras no esté evaluada ni bloqueada
           const isEvaluated = (pick.result === 'win' || pick.result === 'loss' || pick.result === 'no_pick');
@@ -821,16 +953,27 @@
             `;
           } else {
             let cellClass = 'surv-pick-cell';
-            if (res === 'win') cellClass += ' win';
-            else if (res === 'loss' || res === 'no_pick') cellClass += ' loss';
-            else if (res === 'live') cellClass += ' live';
-            else cellClass += ' pending';
+            let resIcon = '';
+            if (res === 'win') {
+              cellClass += ' win';
+              resIcon = '<span class="surv-pick-pts" style="color:#00e676; font-size:10px; font-weight:900;">✓</span>';
+            } else if (res === 'loss' || res === 'no_pick') {
+              cellClass += ' loss';
+              resIcon = '<span class="surv-pick-pts" style="color:#ff3333; font-size:10px; font-weight:900;">✕</span>';
+            } else if (res === 'live') {
+              cellClass += ' live';
+              resIcon = '<span class="surv-pick-pts" style="color:#ffd100; font-size:10px; font-weight:900;">⚡</span>';
+            } else {
+              cellClass += ' pending';
+            }
+
+            const matchScoreDesc = (pick.score !== undefined && pick.oppScore !== undefined) ? ` (${pick.score} - ${pick.oppScore})` : '';
 
             cellsHtml += `
               <td>
-                <div class="${cellClass}">
+                <div class="${cellClass}" title="${escapeHtml(pick.teamName || pick.team)}${matchScoreDesc}">
                   <img src="${pick.logo || 'img/logo.jpg'}" class="surv-pick-logo" alt="${pick.team}" onerror="this.src='img/logo.jpg'"/>
-                  ${diffText ? `<span class="surv-pick-pts">${diffText}</span>` : ''}
+                  ${resIcon}
                 </div>
               </td>
             `;
@@ -885,13 +1028,20 @@
         `;
       }
 
+      const actualAciertos = (p.aciertos !== undefined && p.aciertos <= 18) ? p.aciertos : (
+        p.picks ? Object.values(p.picks).filter(pk => pk && pk.result === 'win').length : (p.totalPoints && p.totalPoints <= 18 ? p.totalPoints : 0)
+      );
+
       rowsHtml += `
         <tr style="${isMe ? 'background:rgba(255,209,0,0.06);' : ''}">
           <td class="surv-td-player">
             ${playerDisplayHtml}
           </td>
           ${cellsHtml}
-          <td class="surv-td-total" style="font-size:13px; font-weight:900; color:#ffd100;">${isAlive ? `❤️ ${lives}/${maxLives}` : '💀 0'}</td>
+          <td class="surv-td-total" style="font-size:12.5px; font-weight:900; color:#ffd100; text-align:center;">
+            ${isAlive ? `❤️ ${lives}/${maxLives}` : '💀 0'}
+            <div style="font-size:10px; color:#00e676; font-weight:800;">${actualAciertos} acierto${actualAciertos === 1 ? '' : 's'}</div>
+          </td>
         </tr>
       `;
     });
@@ -903,7 +1053,7 @@
             <tr>
               <th class="surv-th-player">Participante</th>
               ${weekThs}
-              <th style="width:85px; color:#ffd100;">Vidas</th>
+              <th style="width:105px; color:#ffd100; text-align:center;">Estado / Aciertos</th>
             </tr>
           </thead>
           <tbody>
@@ -979,9 +1129,15 @@
   window.stageSurvivorPick = function(tournId, teamAbbr, teamName, logo, color) {
     if (!currentTournament) return;
     const activeWeek = currentTournament.activeWeek || 1;
+    const targetWeek = selectedSurvivorWeek || activeWeek;
 
-    if (currentTournament.locked) {
-      alert(`🔒 La Semana ${activeWeek} está bloqueada porque ya iniciaron los partidos. No se pueden modificar selecciones.`);
+    if (targetWeek < activeWeek) {
+      alert(`⚠️ La Semana ${targetWeek} ya finalizó. No se pueden modificar selecciones anteriores.`);
+      return;
+    }
+
+    if (targetWeek === activeWeek && currentTournament.locked) {
+      alert(`🔒 La Semana ${targetWeek} está bloqueada porque ya iniciaron los partidos. No se pueden modificar selecciones.`);
       return;
     }
 
@@ -992,13 +1148,12 @@
     }
 
     const myPlayer = tournamentPlayers[u.uid] || Object.values(tournamentPlayers).find(p => p.id === u.uid || p.uid === u.uid);
-    const startWeek = currentTournament.startWeek || 1;
 
-    // Strict validation: cannot choose a team used in previous weeks
+    // Strict validation: cannot choose a team used in other weeks
     if (myPlayer && myPlayer.picks) {
       for (const [wKey, pick] of Object.entries(myPlayer.picks)) {
         const wNum = parseInt(wKey, 10);
-        if (wNum >= startWeek && wNum < activeWeek && pick) {
+        if (wNum !== targetWeek && pick) {
           const pickedAbbr = (pick.team || '').toUpperCase();
           const pickedName = (pick.teamName || '').toUpperCase();
           if (pickedAbbr === teamAbbr.toUpperCase() || pickedName === teamName.toUpperCase()) {
@@ -1015,7 +1170,7 @@
       teamName,
       logo,
       color,
-      week: activeWeek
+      week: targetWeek
     };
 
     renderSurvivorApp();
@@ -1047,9 +1202,17 @@
 
     if (!currentTournament) return;
     const activeWeek = currentTournament.activeWeek || 1;
+    const targetWeek = pendingSurvivorPick.week || selectedSurvivorWeek || activeWeek;
 
-    if (currentTournament.locked) {
-      alert(`🔒 La Semana ${activeWeek} está bloqueada. No se pueden registrar selecciones.`);
+    if (targetWeek < activeWeek) {
+      alert(`⚠️ La Semana ${targetWeek} ya finalizó. No se pueden registrar selecciones.`);
+      pendingSurvivorPick = null;
+      renderSurvivorApp();
+      return;
+    }
+
+    if (targetWeek === activeWeek && currentTournament.locked) {
+      alert(`🔒 La Semana ${targetWeek} está bloqueada. No se pueden registrar selecciones.`);
       pendingSurvivorPick = null;
       renderSurvivorApp();
       return;
@@ -1057,13 +1220,12 @@
 
     const { tournId, teamAbbr, teamName, logo, color } = pendingSurvivorPick;
 
-    // Double check used teams against previous weeks
+    // Double check used teams against other weeks
     const myPlayer = tournamentPlayers[u.uid] || Object.values(tournamentPlayers).find(p => p.id === u.uid || p.uid === u.uid);
-    const startWeek = currentTournament.startWeek || 1;
     if (myPlayer && myPlayer.picks) {
       for (const [wKey, pick] of Object.entries(myPlayer.picks)) {
         const wNum = parseInt(wKey, 10);
-        if (wNum >= startWeek && wNum < activeWeek && pick) {
+        if (wNum !== targetWeek && pick) {
           const pickedAbbr = (pick.team || '').toUpperCase();
           const pickedName = (pick.teamName || '').toUpperCase();
           if (pickedAbbr === teamAbbr.toUpperCase() || pickedName === teamName.toUpperCase()) {
@@ -1084,7 +1246,7 @@
 
     try {
       await db.collection('survivors').doc(tournId).collection('players').doc(u.uid).update({
-        [`picks.${activeWeek}`]: {
+        [`picks.${targetWeek}`]: {
           team: teamAbbr,
           teamName: teamName,
           logo: logo,
@@ -1093,17 +1255,65 @@
           pickedAt: Date.now()
         }
       });
-      console.log(`[Survivor] Pick guardado y confirmado: ${teamName} para Semana ${activeWeek}`);
+      console.log(`[Survivor] Pick guardado y confirmado: ${teamName} para Semana ${targetWeek}`);
       pendingSurvivorPick = null;
-      alert(`🎉 ¡Pick guardado con éxito!\n\nTu equipo confirmado para la Semana ${activeWeek} es: ${teamName}.\n¡Mucho éxito en la jornada!`);
+      alert(`🎉 ¡Pick guardado con éxito!\n\nTu equipo confirmado para la Semana ${targetWeek} es: ${teamName}.\n¡Mucho éxito en la jornada!`);
     } catch (err) {
       alert('Error al guardar pick: ' + err.message);
       if (btn) {
         btn.disabled = false;
-        btn.innerHTML = '<span>💾</span> <span>Guardar Pick Semana ' + activeWeek + '</span>';
+        btn.innerHTML = '<span>💾</span> <span>Guardar Pick Semana ' + targetWeek + '</span>';
       }
-    }
   };
+
+  // Switch viewing/picking week
+  window.setSurvivorWeek = function(w) {
+    selectedSurvivorWeek = w;
+    pendingSurvivorPick = null;
+    renderSurvivorApp();
+  };
+
+  // Auto-sync tournament activeWeek with ESPN if current week is ahead
+  let isSyncingEspn = false;
+  async function checkAndSyncEspnWeek(tourn) {
+    if (!tourn || !tourn.id || isSyncingEspn || !db) return;
+    const sport = tourn.sport || 'football';
+    const slug = tourn.leagueSlug || 'nfl';
+    const currentActiveWeek = tourn.activeWeek || tourn.startWeek || 1;
+    const totalWeeks = tourn.totalWeeks || 18;
+
+    try {
+      isSyncingEspn = true;
+      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${slug}/scoreboard`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const espnWeek = data?.week?.number;
+
+      if (espnWeek && espnWeek > currentActiveWeek && espnWeek <= totalWeeks) {
+        console.log(`[Survivor] ESPN reporta Semana ${espnWeek}, torneo en Semana ${currentActiveWeek}. Sincronizando...`);
+        const firstEvent = data.events?.[0];
+        const firstTime = firstEvent?.date ? new Date(firstEvent.date).getTime() : null;
+        const isGameStarted = firstTime ? (Date.now() >= firstTime) : false;
+
+        await db.collection('survivors').doc(tourn.id).update({
+          activeWeek: espnWeek,
+          locked: isGameStarted,
+          updatedAt: Date.now()
+        });
+
+        tourn.activeWeek = espnWeek;
+        tourn.locked = isGameStarted;
+        if (!selectedSurvivorWeek || selectedSurvivorWeek < espnWeek) {
+          selectedSurvivorWeek = espnWeek;
+        }
+        renderSurvivorApp();
+      }
+    } catch (err) {
+      console.warn('[Survivor] Error comprobando semana en ESPN:', err);
+    } finally {
+      isSyncingEspn = false;
+    }
+  }
 
   // Keep backward compatibility alias
   window.selectWeeklySurvivorTeam = window.stageSurvivorPick;
@@ -1232,10 +1442,14 @@
     const lives = p.lives !== undefined ? p.lives : (p.isAlive !== false ? maxLives : 0);
     const picks = p.picks || {};
 
+    const actualAciertos = (p.aciertos !== undefined && p.aciertos <= 18) ? p.aciertos : (
+      p.picks ? Object.values(p.picks).filter(pk => pk && pk.result === 'win').length : (p.totalPoints && p.totalPoints <= 18 ? p.totalPoints : 0)
+    );
+
     let listHtml = `
       <div style="margin-bottom:12px; display:flex; justify-content:space-between; background:rgba(255,255,255,0.04); padding:8px 12px; border-radius:10px; font-size:12px;">
         <span>Vidas: <strong style="color:#ffd100;">${p.isAlive !== false ? `❤️ ${lives}/${maxLives}` : '💀 0 (Eliminado)'}</strong></span>
-        <span>Puntos: <strong>${p.totalPoints || 0} pts</strong></span>
+        <span>Aciertos: <strong style="color:#00e676;">${actualAciertos}</strong></span>
       </div>
       <div style="max-height:320px; overflow-y:auto; display:flex; flex-direction:column; gap:6px;">
     `;

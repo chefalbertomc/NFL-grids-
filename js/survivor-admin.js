@@ -142,13 +142,27 @@
       if (!doc.exists) return;
       const tourn = { id: doc.id, ...doc.data() };
       renderTournamentDetails(tourn);
+      checkAndSyncEspnWeekAdmin(tourn);
     });
 
     // 2. Listen to players subcollection
     unsubPlayers = db.collection('survivors').doc(tournId).collection('players').onSnapshot(snap => {
       tournamentPlayers = {};
       snap.forEach(pDoc => {
-        tournamentPlayers[pDoc.id] = { id: pDoc.id, ...pDoc.data() };
+        const pData = pDoc.data() || {};
+        if ((pData.totalPoints > 18) || (pData.aciertos === undefined && pData.picks)) {
+          let wins = 0;
+          if (pData.picks) {
+            Object.values(pData.picks).forEach(pk => {
+              if (pk && pk.result === 'win') wins++;
+            });
+          }
+          pData.aciertos = wins;
+          pData.totalWins = wins;
+          pData.totalPoints = wins;
+          pDoc.ref.update({ aciertos: wins, totalWins: wins, totalPoints: wins }).catch(() => {});
+        }
+        tournamentPlayers[pDoc.id] = { id: pDoc.id, ...pData };
       });
       renderPlayersAdmin();
     });
@@ -501,7 +515,14 @@
         const livesA = a.lives !== undefined ? a.lives : maxLives;
         const livesB = b.lives !== undefined ? b.lives : maxLives;
         if (livesB !== livesA) return livesB - livesA;
-        return (b.totalPoints || 0) - (a.totalPoints || 0);
+        const winsA = (a.aciertos !== undefined && a.aciertos <= 18) ? a.aciertos : (
+          a.picks ? Object.values(a.picks).filter(pk => pk && pk.result === 'win').length : (a.totalPoints && a.totalPoints <= 18 ? a.totalPoints : 0)
+        );
+        const winsB = (b.aciertos !== undefined && b.aciertos <= 18) ? b.aciertos : (
+          b.picks ? Object.values(b.picks).filter(pk => pk && pk.result === 'win').length : (b.totalPoints && b.totalPoints <= 18 ? b.totalPoints : 0)
+        );
+        if (winsB !== winsA) return winsB - winsA;
+        return (a.nickname || a.playerName || '').localeCompare(b.nickname || b.playerName || '');
       });
 
       approved.forEach(p => {
@@ -509,6 +530,9 @@
         const lives = p.lives !== undefined ? p.lives : (isAlive ? maxLives : 0);
         const currentPick = p.picks?.[activeWeek];
         const pickTeamText = currentPick ? `${currentPick.teamName || currentPick.team}` : 'Sin pick';
+        const actualAciertos = (p.aciertos !== undefined && p.aciertos <= 18) ? p.aciertos : (
+          p.picks ? Object.values(p.picks).filter(pk => pk && pk.result === 'win').length : (p.totalPoints && p.totalPoints <= 18 ? p.totalPoints : 0)
+        );
 
         const heartIcons = '❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, maxLives - lives));
 
@@ -526,7 +550,7 @@
                 </span>
               </div>
               <div style="font-size:11px; color:#ffd100; font-weight:700;">
-                Sem. ${activeWeek}: <span style="color:#fff;">${pickTeamText}</span> • Pts: ${p.totalPoints || 0}
+                Sem. ${activeWeek}: <span style="color:#fff;">${pickTeamText}</span> • Aciertos: ${actualAciertos}
               </div>
             </div>
           </div>
@@ -750,6 +774,10 @@
         const pick = p.picks?.[activeWeek];
         const pRef = tournRef.collection('players').doc(p.id);
 
+        const currentAciertos = (p.aciertos !== undefined && p.aciertos <= 18) ? p.aciertos : (
+          p.picks ? Object.values(p.picks).filter(pk => pk && pk.result === 'win').length : (p.totalPoints && p.totalPoints <= 18 ? p.totalPoints : 0)
+        );
+
         if (!pick || !pick.team) {
           // No pick registered -> Lose 1 life
           const newLives = Math.max(0, currentLives - 1);
@@ -758,9 +786,11 @@
           batch.update(pRef, {
             lives: newLives,
             isAlive: isAlive,
+            aciertos: currentAciertos,
+            totalWins: currentAciertos,
+            totalPoints: currentAciertos,
             eliminatedWeek: isAlive ? null : activeWeek,
-            [`picks.${activeWeek}.result`]: 'no_pick',
-            [`picks.${activeWeek}.diff`]: -10
+            [`picks.${activeWeek}.result`]: 'no_pick'
           });
 
           if (!isAlive) eliminatedCount++;
@@ -774,14 +804,15 @@
 
         if (matchRes && matchRes.finished) {
           if (matchRes.result === 'win') {
-            const currentTotal = p.totalPoints || 0;
-            const newTotal = currentTotal + Math.max(matchRes.diff, 1);
+            const newAciertos = currentAciertos + 1;
             batch.update(pRef, {
               isAlive: true,
-              totalPoints: newTotal,
+              aciertos: newAciertos,
+              totalWins: newAciertos,
+              totalPoints: newAciertos, // 1 acierto por victoria, jamás diferencial de goles/puntos
               [`picks.${activeWeek}.result`]: 'win',
-              [`picks.${activeWeek}.diff`]: matchRes.diff,
-              [`picks.${activeWeek}.score`]: matchRes.score
+              [`picks.${activeWeek}.score`]: matchRes.score,
+              [`picks.${activeWeek}.oppScore`]: matchRes.oppScore
             });
             survivedCount++;
           } else {
@@ -792,10 +823,13 @@
             batch.update(pRef, {
               lives: newLives,
               isAlive: isAlive,
+              aciertos: currentAciertos,
+              totalWins: currentAciertos,
+              totalPoints: currentAciertos,
               eliminatedWeek: isAlive ? null : activeWeek,
               [`picks.${activeWeek}.result`]: matchRes.result,
-              [`picks.${activeWeek}.diff`]: matchRes.diff,
-              [`picks.${activeWeek}.score`]: matchRes.score
+              [`picks.${activeWeek}.score`]: matchRes.score,
+              [`picks.${activeWeek}.oppScore`]: matchRes.oppScore
             });
 
             if (!isAlive) eliminatedCount++;
@@ -805,13 +839,73 @@
       });
 
       await batch.commit();
-      alert(`🎯 Calificación ESPN Semana ${activeWeek} completada:\n• Victorias (Vivos sin daño): ${survivedCount}\n• Perdieron 1 Vida: ${lostLifeCount}\n• Eliminados esta semana (0 vidas): ${eliminatedCount}`);
+
+      // Auto-advance activeWeek to next week and unlock picks
+      const nextWeek = activeWeek + 1;
+      const totalWeeks = tourn.totalWeeks || 18;
+      if (nextWeek <= totalWeeks) {
+        await tournRef.update({
+          activeWeek: nextWeek,
+          locked: false,
+          updatedAt: Date.now()
+        });
+        tourn.activeWeek = nextWeek;
+        tourn.locked = false;
+        const weekInp = document.getElementById('survAdminActiveWeek');
+        if (weekInp) weekInp.value = nextWeek;
+        const lockedChk = document.getElementById('survAdminLocked');
+        if (lockedChk) lockedChk.checked = false;
+      }
+
+      alert(`🎯 Calificación ESPN Semana ${activeWeek} completada:\n• Victorias (Siguen vivos): ${survivedCount}\n• Perdieron 1 Vida: ${lostLifeCount}\n• Eliminados esta semana (0 vidas): ${eliminatedCount}${nextWeek <= totalWeeks ? `\n\n⏩ ¡El torneo avanzó automáticamente a la Semana ${nextWeek}! Los picks de la Semana ${nextWeek} están desbloqueados.` : '\n\n🏁 ¡El torneo ha finalizado todas sus semanas!'}`);
     } catch (err) {
       alert('Error en evaluación ESPN: ' + err.message);
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = '⚡ Calificar Semana con ESPN (1-Click)'; }
     }
   };
+
+  // Auto-sync activeWeek with ESPN if current week is ahead
+  let isSyncingAdminEspn = false;
+  async function checkAndSyncEspnWeekAdmin(tourn) {
+    if (!tourn || !tourn.id || isSyncingAdminEspn || !db) return;
+    const sport = tourn.sport || 'football';
+    const slug = tourn.leagueSlug || 'nfl';
+    const currentActiveWeek = tourn.activeWeek || tourn.startWeek || 1;
+    const totalWeeks = tourn.totalWeeks || 18;
+
+    try {
+      isSyncingAdminEspn = true;
+      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${slug}/scoreboard`);
+      if (!res.ok) return;
+      const data = await res.json();
+      const espnWeek = data?.week?.number;
+
+      if (espnWeek && espnWeek > currentActiveWeek && espnWeek <= totalWeeks) {
+        console.log(`[Survivor Admin] ESPN reporta Semana ${espnWeek}, torneo en Semana ${currentActiveWeek}. Sincronizando...`);
+        const firstEvent = data.events?.[0];
+        const firstTime = firstEvent?.date ? new Date(firstEvent.date).getTime() : null;
+        const isGameStarted = firstTime ? (Date.now() >= firstTime) : false;
+
+        await db.collection('survivors').doc(tourn.id).update({
+          activeWeek: espnWeek,
+          locked: isGameStarted,
+          updatedAt: Date.now()
+        });
+
+        tourn.activeWeek = espnWeek;
+        tourn.locked = isGameStarted;
+        const weekInp = document.getElementById('survAdminActiveWeek');
+        if (weekInp) weekInp.value = espnWeek;
+        const lockedChk = document.getElementById('survAdminLocked');
+        if (lockedChk) lockedChk.checked = isGameStarted;
+      }
+    } catch (err) {
+      console.warn('[Survivor Admin] Error comprobando semana en ESPN:', err);
+    } finally {
+      isSyncingAdminEspn = false;
+    }
+  }
 
   // WhatsApp Invite Link
   window.shareSurvivorWhatsApp = function() {
@@ -982,8 +1076,8 @@
           </div>
         </div>
         <div style="text-align:right;">
-          <div style="font-size:11px; color:var(--text-muted);">Puntos Totales:</div>
-          <div style="font-size:16px; font-weight:900; color:#ffd100;">${player.totalPoints || 0} Pts</div>
+          <div style="font-size:11px; color:var(--text-muted);">Semanas Ganadas:</div>
+          <div style="font-size:16px; font-weight:900; color:#00e676;">${(player.aciertos !== undefined && player.aciertos <= 18) ? player.aciertos : (player.picks ? Object.values(player.picks).filter(pk => pk && pk.result === 'win').length : (player.totalPoints && player.totalPoints <= 18 ? player.totalPoints : 0))} Aciertos</div>
         </div>
       </div>
       <div style="max-height:360px; overflow-y:auto; border:1px solid rgba(255,255,255,0.08); border-radius:10px; background:rgba(10,14,22,0.8);">
