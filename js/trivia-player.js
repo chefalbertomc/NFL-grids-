@@ -461,19 +461,42 @@
     const myAnswer = myPlayerDoc?.answers?.[currIdx];
     const isCorrect = myAnswer ? myAnswer.isCorrect === true : false;
     const pointsEarned = myAnswer ? (myAnswer.pointsEarned || 0) : 0;
+    const responseTimeMs = myAnswer ? (myAnswer.responseTimeMs || 0) : 0;
+    const responseSec = responseTimeMs > 0 ? (responseTimeMs / 1000).toFixed(1) : null;
+    // Desglose: base 300 + bonus velocidad
+    const speedBonus = isCorrect ? Math.max(0, pointsEarned - 300) : 0;
 
     let cardClass = isCorrect ? 'correct' : 'incorrect';
     let feedbackIcon = isCorrect ? '🎉' : '❌';
     let feedbackTitle = isCorrect ? '¡RESPUESTA CORRECTA!' : '¡RESPUESTA INCORRECTA!';
 
+    const speedLabel = responseSec
+      ? (parseFloat(responseSec) <= 3 ? '⚡ ¡Ultra Rápido!' : (parseFloat(responseSec) <= 8 ? '🔥 Rápido' : '🐢 A tiempo'))
+      : '';
+
     return `
       <div class="trivia-feedback-card ${cardClass}">
         <span style="font-size:44px;">${feedbackIcon}</span>
         <h3 style="font-size:20px; font-weight:950; color:#ffffff; margin:6px 0;">${feedbackTitle}</h3>
-        <div style="font-size:18px; font-weight:950; color:${isCorrect ? '#00e676' : '#ff0033'}; margin-bottom:10px;">
-          ${isCorrect ? `+${pointsEarned} Puntos Ganados` : '+0 Puntos'}
-        </div>
-        <p style="font-size:13px; color:#e0e0e0; line-height:1.35; margin:0;">
+        ${isCorrect ? `
+        <div style="display:flex; align-items:center; justify-content:center; gap:12px; margin:8px 0;">
+          <div style="text-align:center; background:rgba(0,230,118,0.12); border:1.5px solid rgba(0,230,118,0.4); border-radius:12px; padding:8px 14px;">
+            <div style="font-size:22px; font-weight:950; color:#00e676;">+${pointsEarned}</div>
+            <div style="font-size:10px; color:#aaa; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">puntos</div>
+          </div>
+          ${responseSec ? `
+          <div style="text-align:center; background:rgba(255,209,0,0.10); border:1.5px solid rgba(255,209,0,0.35); border-radius:12px; padding:8px 14px;">
+            <div style="font-size:22px; font-weight:950; color:#ffd100;">${responseSec}s</div>
+            <div style="font-size:10px; color:#aaa; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">${speedLabel}</div>
+          </div>` : ''}
+          ${speedBonus > 0 ? `
+          <div style="text-align:center; background:rgba(0,150,255,0.10); border:1.5px solid rgba(0,150,255,0.35); border-radius:12px; padding:8px 14px;">
+            <div style="font-size:22px; font-weight:950; color:#42a5f5;">+${speedBonus}</div>
+            <div style="font-size:10px; color:#aaa; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">bonus vel.</div>
+          </div>` : ''}
+        </div>` : `
+        <div style="font-size:16px; font-weight:950; color:#ff0033; margin-bottom:10px;">❌ +0 Puntos</div>`}
+        <p style="font-size:13px; color:#e0e0e0; line-height:1.35; margin:6px 0 0 0;">
           La respuesta correcta es <strong>[${correct}]</strong>.
         </p>
         ${q.exp ? `<div style="font-size:11.5px; color:#ffd100; margin-top:8px;">💡 ${q.exp}</div>` : ''}
@@ -629,12 +652,20 @@
     const responseTimeMs = Math.max(100, Math.round((qElapsedSec || 1) * 1000));
     const limitSec = timeLimit || currentTrivia.timePerQuestion || 15;
 
+    // --- NUEVO SISTEMA DE PUNTUACIÓN POR VELOCIDAD ---
+    // Base: 300 puntos fijos por respuesta correcta
+    // Bonus de velocidad: hasta 700 puntos adicionales dependiendo qué tan rápido respondiste
+    // Fórmula: bonus = 700 * (1 - elapsedSec/timeLimitSec)²
+    // El exponente cuadrático amplifica la diferencia entre el primero y el último
+    // Responder en el seg 1 de 15 → ~700 bonus → total 995+ pts
+    // Responder en el seg 8 de 15 → ~175 bonus → total ~475 pts
+    // Responder en el seg 14 de 15 → ~3 bonus → total ~303 pts
+    // Responder incorrecto → 0 puntos siempre
     let pointsEarned = 0;
     if (isCorrect) {
-      const timeLimitMs = limitSec * 1000;
-      const speedFactor = Math.max(0, Math.min(1, 1 - (responseTimeMs / (timeLimitMs * 2))));
-      pointsEarned = Math.round(1000 * speedFactor);
-      if (pointsEarned < 500) pointsEarned = 500;
+      const fraction = Math.max(0, Math.min(1, 1 - (responseTimeMs / (limitSec * 1000))));
+      const speedBonus = Math.round(700 * fraction * fraction); // cuadrático = mayor diferencia
+      pointsEarned = 300 + speedBonus;
     }
 
     try {
