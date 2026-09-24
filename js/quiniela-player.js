@@ -2169,7 +2169,7 @@
       const start = minTs ? new Date(minTs - 3 * 86400000) : new Date(today.getTime() - 14 * 86400000);
       const end = maxTs ? new Date(maxTs + 3 * 86400000) : new Date(today.getTime() + 21 * 86400000);
       const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-      const dateParam = `dates=${fmt(start)}-${fmt(end)}&limit=100`;
+      const dateParam = `limit=100`;
 
       // 2. Build complete endpoint list
       const neededUrls = [];

@@ -630,5 +630,149 @@
     }
     return `${origin}${path}share-grid.html?code=${encodeURIComponent(code)}&away=${encodeURIComponent(away)}&home=${encodeURIComponent(home)}`;
   };
-})();
 
+  /**
+   * Universal ESPN Scoreboard Events Fetcher
+   * Resolves events across Soccer, NFL, NCAA, MLB, NBA, etc.
+   * Eliminates the ESPN API 400 Bad Request error caused by date-ranges (START-END).
+   * Reads league calendar to query only days that actually feature matches.
+   */
+  window.fetchEspnScoreboardEvents = async function(sportOrPath, slug, daysRange = 14) {
+    let sport = 'soccer';
+    let leagueSlug = 'mex.1';
+
+    if (sportOrPath && String(sportOrPath).includes('/')) {
+      const parts = String(sportOrPath).split('/');
+      sport = parts[0];
+      leagueSlug = parts[1];
+    } else if (slug) {
+      sport = sportOrPath;
+      leagueSlug = slug;
+    } else {
+      const val = (sportOrPath || '').toLowerCase();
+      if (val === 'nfl' || val === 'college-football') {
+        sport = 'football';
+        leagueSlug = val;
+      } else if (val === 'mlb') {
+        sport = 'baseball';
+        leagueSlug = val;
+      } else if (val === 'nba' || val === 'wnba' || val === 'mens-college-basketball') {
+        sport = 'basketball';
+        leagueSlug = val;
+      } else {
+        sport = 'soccer';
+        leagueSlug = val || 'mex.1';
+      }
+    }
+
+    const baseUrl = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${leagueSlug}/scoreboard`;
+    const eventsMap = new Map();
+
+    const addEvents = (list) => {
+      if (Array.isArray(list)) {
+        list.forEach(ev => {
+          if (ev && ev.id && !eventsMap.has(ev.id)) {
+            eventsMap.set(ev.id, ev);
+          }
+        });
+      }
+    };
+
+    // 1. Fetch base scoreboard (always returns active round/week/games)
+    let baseData = null;
+    try {
+      const res = await fetch(baseUrl);
+      if (res.ok) {
+        baseData = await res.json();
+        addEvents(baseData.events);
+      }
+    } catch (e) {
+      console.warn('[ESPN Fetcher] Error fetching base scoreboard:', e);
+    }
+
+    // 2. Discover upcoming match dates or weeks from ESPN calendar
+    const now = new Date();
+    const startMs = now.getTime() - 24 * 60 * 60 * 1000;
+    const endMs = now.getTime() + Math.max(1, daysRange) * 24 * 60 * 60 * 1000;
+    const extraParams = [];
+
+    const cal = baseData?.leagues?.[0]?.calendar || [];
+    if (Array.isArray(cal) && cal.length > 0) {
+      if (typeof cal[0] === 'string') {
+        // String ISO format (Soccer, MLB, etc.)
+        for (const dateStr of cal) {
+          try {
+            const dt = new Date(dateStr);
+            const t = dt.getTime();
+            if (t >= startMs && t <= endMs) {
+              const yyyy = dt.getUTCFullYear();
+              const mm = String(dt.getUTCMonth() + 1).padStart(2, '0');
+              const dd = String(dt.getUTCDate()).padStart(2, '0');
+              extraParams.push(`dates=${yyyy}${mm}${dd}`);
+            }
+          } catch (_) {}
+        }
+      } else if (typeof cal[0] === 'object') {
+        // Structured calendar sections with entries (NFL, College Football, Tournaments)
+        for (const section of cal) {
+          const entries = section.entries || [];
+          for (const entry of entries) {
+            const sTime = entry.startDate ? new Date(entry.startDate).getTime() : null;
+            const eTime = entry.endDate ? new Date(entry.endDate).getTime() : null;
+            const val = entry.value;
+            if (sTime && eTime && !(eTime < startMs || sTime > endMs)) {
+              if (sport === 'football' && leagueSlug === 'nfl') {
+                const st = section.value || '2';
+                extraParams.push(`seasontype=${st}&week=${val}`);
+              } else if (sport === 'football' && leagueSlug === 'college-football') {
+                extraParams.push(`week=${val}`);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // Limit to max 8 concurrent fetches to avoid browser throttling
+    const uniqueParams = [...new Set(extraParams)].slice(0, 8);
+    if (uniqueParams.length > 0) {
+      await Promise.all(uniqueParams.map(async param => {
+        try {
+          const u = `${baseUrl}?${param}`;
+          const res = await fetch(u);
+          if (res.ok) {
+            const d = await res.json();
+            addEvents(d.events);
+          }
+        } catch (_) {}
+      }));
+    }
+
+    // 3. Fallback: if still 0 events, try today, tomorrow and +2 days
+    if (eventsMap.size === 0) {
+      const datesToTry = [0, 1, 2].map(offset => {
+        const d = new Date(now.getTime() + offset * 86400000);
+        return `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+      });
+      await Promise.all(datesToTry.map(async dtStr => {
+        try {
+          const res = await fetch(`${baseUrl}?dates=${dtStr}`);
+          if (res.ok) {
+            const d = await res.json();
+            addEvents(d.events);
+          }
+        } catch (_) {}
+      }));
+    }
+
+    const allEvents = Array.from(eventsMap.values());
+    allEvents.sort((a, b) => {
+      const ta = a.date ? new Date(a.date).getTime() : 0;
+      const tb = b.date ? new Date(b.date).getTime() : 0;
+      return ta - tb;
+    });
+
+    return allEvents;
+  };
+
+})();

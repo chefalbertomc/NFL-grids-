@@ -49,27 +49,34 @@
   }
 
   async function searchBingoGames() {
-    const leagueSport = document.getElementById('bingoLeague').value; // e.g. soccer/mex.1
+    const leagueSport = document.getElementById('bingoLeague')?.value || 'soccer/mex.1';
     const btn = document.getElementById('btnSearchBingoGames');
     if (!leagueSport || !btn) return;
     
-    btn.textContent = 'Buscando...';
+    btn.textContent = '⏳ Buscando...';
     btn.disabled = true;
     
     try {
-      const url = `https://site.api.espn.com/apis/site/v2/sports/${leagueSport}/scoreboard`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('API Error');
-      const data = await res.json();
+      const fetchFn = window.fetchEspnScoreboardEvents;
+      let events = [];
+      if (typeof fetchFn === 'function') {
+        events = await fetchFn(leagueSport, null, 14);
+      } else {
+        const url = `https://site.api.espn.com/apis/site/v2/sports/${leagueSport}/scoreboard`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('API Error');
+        const data = await res.json();
+        events = data.events || [];
+      }
       
-      bingoSearchMatches = data.events || [];
+      bingoSearchMatches = events;
       renderBingoGamePicker(bingoSearchMatches);
     } catch (err) {
       alert('Error consultando ESPN: ' + err.message);
+    } finally {
+      btn.textContent = '🔍 Buscar Partidos';
+      btn.disabled = false;
     }
-    
-    btn.textContent = '🔍 Buscar Partidos';
-    btn.disabled = false;
   }
 
   function renderBingoGamePicker(events) {
@@ -85,12 +92,11 @@
     }
 
     events.forEach(ev => {
-      const match = ev.competitions[0];
-      const team1 = match.competitors[0];
-      const team2 = match.competitors[1];
-
-      const home = team1.homeAway === 'home' ? team1 : team2;
-      const away = team1.homeAway === 'away' ? team1 : team2;
+      const match = ev.competitions?.[0] || {};
+      const comps = match.competitors || [];
+      if (comps.length < 2) return;
+      const home = comps.find(c => c.homeAway === 'home') || comps[1] || comps[0];
+      const away = comps.find(c => c.homeAway === 'away') || comps[0];
 
       const card = document.createElement('div');
       card.className = 'game-pick-card';

@@ -252,24 +252,23 @@
     selectedEspnGame = null;
 
     try {
-      const today = new Date();
-      const start = new Date();
-      start.setDate(today.getDate() - 1);
-      const end = new Date();
-      end.setDate(today.getDate() + 30); // Lookahead 30 days to get upcoming games and next weeks
-
-      const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-      const url = `https://site.api.espn.com/apis/site/v2/sports/football/${league}/scoreboard?dates=${fmt(start)}-${fmt(end)}&limit=100`;
-      
-      let res = await fetch(url);
-      let data = await res.json();
-      let events = data.events || [];
-
-      // If date range returned few, also fetch standard scoreboard
-      if (events.length === 0) {
-        const res2 = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/${league}/scoreboard`);
-        const data2 = await res2.json();
-        events = data2.events || [];
+      const fetchFn = window.fetchEspnScoreboardEvents;
+      let events = [];
+      if (typeof fetchFn === 'function') {
+        events = await fetchFn(league, null, 30);
+      } else {
+        let sport = 'football';
+        let slug = league;
+        if (league.includes('/')) {
+          const parts = league.split('/');
+          sport = parts[0];
+          slug = parts[1];
+        }
+        const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${slug}/scoreboard`);
+        if (res.ok) {
+          const d = await res.json();
+          events = d.events || [];
+        }
       }
 
       pickerList.innerHTML = '';
@@ -1325,7 +1324,10 @@
       const g = snap.data() || {};
 
       const espnLeague = g.espnLeague || 'nfl';
-      const espnRes = await fetch(`https://site.api.espn.com/apis/site/v2/sports/football/${espnLeague}/scoreboard`);
+      const espnUrl = espnLeague.includes('/') 
+        ? `https://site.api.espn.com/apis/site/v2/sports/${espnLeague}/scoreboard`
+        : `https://site.api.espn.com/apis/site/v2/sports/football/${espnLeague}/scoreboard`;
+      const espnRes = await fetch(espnUrl);
       const espnData = await espnRes.json();
 
       const homeTarget = g.homeTeam || g.home || '';
@@ -1914,41 +1916,17 @@
     if (btn) { btn.textContent = '⏳ Buscando...'; btn.disabled = true; }
     
     try {
-      const today = new Date();
-      const start = new Date();
-      start.setDate(today.getDate() - 1);
-      const end = new Date();
-      end.setDate(today.getDate() + daysRange);
-
-      const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-      
-      let fullSportPath = sportPath;
-      if (!fullSportPath.includes('/')) {
-        fullSportPath = `soccer/${sportPath}`;
-      }
-      
-      let url = `https://site.api.espn.com/apis/site/v2/sports/${fullSportPath}/scoreboard?dates=${fmt(start)}-${fmt(end)}&limit=100`;
-      let res = await fetch(url);
-      let data = await res.json();
-      let events = data.events || [];
-
-      // Fallback 1: Si no trajo eventos con rango de fechas, consultar el scoreboard estándar
-      if (!events.length) {
-        const url2 = `https://site.api.espn.com/apis/site/v2/sports/${fullSportPath}/scoreboard?limit=100`;
-        const res2 = await fetch(url2);
-        if (res2.ok) {
-          const data2 = await res2.json();
-          events = data2.events || [];
-        }
-      }
-
-      // Fallback 2: Consultar sin filtro de fechas por día actual si aún no hay
-      if (!events.length) {
-        const url3 = `https://site.api.espn.com/apis/site/v2/sports/${fullSportPath}/scoreboard?dates=${fmt(today)}&limit=100`;
-        const res3 = await fetch(url3);
-        if (res3.ok) {
-          const data3 = await res3.json();
-          events = data3.events || [];
+      const fetchFn = window.fetchEspnScoreboardEvents;
+      let events = [];
+      if (typeof fetchFn === 'function') {
+        events = await fetchFn(sportPath, null, daysRange);
+      } else {
+        const fullSportPath = sportPath.includes('/') ? sportPath : `soccer/${sportPath}`;
+        const url = `https://site.api.espn.com/apis/site/v2/sports/${fullSportPath}/scoreboard`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          events = data.events || [];
         }
       }
       

@@ -306,28 +306,28 @@
     if (container) container.style.display = 'block';
 
     try {
-      const today = new Date();
-      const start = new Date();
-      start.setDate(today.getDate() - 1);
-      const end = new Date();
-      end.setDate(today.getDate() + daysRange);
+      const fetchFn = window.fetchEspnScoreboardEvents;
+      let events = [];
+      if (typeof fetchFn === 'function') {
+        events = await fetchFn(league.sport, league.slug, daysRange);
+      } else {
+        const url = `https://site.api.espn.com/apis/site/v2/sports/${league.sport}/${league.slug}/scoreboard`;
+        const res = await fetch(url);
+        if (res.ok) {
+          const data = await res.json();
+          events = data.events || [];
+        }
+      }
 
-      const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-      const url = `https://site.api.espn.com/apis/site/v2/sports/${league.sport}/${league.slug}/scoreboard?dates=${fmt(start)}-${fmt(end)}&limit=100`;
-
-      const res = await fetch(url);
-      const data = await res.json();
-      const events = data.events || [];
-
-      if (events.length === 0) {
-        if (resultsEl) resultsEl.innerHTML = `<div class="text-center hint-text py-3">No se encontraron partidos para ${league.label} en este rango.</div>`;
+      if (!events || events.length === 0) {
+        if (resultsEl) resultsEl.innerHTML = `<div class="text-center hint-text py-3">No se encontraron partidos para ${league.label} en este rango. Intenta seleccionar un rango mayor (ej. 30 días).</div>`;
         return;
       }
 
       renderQGamePicker(events, league);
     } catch (err) {
       console.error('[QAdmin]', err);
-      if (resultsEl) resultsEl.innerHTML = '<div class="text-center hint-text py-3" style="color:var(--danger-color);">Error al conectar con ESPN.</div>';
+      if (resultsEl) resultsEl.innerHTML = `<div class="text-center hint-text py-3" style="color:var(--danger-color);">Error al conectar con ESPN: ${err.message}</div>`;
     } finally {
       if (btnSearch) { btnSearch.disabled = false; btnSearch.textContent = '🔍 Buscar Partidos'; }
     }
@@ -1187,7 +1187,7 @@
       const start = minTs ? new Date(minTs - 3 * 86400000) : new Date(today.getTime() - 14 * 86400000);
       const end = maxTs ? new Date(maxTs + 3 * 86400000) : new Date(today.getTime() + 21 * 86400000);
       const fmt = d => `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-      const dateParam = `dates=${fmt(start)}-${fmt(end)}&limit=100`;
+      const dateParam = `limit=100`;
 
       // 2. Build complete endpoint list
       const neededUrls = [];
