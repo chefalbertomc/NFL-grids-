@@ -21,9 +21,33 @@
       firebase.initializeApp(firebaseConfig);
     }
 
+    // COMPATIBILIDAD CON DATOS CELULARES
+    // Muchas operadoras (Telcel, Movistar, AT&T Mexico) bloquean WebSockets
+    // (protocolo que usa Firestore por defecto para tiempo real).
+    // experimentalForceLongPolling usa HTTP largo en su lugar -> funciona en CUALQUIER red.
     window.db = firebase.firestore();
+    window.db.settings({
+      experimentalForceLongPolling: true,
+      merge: true
+    });
+
+    // PERSISTENCIA OFFLINE
+    // Permite que la app cargue aunque la red sea lenta o intermitente.
+    // Los datos ya vistos se guardan en IndexedDB del celular.
+    window.db.enablePersistence({ synchronizeTabs: false })
+      .then(function() {
+        console.log("[firebase-config.js] Offline persistence enabled");
+      })
+      .catch(function(err) {
+        if (err.code === 'failed-precondition') {
+          console.warn("[firebase-config.js] Persistence skipped (multiple tabs)");
+        } else if (err.code === 'unimplemented') {
+          console.warn("[firebase-config.js] Persistence not supported in this browser");
+        }
+      });
+
     window._bwwFirebaseReady = true;
-    console.log("[firebase-config.js] Firebase initialized successfully");
+    console.log("[firebase-config.js] Firebase initialized successfully (LongPolling mode)");
   } catch (e) {
     console.error("[firebase-config.js] Error initializing Firebase:", e);
   }

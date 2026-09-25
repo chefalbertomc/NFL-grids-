@@ -77,12 +77,23 @@
       return; // Clean silent return on user dismissing popup
     }
     console.error('[auth] Google sign-in error:', err);
+
+    if (err.code === 'auth/network-request-failed') {
+      alert('📶 Sin conexión a internet.\n\n' +
+            '• Si estás con datos celulares, verifica que tengas señal.\n' +
+            '• Intenta conectarte a WiFi.\n' +
+            '• También puedes entrar como invitado escribiendo tu nombre más abajo.');
+      return;
+    }
     if (err.code === 'auth/unauthorized-domain') {
       alert('⚠️ Error de Dominio: El dominio actual (' + window.location.hostname + ') no está en la lista de dominios autorizados de Firebase Console (Authentication > Settings > Authorized domains).');
       return;
     }
     if (err.code === 'auth/operation-not-supported-in-this-environment' || (err.message && err.message.includes('disallowed_useragent'))) {
       alert('📱 Aviso: El navegador interno de esta app (ej. WhatsApp/Instagram) bloquea el acceso con Google.\n\n👉 Abre este enlace en Safari o Chrome (tres puntos ⋮ arriba a la derecha) para iniciar sesión con Google.');
+      return;
+    }
+    if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
       return;
     }
     alert('Error al iniciar sesión: ' + (err.message || err.code));
@@ -106,6 +117,23 @@
 
       setLoginButtonLoading('btnModalGoogle', true, 'Conectando con Google...');
 
+      // En móvil: usar signInWithRedirect DIRECTAMENTE.
+      // signInWithPopup falla con frecuencia en datos celulares (Telcel/Movistar/AT&T)
+      // porque los proxies de las operadoras bloquean o cierran las ventanas popup.
+      // signInWithRedirect es 100% compatible con todas las redes y carriers.
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        try {
+          console.log('[auth] Móvil detectado → usando signInWithRedirect (más confiable en datos)');
+          await auth.signInWithRedirect(provider);
+          return; // La página se recargará y getRedirectResult() capturará el resultado
+        } catch (redirectErr) {
+          console.warn('[auth] signInWithRedirect falló, intentando popup:', redirectErr);
+          // Si redirect falla (ej. WebView), intentar popup como fallback
+        }
+      }
+
+      // Desktop o fallback: intentar popup
       try {
         const result = await auth.signInWithPopup(provider);
         if (result && result.user) {
@@ -131,13 +159,12 @@
         }
       } catch (err) {
         if (err.code === 'auth/popup-blocked' || (err.message && err.message.includes('opener'))) {
-          const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-          if (isMobile && auth.signInWithRedirect) {
-            console.log('[auth] Popup bloqueado en móvil, usando signInWithRedirect');
+          if (auth.signInWithRedirect) {
+            console.log('[auth] Popup bloqueado → usando signInWithRedirect como último recurso');
             await auth.signInWithRedirect(provider);
             return;
           }
-          alert('📱 Aviso: Tu navegador bloqueó la ventana emergente de Google.\n\n👉 Permite ventanas emergentes en Safari o abre el enlace en una pestaña privada.');
+          alert('📱 Aviso: Tu navegador bloqueó la ventana emergente de Google.\n\n👉 Permite ventanas emergentes en Safari o usa la opción de Invitado con tu apodo.');
         } else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
           handleAuthError(err);
         }

@@ -6,6 +6,13 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
+  <!-- Preconnect: acelera carga Firebase en datos celulares lentos -->
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin/>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin/>
+  <link rel="preconnect" href="https://identitytoolkit.googleapis.com" crossorigin/>
+  <link rel="preconnect" href="https://securetoken.googleapis.com" crossorigin/>
+  <link rel="dns-prefetch" href="https://www.gstatic.com"/>
+  <link rel="dns-prefetch" href="https://firebaseio.com"/>
   <link rel="icon" type="image/jpeg" href="img/logo.jpg" />
   <link rel="apple-touch-icon" href="img/logo.jpg" />
   <link rel="apple-touch-icon" sizes="180x180" href="img/logo.jpg" />
@@ -16,7 +23,7 @@
   <meta name="apple-mobile-web-app-title" content="Drinks&Wins" />
   <meta name="theme-color" content="#ff6600" />
   <title>Drinks & Wins — NFL Bar Games</title>
-  <link rel="stylesheet" href="css/styles.css?v=215.26"/>
+  <link rel="stylesheet" href="css/styles.css?v=215.30"/>
 </head>
 <body>
   <!-- Slide-out Sidebar Drawer Menu -->
@@ -721,22 +728,22 @@
 
 
 
-  <!-- Firebase v8 SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <!-- Firebase v8 SDKs (crossorigin para compatibilidad con proxies de operadoras) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js" crossorigin="anonymous"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js" crossorigin="anonymous"></script>
 
   <!-- Configuration and Logic -->
-  <script src="js/firebase-config.js?v=215.26"></script>
-  <script src="js/auth.js?v=215.26"></script>
-  <script src="js/team-logos.js?v=215.26"></script>
-  <script src="js/grids.js?v=215.26"></script>
-  <script src="js/quiniela-player.js?v=215.26"></script>
-  <script src="js/survivor.js?v=215.26"></script>
-  <script src="js/firstgoal.js?v=215.26"></script>
-  <script src="js/bingo-player.js?v=215.26"></script>
-  <script src="js/trivia-player.js?v=215.26"></script>
-  <script src="js/promotional-cards.js?v=215.26"></script>
+  <script src="js/firebase-config.js?v=215.30"></script>
+  <script src="js/auth.js?v=215.30"></script>
+  <script src="js/team-logos.js?v=215.30"></script>
+  <script src="js/grids.js?v=215.30"></script>
+  <script src="js/quiniela-player.js?v=215.30"></script>
+  <script src="js/survivor.js?v=215.30"></script>
+  <script src="js/firstgoal.js?v=215.30"></script>
+  <script src="js/bingo-player.js?v=215.30"></script>
+  <script src="js/trivia-player.js?v=215.30"></script>
+  <script src="js/promotional-cards.js?v=215.30"></script>
 
   <!-- Tab Switching Handler -->
   <script>
