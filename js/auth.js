@@ -1,7 +1,7 @@
-// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v215.27)
+// Authentication Module for Drinks & Wins — Google 1-Click Login Gate (v215.31)
 (function() {
   'use strict';
-  console.log('%c🚀 DRINKS & WINS v215.27 CARGADO EXITOSAMENTE', 'background: #ffd100; color: #000; font-weight: bold; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
+  console.log('%c🚀 DRINKS & WINS v215.31 CARGADO EXITOSAMENTE', 'background: #ffd100; color: #000; font-weight: bold; font-size: 14px; padding: 4px 8px; border-radius: 4px;');
 
   window.currentUser = null;
   window.isAdmin = false;
@@ -100,7 +100,21 @@
   }
 
   // 1-Click Google Sign In
-  window.loginWithGoogle = async function(isSwitchAccount = false) {
+  // Detecta iOS Safari (ITP borra cookies de redirect → causa bucle)
+  function isIOSSafari() {
+    var ua = navigator.userAgent || '';
+    var isIOS = /iPhone|iPad|iPod/.test(ua);
+    var isSafari = /Safari/.test(ua) && !/Chrome|CriOS|FxiOS|EdgiOS/.test(ua);
+    return isIOS && isSafari;
+  }
+
+  // Detecta Android Chrome (redirect funciona bien aquí)
+  function isAndroidChrome() {
+    var ua = navigator.userAgent || '';
+    return /Android/.test(ua) && /Chrome/.test(ua) && !/Edg|OPR/.test(ua);
+  }
+
+    window.loginWithGoogle = async function(isSwitchAccount = false) {
     if (isGoogleAuthInProgress) return;
     isGoogleAuthInProgress = true;
     console.log('[auth] loginWithGoogle triggered, isSwitchAccount:', isSwitchAccount);
@@ -117,19 +131,64 @@
 
       setLoginButtonLoading('btnModalGoogle', true, 'Conectando con Google...');
 
-      // En móvil: usar signInWithRedirect DIRECTAMENTE.
-      // signInWithPopup falla con frecuencia en datos celulares (Telcel/Movistar/AT&T)
-      // porque los proxies de las operadoras bloquean o cierran las ventanas popup.
-      // signInWithRedirect es 100% compatible con todas las redes y carriers.
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      if (isMobile) {
+      // ESTRATEGIA DE LOGIN SEGÚN DISPOSITIVO:
+      //
+      // • iOS Safari → SIEMPRE popup.
+      //   signInWithRedirect en iOS Safari 16.4+ causa bucle infinito porque
+      //   ITP borra las cookies de sesión antes de que Firebase pueda leer el
+      //   resultado del redirect de vuelta.
+      //
+      // • Android Chrome → redirect (más confiable en datos celulares;
+      //   los proxies de Telcel/Movistar/AT&T bloquean popups).
+      //
+      // • Desktop / otros → popup como siempre.
+
+      if (isIOSSafari()) {
+        // iOS Safari: popup es el único método confiable
+        console.log('[auth] iOS Safari → popup (evita bucle ITP de redirect)');
         try {
-          console.log('[auth] Móvil detectado → usando signInWithRedirect (más confiable en datos)');
+          const result = await auth.signInWithPopup(provider);
+          if (result && result.user) {
+            window.currentUser = result.user;
+            const userPayload = {
+              uid: result.user.uid,
+              displayName: result.user.displayName,
+              email: result.user.email,
+              photoURL: result.user.photoURL || 'img/logo.jpg'
+            };
+            localStorage.setItem('bww_last_auth_user', JSON.stringify(userPayload));
+            localStorage.setItem('player_nick', result.user.displayName || '');
+            localStorage.setItem('bww_q_name', result.user.displayName || '');
+            window.hideLoginModal();
+            updateHeaderUI(result.user);
+            notifyCallbacks();
+            if (pendingAuthAction) {
+              const action = pendingAuthAction;
+              pendingAuthAction = null;
+              action(result.user);
+            }
+          }
+        } catch (err) {
+          if (err.code === 'auth/popup-blocked') {
+            alert('📱 Safari bloqueó la ventana de Google.\n\n👉 Ve a Ajustes → Safari → desactiva "Bloquear ventanas emergentes", o entra como Invitado.');
+          } else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+            handleAuthError(err);
+          }
+        }
+        return;
+      }
+
+      if (isAndroidChrome() || /Android/i.test(navigator.userAgent)) {
+        // Android: redirect más confiable en datos celulares
+        try {
+          console.log('[auth] Android → signInWithRedirect (más confiable en datos)');
+          // Marcar timestamp del redirect para detectar bucles
+          sessionStorage.setItem('bww_redirect_ts', Date.now().toString());
           await auth.signInWithRedirect(provider);
-          return; // La página se recargará y getRedirectResult() capturará el resultado
+          return;
         } catch (redirectErr) {
           console.warn('[auth] signInWithRedirect falló, intentando popup:', redirectErr);
-          // Si redirect falla (ej. WebView), intentar popup como fallback
+          // Fallback a popup si redirect falla (ej. WebView)
         }
       }
 
@@ -161,6 +220,7 @@
         if (err.code === 'auth/popup-blocked' || (err.message && err.message.includes('opener'))) {
           if (auth.signInWithRedirect) {
             console.log('[auth] Popup bloqueado → usando signInWithRedirect como último recurso');
+            sessionStorage.setItem('bww_redirect_ts', Date.now().toString());
             await auth.signInWithRedirect(provider);
             return;
           }
@@ -884,25 +944,50 @@
       updateHeaderUI(window.currentUser);
     }
 
-    // Check redirect result
+    // Check redirect result — SOLO si hubo redirect reciente (evita bucle en iOS y
+    // evita petición de red innecesaria en datos lentos).
     if (firebase.auth && firebase.auth().getRedirectResult) {
-      firebase.auth().getRedirectResult().then(result => {
-        if (result && result.user) {
-          window.currentUser = result.user;
-          const userPayload = {
-            uid: result.user.uid,
-            displayName: result.user.displayName,
-            email: result.user.email,
-            photoURL: result.user.photoURL || 'img/logo.jpg'
-          };
-          localStorage.setItem('bww_last_auth_user', JSON.stringify(userPayload));
-          window.hideLoginModal();
-          updateHeaderUI(result.user);
-          notifyCallbacks();
-        }
-      }).catch(err => {
-        console.warn('[auth] Redirect result note:', err);
-      });
+      const redirectTs = sessionStorage.getItem('bww_redirect_ts');
+      const redirectAge = redirectTs ? (Date.now() - parseInt(redirectTs, 10)) : Infinity;
+      const isRecentRedirect = redirectAge < 5 * 60 * 1000; // 5 minutos máximo
+
+      if (isRecentRedirect) {
+        // Limpiar ANTES de procesar → evita que un error relance el bucle
+        sessionStorage.removeItem('bww_redirect_ts');
+        firebase.auth().getRedirectResult().then(result => {
+          if (result && result.user) {
+            window.currentUser = result.user;
+            const userPayload = {
+              uid: result.user.uid,
+              displayName: result.user.displayName,
+              email: result.user.email,
+              photoURL: result.user.photoURL || 'img/logo.jpg'
+            };
+            localStorage.setItem('bww_last_auth_user', JSON.stringify(userPayload));
+            localStorage.setItem('player_nick', result.user.displayName || '');
+            localStorage.setItem('bww_q_name', result.user.displayName || '');
+            window.hideLoginModal();
+            updateHeaderUI(result.user);
+            notifyCallbacks();
+          }
+        }).catch(err => {
+          // Error en redirect: limpiar estado para no quedar en bucle
+          console.warn('[auth] getRedirectResult error (limpiando estado):', err.code || err);
+          sessionStorage.removeItem('bww_redirect_ts');
+          // Usar usuario cacheado si está disponible
+          try {
+            const cached = localStorage.getItem('bww_last_auth_user');
+            if (cached && !window.currentUser) {
+              window.currentUser = JSON.parse(cached);
+              updateHeaderUI(window.currentUser);
+            }
+          } catch (e) {}
+        });
+      } else {
+        // Sin redirect reciente → no llamar getRedirectResult
+        // (evita petición de red innecesaria que cuelga la app en datos lentos)
+        console.log('[auth] Sin redirect reciente → saltando getRedirectResult');
+      }
     }
 
     // Monitor Firebase Auth State
