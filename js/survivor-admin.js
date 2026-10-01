@@ -173,8 +173,13 @@
     // 2. Listen to players subcollection
     unsubPlayers = db.collection('survivors').doc(tournId).collection('players').onSnapshot(snap => {
       tournamentPlayers = {};
+      let hasCorruptedWeek4 = false;
       snap.forEach(pDoc => {
         const pData = pDoc.data() || {};
+        const p4 = pData.picks?.[4] || pData.picks?.['4'];
+        if (p4 && p4.result === 'no_pick' && !p4.team) {
+          hasCorruptedWeek4 = true;
+        }
         if ((pData.totalPoints > 18) || (pData.aciertos === undefined && pData.picks)) {
           let wins = 0;
           if (pData.picks) {
@@ -190,6 +195,13 @@
         tournamentPlayers[pDoc.id] = { id: pDoc.id, ...pData };
       });
       renderPlayersAdmin();
+
+      if (hasCorruptedWeek4 && !window._repairingWeek4) {
+        window._repairingWeek4 = true;
+        window.repairSurvivorWeek4(true).catch(e => console.warn(e)).finally(() => {
+          setTimeout(() => { window._repairingWeek4 = false; }, 4000);
+        });
+      }
     });
   }
 
@@ -840,6 +852,13 @@
         else allFinished = false;
       });
 
+      if (completedCount === 0) {
+        if (!isBatch) {
+          alert(`⚠️ La Semana ${targetWeek} aún no tiene partidos concluidos (0/${events.length} terminados). No se puede calificar todavía.`);
+        }
+        return { success: false, reason: 'unplayed_week', completedCount: 0 };
+      }
+
       // Map team results
       const teamResults = {};
       events.forEach(ev => {
@@ -894,11 +913,18 @@
         const pick = playerPicks[targetWeek] || playerPicks[String(targetWeek)];
 
         if (!pick || !pick.team) {
-          // No pick registered for this week
-          playerPicks[targetWeek] = {
-            ...(playerPicks[targetWeek] || {}),
-            result: 'no_pick'
-          };
+          // Only penalize with no_pick if ALL games of the week have completed!
+          if (allFinished) {
+            playerPicks[targetWeek] = {
+              ...(playerPicks[targetWeek] || {}),
+              result: 'no_pick'
+            };
+          } else {
+            playerPicks[targetWeek] = {
+              ...(playerPicks[targetWeek] || {}),
+              result: 'pending'
+            };
+          }
         } else {
           const cleanKey = (pick.team || '').toUpperCase();
           const cleanNameKey = (pick.teamName || '').toLowerCase();
@@ -911,18 +937,22 @@
               score: matchRes.score,
               oppScore: matchRes.oppScore
             };
+          } else {
+            playerPicks[targetWeek] = {
+              ...pick,
+              result: (pick.result && pick.result !== 'no_pick') ? pick.result : 'pending'
+            };
           }
         }
 
-        // Recalculate lives and aciertos across ALL weeks up to max(activeWeek, targetWeek)
+        // Recalculate lives across completed weeks only
         let totalWins = 0;
         let totalLosses = 0;
         let elimWeek = null;
 
-        const maxEvalWeek = Math.max(tourn.activeWeek || 1, targetWeek);
-        for (let w = startWeek; w <= maxEvalWeek; w++) {
+        for (let w = startWeek; w <= totalWeeks; w++) {
           const pk = playerPicks[w] || playerPicks[String(w)];
-          if (pk) {
+          if (pk && pk.result && pk.result !== 'pending') {
             if (pk.result === 'win') {
               totalWins++;
             } else if (pk.result === 'loss' || pk.result === 'tie' || pk.result === 'no_pick') {
@@ -949,7 +979,7 @@
 
         if (playerPicks[targetWeek]?.result === 'win') survivedCount++;
         else if (!isAlive) eliminatedCount++;
-        else lostLifeCount++;
+        else if (playerPicks[targetWeek]?.result === 'loss') lostLifeCount++;
       });
 
       await batch.commit();
@@ -1010,10 +1040,13 @@
         tourn.activeWeek = espnWeek;
       }
 
+      // Asegurar que Semana 4 quede limpia de sanciones prematuras
+      await window.repairSurvivorWeek4(true);
+
       alert(`🚀 ¡Calificación Automática Finalizada!\n\n` +
         `Torneo: ${tourn.name}\n` +
         `Jornada reportada por ESPN: Semana ${espnWeek}\n\n` +
-        `Resultados procesados:\n• ${evaluatedWeeks.join('\n• ')}\n\n` +
+        `Resultados procesados:\n• ${evaluatedWeeks.length ? evaluatedWeeks.join('\n• ') : 'Todas las semanas concluidas ya estaban al día.'}\n\n` +
         `¡Todas las vidas, aciertos y resultados de partidos están 100% sincronizados con ESPN!`
       );
       renderTournamentDetails(tourn);
@@ -1022,6 +1055,131 @@
       alert('Error en calificación automática: ' + e.message);
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = '🚀 Calificar Automáticamente Semanas Pendientes con ESPN'; }
+    }
+  };
+
+  // 🩹 Reparar Semana 4 y Recalcular Vidas exactamente según Semanas 1 a 3 concluidas
+  window.repairSurvivorWeek4 = async function(isSilent = false) {
+    const targetId = getSelectedTournamentId();
+    if (!targetId || !db) {
+      if (!isSilent) alert('Selecciona un torneo primero.');
+      return { success: false };
+    }
+    const tourn = activeTournaments.find(t => t.id === targetId);
+    if (!tourn) return { success: false };
+
+    const btn = document.getElementById('btnRepairWeek4');
+    if (btn && !isSilent) {
+      btn.disabled = true;
+      btn.textContent = '⏳ Restaurando Semana 4 y Vidas...';
+    }
+
+    try {
+      const maxLives = tourn.maxLives || 3;
+      const startWeek = tourn.startWeek || 1;
+      const totalWeeks = tourn.totalWeeks || 18;
+
+      // Obtener lista completa de jugadores directamente de Firestore
+      const snap = await db.collection('survivors').doc(targetId).collection('players').get();
+      const batch = db.batch();
+      let fixedCount = 0;
+
+      snap.forEach(docSnap => {
+        const p = docSnap.data() || {};
+        const pRef = docSnap.ref;
+        const playerPicks = { ...(p.picks || {}) };
+        let picksModified = false;
+
+        // Limpiar Semana 4 (y semanas futuras sin partidos concluidos)
+        for (let w = 4; w <= totalWeeks; w++) {
+          const pickW = playerPicks[w] || playerPicks[String(w)];
+          if (pickW) {
+            if (pickW.result === 'no_pick' && !pickW.team) {
+              // Sanción errónea por calificar antes de tiempo: borrarla
+              delete playerPicks[w];
+              delete playerPicks[String(w)];
+              picksModified = true;
+            } else if (pickW.result === 'loss' || pickW.result === 'no_pick') {
+              // Si eligió equipo pero el juego aún no se ha llevado a cabo, resetear a 'pending'
+              playerPicks[w] = {
+                ...pickW,
+                result: 'pending'
+              };
+              delete playerPicks[String(w)];
+              picksModified = true;
+            }
+          }
+        }
+
+        // Recalcular vidas y aciertos estrictamente con las semanas concluidas (Semanas 1, 2, 3)
+        let totalWins = 0;
+        let totalLosses = 0;
+        let elimWeek = null;
+
+        for (let w = startWeek; w <= 3; w++) {
+          const pk = playerPicks[w] || playerPicks[String(w)];
+          if (pk && pk.result && pk.result !== 'pending') {
+            if (pk.result === 'win') {
+              totalWins++;
+            } else if (pk.result === 'loss' || pk.result === 'tie' || pk.result === 'no_pick') {
+              totalLosses++;
+              if (totalLosses >= maxLives && !elimWeek) {
+                elimWeek = w;
+              }
+            }
+          }
+        }
+
+        const calculatedLives = Math.max(0, maxLives - totalLosses);
+        const isAlive = calculatedLives > 0;
+
+        const needsUpdate = (
+          picksModified ||
+          p.lives !== calculatedLives ||
+          p.isAlive !== isAlive ||
+          p.aciertos !== totalWins ||
+          p.totalWins !== totalWins ||
+          p.totalPoints !== totalWins
+        );
+
+        if (needsUpdate) {
+          fixedCount++;
+          batch.update(pRef, {
+            picks: playerPicks,
+            lives: calculatedLives,
+            isAlive: isAlive,
+            aciertos: totalWins,
+            totalWins: totalWins,
+            totalPoints: totalWins,
+            eliminatedWeek: isAlive ? null : (p.eliminatedWeek || elimWeek || 3)
+          });
+        }
+      });
+
+      if (fixedCount > 0) {
+        await batch.commit();
+        console.log(`[Survivor Repair] Se restauró la Semana 4 y se corrigieron vidas para ${fixedCount} jugadores en ${tourn.name}.`);
+      }
+
+      if (!isSilent) {
+        alert(`✅ ¡Semana 4 Restaurada y Vidas Corregidas!\n\n` +
+          `• Se revisaron y corrigieron las vidas de ${fixedCount} jugadores.\n` +
+          `• Se eliminaron las sanciones prematuras de "No Pick" en Semana 4.\n` +
+          `• Las vidas ahora reflejan exactamente las Semanas 1, 2 y 3 concluidas.\n` +
+          `• La Semana 4 queda abierta para que los jugadores jueguen normalmente sin perder vidas por anticipado.`
+        );
+        renderPlayersAdmin();
+      }
+      return { success: true, fixedCount };
+    } catch (err) {
+      console.error('[Survivor Repair Error]:', err);
+      if (!isSilent) alert('Error al restaurar semana 4: ' + err.message);
+      return { success: false, error: err.message };
+    } finally {
+      if (btn && !isSilent) {
+        btn.disabled = false;
+        btn.textContent = '🩹 Restaurar Semana 4 (Quitar No-Pick y Regresar Vidas)';
+      }
     }
   };
 
@@ -1104,13 +1262,17 @@
       const data = await res.json();
       const espnWeek = data?.week?.number;
 
-      if (espnWeek && espnWeek > currentActiveWeek && espnWeek <= totalWeeks) {
-        console.log(`[Survivor Admin] ESPN reporta Semana ${espnWeek}, torneo en Semana ${currentActiveWeek}. Verificando evaluación de semanas anteriores...`);
-
-        // First evaluate previous weeks before advancing
-        for (let w = currentActiveWeek; w < espnWeek; w++) {
+      // 1. Calificar automáticamente semanas concluidas anteriores (Semanas 1, 2, 3)
+      if (espnWeek) {
+        const startW = tourn.startWeek || 1;
+        for (let w = startW; w < espnWeek; w++) {
           await window.evaluateSurvivorESPN(w, true);
         }
+      }
+
+      // 2. Avanzar activeWeek si ESPN va adelante
+      if (espnWeek && espnWeek > currentActiveWeek && espnWeek <= totalWeeks) {
+        console.log(`[Survivor Admin] ESPN reporta Semana ${espnWeek}, torneo en Semana ${currentActiveWeek}. Verificando evaluación de semanas anteriores...`);
 
         const firstEvent = data.events?.[0];
         const firstTime = firstEvent?.date ? new Date(firstEvent.date).getTime() : null;
@@ -1128,9 +1290,13 @@
         if (weekInp) weekInp.value = espnWeek;
         const lockedChk = document.getElementById('survAdminLocked');
         if (lockedChk) lockedChk.checked = isGameStarted;
-        renderTournamentDetails(tourn);
-        renderPlayersAdmin();
       }
+
+      // 3. Restaurar automáticamente cualquier sanción prematura en Semana 4
+      await window.repairSurvivorWeek4(true);
+
+      renderTournamentDetails(tourn);
+      renderPlayersAdmin();
     } catch (err) {
       console.warn('[Survivor Admin] Error comprobando semana en ESPN:', err);
     } finally {
@@ -1387,5 +1553,5 @@
   };
 
   // Initialize
-  initSurvivorAdmin();
+  window.initSurvivorAdmin();
 })();
