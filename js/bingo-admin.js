@@ -349,6 +349,18 @@
     } catch(e) {}
   };
 
+  window.shareBingoWhatsApp = function() {
+    const dropdown = document.getElementById('bingoActiveRoomsDropdown');
+    const code = dropdown ? dropdown.value : null;
+    if (!code) { alert('Selecciona una sala de Bingo activa primero.'); return; }
+    const url = window.getDynamicShareUrl ? window.getDynamicShareUrl({ game: 'bingo', code }) : `https://chefalbertomc.github.io/NFL-grids-/share-bingo.html?code=${encodeURIComponent(code)}`;
+    const text = `🎱 *¡ÚNETE AL BINGO BAR EN DRINKS & WINS!* 🔥\n\n` +
+      `👉 *ENTRA AQUÍ:*\n${url}\n\n` +
+      `🔑 *Código:* ${code}\n\n` +
+      `Marca los eventos en tu cartilla digital durante el partido en vivo. ¡Gana premios al cantar BINGO!`;
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
   window.initBingoAdmin = initBingoAdmin;
   window.loadBingoRooms = loadBingoRooms;
 

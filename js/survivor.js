@@ -1026,7 +1026,19 @@
             `;
           }
         } else {
-          cellsHtml += `<td><div class="surv-pick-cell empty">—</div></td>`;
+          const isNoPick = (pick && pick.result === 'no_pick') || (w < activeWeek);
+          if (isNoPick) {
+            cellsHtml += `
+              <td>
+                <div class="surv-pick-cell loss" title="Semana ${w}: Sin Selección Registrada (Fallo / -1 Vida)">
+                  <span style="font-size:12px; font-weight:900; color:#ff3333; line-height:1;">✕</span>
+                  <span class="surv-pick-pts" style="color:#ff3333; font-size:7.5px; font-weight:900; letter-spacing:-0.5px;">NO PICK</span>
+                </div>
+              </td>
+            `;
+          } else {
+            cellsHtml += `<td><div class="surv-pick-cell empty" title="Semana ${w}: Sin pick todavía">—</div></td>`;
+          }
         }
       }
 
@@ -1413,27 +1425,17 @@
   };
 
   window.coAdminShareWhatsApp = function(tournId, code, tournName) {
-    const shareUrl = `${window.location.origin}${window.location.pathname}?tab=survivor&code=${encodeURIComponent(code || 'SURV')}`;
-    const msg = `🏆 ¡Únete a nuestro Torneo Survivor en Drinks & Wins! 🏈\n\n📌 Torneo: ${tournName}\n🔑 Código de acceso: ${code || 'SURV'}\n\nIngresa aquí para elegir a tu equipo:\n${shareUrl}`;
+    const shareUrl = window.getDynamicShareUrl ? window.getDynamicShareUrl({ game: 'survivor', code: tournId }) : `https://chefalbertomc.github.io/NFL-grids-/share-survivor.html?s=${encodeURIComponent(tournId)}`;
+    const msg = `🏆 *¡ÚNETE AL SURVIVOR EN DRINKS & WINS!* 🏈\n\n👉 *ENTRA AQUÍ:* \n${shareUrl}\n\n📌 *Torneo:* ${tournName}\n🔑 *Código:* ${code || 'SURV'}\n\nIngresa para elegir a tu equipo. ¡Mucho éxito!`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
   window.coAdminCopyLink = async function(tournId, code) {
-    const shareUrl = `${window.location.origin}${window.location.pathname}?tab=survivor&code=${encodeURIComponent(code || 'SURV')}`;
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(shareUrl);
-      } else {
-        const inp = document.createElement('input');
-        inp.value = shareUrl;
-        document.body.appendChild(inp);
-        inp.select();
-        document.execCommand('copy');
-        document.body.removeChild(inp);
-      }
-      alert('📋 ¡Enlace copiado al portapapeles!\n\n' + shareUrl);
-    } catch (e) {
-      alert('Enlace del torneo:\n' + shareUrl);
+    if (window.copyStoryLink) {
+      window.copyStoryLink('survivor', tournId);
+    } else {
+      const shareUrl = `https://chefalbertomc.github.io/NFL-grids-/share-survivor.html?s=${encodeURIComponent(tournId)}`;
+      prompt('Enlace del torneo:', shareUrl);
     }
   };
 

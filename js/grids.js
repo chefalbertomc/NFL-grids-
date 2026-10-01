@@ -576,15 +576,21 @@
 
   function shareGridWhatsApp(code) {
     const g = ALL_GRIDS.find(x => x.code === code);
+    const away = g ? g.away : 'Visitante';
+    const home = g ? g.home : 'Local';
     const joinUrl = window.getDynamicShareUrl ? window.getDynamicShareUrl({
       game: 'grids',
       code: code,
-      away: g ? g.away : 'Visitante',
-      home: g ? g.home : 'Local',
+      away: away,
+      home: home,
       sport: 'nfl'
-    }) : `share-grid.html?code=${encodeURIComponent(code)}`;
-    const matchName = g ? `${g.away} @ ${g.home}` : 'NFL Grid';
-    const text = `🏈 *¡Únete a nuestro Grid de Drinks & Wins!*\n\n🏆 *Partido:* ${matchName}\n🔑 *Código:* ${code}\n\n👉 *Toca aquí para registrarte y escoger tus casillas:*\n${joinUrl}`;
+    }) : `https://chefalbertomc.github.io/NFL-grids-/share-grid.html?code=${encodeURIComponent(code)}`;
+    const matchName = g ? `${away} vs ${home}` : 'NFL Grid';
+    const text = `🏈 *¡ÚNETE AL GRID DE DRINKS & WINS!* 🔥\n\n` +
+      `👉 *ENTRA Y ESCOGE TUS CASILLAS AQUÍ:*\n${joinUrl}\n\n` +
+      `🏆 *Partido:* ${matchName}\n` +
+      `🔑 *Código:* ${code}\n\n` +
+      `🎯 ¡Gana premios en cada cuarto con el marcador exacto!`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   }
 

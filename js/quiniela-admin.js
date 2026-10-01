@@ -252,23 +252,18 @@
   function shareQuinielaWhatsApp() {
     const sel = document.getElementById('selectActiveQuiniela');
     const name = sel?.options[sel.selectedIndex]?.text || 'Quiniela';
-    const origin = window.location.origin;
-    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    const directUrl = `${origin}${path}share-quiniela.html?q=${encodeURIComponent(activeQuinielaId)}`;
-    const text = `🏆 *¡Únete a nuestra Quiniela & Pick'em "${name}"!*\n\n🎯 Pronostica el marcador de los partidos\n✅ +3 pts marcador exacto | +1 pt solo ganador\n\n📱 *Entra aquí para registrar tus pronósticos:*\n${directUrl}`;
+    const directUrl = window.getDynamicShareUrl ? window.getDynamicShareUrl({ game: 'quiniela', code: activeQuinielaId }) : `https://chefalbertomc.github.io/NFL-grids-/share-quiniela.html?q=${encodeURIComponent(activeQuinielaId)}`;
+    const text = `🏆 *¡ÚNETE A NUESTRA QUINIELA & PICK'EM!* 🔥\n\n` +
+      `👉 *ENTRA AQUÍ:*\n${directUrl}\n\n` +
+      `📌 *Quiniela:* ${name}\n` +
+      `🎯 Pronostica el marcador de los partidos en vivo.\n` +
+      `✅ +3 pts marcador exacto | +1 pt ganador`;
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
   }
 
   function copyQuinielaLink() {
     if (!activeQuinielaId) { alert('Selecciona una quiniela primero.'); return; }
-    const origin = window.location.origin;
-    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    const directUrl = `${origin}${path}share-quiniela.html?q=${encodeURIComponent(activeQuinielaId)}`;
-    navigator.clipboard.writeText(directUrl).then(() => {
-      alert('✅ Enlace copiado al portapapeles:\n' + directUrl);
-    }).catch(() => {
-      prompt('Copia este enlace directo:', directUrl);
-    });
+    window.copyStoryLink('quiniela', activeQuinielaId);
   }
 
   async function toggleQuinielaLock() {

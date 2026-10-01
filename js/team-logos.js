@@ -608,27 +608,48 @@
     const code = options.code || '';
     const away = options.away || 'Visitante';
     const home = options.home || 'Local';
-    const sport = options.sport || (game === 'firstgoal' ? 'soccer' : 'nfl');
 
-    const bridge = window.DW_BRIDGE_URL || localStorage.getItem('dw_bridge_url');
-    if (bridge) {
-      const base = bridge.replace(/\/+$/, '');
-      const qs = new URLSearchParams({
-        game: game,
-        code: code,
-        away: away,
-        home: home,
-        sport: sport
-      });
-      return `${base}/share?${qs.toString()}`;
+    // Ensure reliable absolute HTTPS URL
+    let base = window.location.origin;
+    if (!base || base === 'null' || base.startsWith('file:')) {
+      base = 'https://chefalbertomc.github.io';
     }
+    let path = window.location.pathname ? window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1) : '/NFL-grids-/';
+    if (!path.endsWith('/')) path += '/';
 
-    const origin = window.location.origin;
-    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
+    const baseUrl = `${base}${path}`;
+
+    if (game === 'survivor') {
+      return `${baseUrl}share-survivor.html?s=${encodeURIComponent(code)}`;
+    }
+    if (game === 'quiniela' || game === 'pools') {
+      return `${baseUrl}share-quiniela.html?q=${encodeURIComponent(code)}`;
+    }
+    if (game === 'trivia') {
+      return `${baseUrl}share-trivia.html?pin=${encodeURIComponent(code)}`;
+    }
+    if (game === 'bingo') {
+      return `${baseUrl}share-bingo.html?code=${encodeURIComponent(code)}`;
+    }
     if (game === 'firstgoal') {
-      return `${origin}${path}share-firstgoal.html?code=${encodeURIComponent(code)}&away=${encodeURIComponent(away)}&home=${encodeURIComponent(home)}`;
+      return `${baseUrl}share-firstgoal.html?code=${encodeURIComponent(code)}&away=${encodeURIComponent(away)}&home=${encodeURIComponent(home)}`;
     }
-    return `${origin}${path}share-grid.html?code=${encodeURIComponent(code)}&away=${encodeURIComponent(away)}&home=${encodeURIComponent(home)}`;
+    return `${baseUrl}share-grid.html?code=${encodeURIComponent(code)}&away=${encodeURIComponent(away)}&home=${encodeURIComponent(home)}`;
+  };
+
+  // Helper universal para copiar enlaces limpios para Historias de Instagram / WhatsApp
+  window.copyStoryLink = function(game, code, extra) {
+    extra = extra || {};
+    const url = window.getDynamicShareUrl({ game, code, ...extra });
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(() => {
+        alert('📸 ¡Enlace para Historia copiado al portapapeles!\n\nPégalo en el sticker de "Enlace" de tu historia de Instagram o en tu estado de WhatsApp:\n\n' + url);
+      }).catch(() => {
+        prompt('📸 Copia este enlace para tu Historia de Instagram / WhatsApp:', url);
+      });
+    } else {
+      prompt('📸 Copia este enlace para tu Historia de Instagram / WhatsApp:', url);
+    }
   };
 
   /**

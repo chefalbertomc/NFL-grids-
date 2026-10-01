@@ -629,14 +629,25 @@
         const lives = p.lives !== undefined ? p.lives : (isAlive ? maxLives : 0);
         const viewWeek = adminViewingWeek || activeWeek;
         const currentPick = p.picks?.[viewWeek] || p.picks?.[String(viewWeek)];
-        const pickTeamText = currentPick && currentPick.team ? `${currentPick.teamName || currentPick.team}` : 'Sin pick';
+        const isPastWeek = (viewWeek < activeWeek);
+        const hasNoPickPenalty = (currentPick && currentPick.result === 'no_pick') || (!currentPick?.team && isPastWeek);
+        
+        let pickTeamText = '⏳ Aún no elige';
+        if (currentPick && currentPick.team) {
+          pickTeamText = `${currentPick.teamName || currentPick.team}`;
+        } else if (hasNoPickPenalty) {
+          pickTeamText = '❌ Sin Selección Registrada';
+        }
+
         const actualAciertos = (p.aciertos !== undefined && p.aciertos <= 18) ? p.aciertos : (
           p.picks ? Object.values(p.picks).filter(pk => pk && pk.result === 'win').length : (p.totalPoints && p.totalPoints <= 18 ? p.totalPoints : 0)
         );
 
         let pickStatusHtml = '';
-        if (!currentPick || !currentPick.team) {
-          pickStatusHtml = '<span class="badge" style="background:rgba(255,255,255,0.08); color:#888; font-size:9.5px;">⚠️ Sin pick</span>';
+        if (hasNoPickPenalty) {
+          pickStatusHtml = '<span class="badge danger" style="font-size:9.5px; font-weight:900; background:rgba(255,51,51,0.25); border:1px solid #ff3333; color:#ff3333;">✕ Sin Pick (-1 vida / Fallo)</span>';
+        } else if (!currentPick || !currentPick.team) {
+          pickStatusHtml = '<span class="badge" style="background:rgba(255,255,255,0.08); color:#ffd100; font-size:9.5px; font-weight:800;">⏳ Pendiente de elegir</span>';
         } else if (currentPick.result === 'win') {
           pickStatusHtml = `<span class="badge success" style="font-size:9.5px; font-weight:800;">✓ Victoria (+1) ${currentPick.score !== undefined ? `(${currentPick.score}-${currentPick.oppScore})` : ''}</span>`;
         } else if (currentPick.result === 'loss') {
@@ -1304,47 +1315,32 @@
     }
   }
 
-  // WhatsApp Invite Link
+  // WhatsApp Invite Link con Enlace Directo Absoluto y Tarjeta Enriquecida
   window.shareSurvivorWhatsApp = function() {
     const targetId = getSelectedTournamentId();
     if (!targetId) return;
     const tourn = activeTournaments.find(t => t.id === targetId);
     if (!tourn) return;
 
-    const origin = window.location.origin;
-    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    const shareUrl = `${origin}${path}index.html?tab=tab-survivor&code=${encodeURIComponent(tourn.code || tourn.id)}`;
+    const shareUrl = window.getDynamicShareUrl ? window.getDynamicShareUrl({ game: 'survivor', code: tourn.id }) : `https://chefalbertomc.github.io/NFL-grids-/share-survivor.html?s=${encodeURIComponent(tourn.id)}`;
     const msg = `🏆 *¡ÚNETE AL SURVIVOR EN DRINKS & WINS!* 🔥\n\n` +
+      `👉 *ENTRA AQUÍ:* \n${shareUrl}\n\n` +
       `📌 *Torneo:* ${tourn.name}\n` +
-      `🔑 *Código de Acceso:* ${tourn.code || 'SURV26'}\n` +
+      `🔑 *Código:* ${tourn.code || tourn.id.substring(0, 8).toUpperCase()}\n` +
       `❤️ *Vidas:* ${tourn.maxLives || 3} Vidas por jugador\n` +
-      `📍 *Sucursal:* ${tourn.store || 'Juriquilla'}\n` +
-      `📅 *Semana Activa:* Semana ${tourn.activeWeek || 1}\n\n` +
-      `🎯 Regla de Oro: Elige un equipo por semana, si pierde o empata pierdes 1 vida. ¡No puedes repetir equipo!\n\n` +
-      `📲 *Entra y regístrate con tu código aquí:* ${shareUrl}`;
+      `📍 *Sucursal:* ${tourn.store || 'Juriquilla'}\n\n` +
+      `🎯 *Regla:* Elige 1 ganador por semana. ¡No puedes repetir equipo!`;
 
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
   };
 
-  // Copiar Enlace Directo de Survivor
+  // Copiar Enlace Limpio para Historias de Instagram / WhatsApp
   window.copySurvivorShareLink = function() {
     const targetId = getSelectedTournamentId();
     if (!targetId) return;
     const tourn = activeTournaments.find(t => t.id === targetId);
     if (!tourn) return;
-    const origin = window.location.origin;
-    const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    const shareUrl = `${origin}${path}index.html?tab=tab-survivor&code=${encodeURIComponent(tourn.code || tourn.id)}`;
-    
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        alert('📋 ¡Enlace copiado al portapapeles!\nPuedes pegarlo en cualquier grupo de WhatsApp.');
-      }).catch(() => {
-        prompt('Copia el enlace para compartir:', shareUrl);
-      });
-    } else {
-      prompt('Copia el enlace para compartir:', shareUrl);
-    }
+    window.copyStoryLink('survivor', tourn.id);
   };
 
   // Toggle Host / Co-Admin Role for Player

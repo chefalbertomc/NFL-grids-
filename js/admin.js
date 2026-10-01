@@ -241,16 +241,19 @@
   }
 
   async function searchEspnGames() {
-    const league = (document.getElementById('selectLeague') || {}).value || 'nfl';
+    const league = (document.getElementById('selectLeague') || {}).value || 'football/nfl';
     const pickerContainer = document.getElementById('gamePickerContainer');
     const pickerList = document.getElementById('gamePickerList');
     const preview = document.getElementById('selectedGamePreview');
     const btnSearch = document.getElementById('btnSearchGames');
+    const countBadge = document.getElementById('gridGamePickerCountBadge');
 
     if (!pickerContainer || !pickerList) return;
 
-    if (btnSearch) { btnSearch.disabled = true; btnSearch.textContent = 'Buscando...'; }
-    pickerContainer.style.display = 'none';
+    if (btnSearch) { btnSearch.disabled = true; btnSearch.textContent = '⏳ Buscando...'; }
+    pickerContainer.style.display = 'block';
+    pickerList.innerHTML = '<div style="color:#ffd100; font-size:12.5px; padding:14px; text-align:center;">⏳ Conectando con ESPN y consultando partidos...</div>';
+    if (countBadge) countBadge.textContent = 'Buscando...';
     if (preview) preview.style.display = 'none';
     selectedEspnGame = null;
 
@@ -276,53 +279,84 @@
 
       pickerList.innerHTML = '';
 
-      // Filter out finished games
-      const upcomingEvents = events.filter(ev => {
+      // Prefer upcoming and live events
+      let displayEvents = events.filter(ev => {
         return !(ev.status?.type?.completed === true || ev.status?.type?.state === 'post');
       });
 
-      if (!upcomingEvents.length) {
-        pickerList.innerHTML = '<div style="color:var(--text-muted); font-size:13px; padding:8px;">No se encontraron próximos partidos para esta liga en los próximos 30 días.</div>';
+      // If no upcoming matches in base scoreboard, show existing events with their status
+      if (!displayEvents.length && events.length > 0) {
+        displayEvents = events;
+      }
+
+      if (countBadge) countBadge.textContent = `${displayEvents.length} partidos disponibles`;
+
+      if (!displayEvents.length) {
+        pickerList.innerHTML = `
+          <div style="color:var(--text-muted); font-size:13px; padding:14px; background:rgba(255,255,255,0.03); border-radius:10px; text-align:center;">
+            <p style="margin:0 0 10px 0; color:#ffd100; font-weight:800;">No se encontraron partidos programados para esta liga hoy.</p>
+            <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;">
+              <button type="button" class="btn btn-primary" onclick="document.getElementById('selectLeague').value='football/nfl'; window.searchEspnGames();" style="width:auto; font-size:11.5px; padding:6px 14px; font-weight:900;">
+                🏈 Ver Partidos NFL (16 Disponibles)
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="window.toggleManualGridGameForm(true)" style="width:auto; font-size:11.5px; padding:6px 14px; font-weight:800;">
+                ➕ Escribir Partido Manual
+              </button>
+            </div>
+          </div>
+        `;
         pickerContainer.style.display = 'block';
         return;
       }
 
-      upcomingEvents.forEach(ev => {
-
+      displayEvents.forEach(ev => {
         const comps = ev.competitions?.[0]?.competitors || [];
-        const homeComp = comps.find(c => c.homeAway === 'home');
-        const awayComp = comps.find(c => c.homeAway === 'away');
+        const homeComp = comps.find(c => c.homeAway === 'home') || comps[1];
+        const awayComp = comps.find(c => c.homeAway === 'away') || comps[0];
         if (!homeComp || !awayComp) return;
 
         const homeName = homeComp.team?.displayName || homeComp.team?.name || 'Local';
         const awayName = awayComp.team?.displayName || awayComp.team?.name || 'Visitante';
-        const homeLogo = homeComp.team?.logo || window.getTeamLogoURL(homeName);
-        const awayLogo = awayComp.team?.logo || window.getTeamLogoURL(awayName);
+        const homeLogo = homeComp.team?.logo || (window.getTeamLogoURL ? window.getTeamLogoURL(homeName) : 'img/logo.jpg');
+        const awayLogo = awayComp.team?.logo || (window.getTeamLogoURL ? window.getTeamLogoURL(awayName) : 'img/logo.jpg');
         const homeColor = '#' + (homeComp.team?.color || 'ffd100');
         const awayColor = '#' + (awayComp.team?.color || 'ffd100');
         const dateStr = ev.date ? new Date(ev.date).toLocaleDateString('es-MX', { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
-        const status = ev.status?.type?.shortDetail || ev.status?.type?.description || '';
+        
+        const isPost = ev.status?.type?.completed === true || ev.status?.type?.state === 'post';
+        const isLive = ev.status?.type?.state === 'in';
+        const statusBadge = isLive 
+          ? '<span class="badge success" style="font-size:9.5px; font-weight:900;">● EN VIVO</span>'
+          : (isPost ? '<span class="badge" style="background:#555; color:#fff; font-size:9.5px;">Finalizado</span>' : '<span class="badge" style="background:rgba(255,209,0,0.15); color:#ffd100; font-size:9.5px; font-weight:800;">Programado</span>');
+
         const gameId = ev.id || '';
 
         const card = document.createElement('div');
-        card.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.03); border:1px solid var(--border-color); border-radius:10px; cursor:pointer; transition:border-color 0.2s;';
+        card.style.cssText = 'display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(255,255,255,0.03); border:1.5px solid var(--border-color); border-radius:10px; cursor:pointer; transition:all 0.2s;';
         card.innerHTML = `
-          <img src="${awayLogo}" style="width:32px;height:32px;object-fit:contain;filter:drop-shadow(0 0 4px ${awayColor})" onerror="this.src='https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png'" />
+          <img src="${awayLogo}" style="width:34px;height:34px;object-fit:contain;filter:drop-shadow(0 0 4px ${awayColor})" onerror="this.src='img/logo.jpg'" />
           <div style="flex:1;">
-            <div style="font-weight:800;font-size:13px;">
+            <div style="font-weight:900;font-size:13.5px;">
               <span style="color:${awayColor}">${awayName}</span>
               <span style="color:var(--text-muted);margin:0 4px;">@</span>
               <span style="color:${homeColor}">${homeName}</span>
             </div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${dateStr} &nbsp;•&nbsp; ${status}</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:3px;display:flex;align-items:center;gap:6px;">
+              <span>${dateStr}</span>
+              ${statusBadge}
+            </div>
           </div>
-          <img src="${homeLogo}" style="width:32px;height:32px;object-fit:contain;filter:drop-shadow(0 0 4px ${homeColor})" onerror="this.src='https://a.espncdn.com/i/teamlogos/leagues/500/nfl.png'" />
+          <img src="${homeLogo}" style="width:34px;height:34px;object-fit:contain;filter:drop-shadow(0 0 4px ${homeColor})" onerror="this.src='img/logo.jpg'" />
         `;
 
         card.addEventListener('click', () => {
           // Deselect others
-          pickerList.querySelectorAll('div').forEach(c => c.style.borderColor = 'var(--border-color)');
+          pickerList.querySelectorAll('div').forEach(c => {
+            if (c.style) c.style.borderColor = 'var(--border-color)';
+            if (c.style) c.style.background = 'rgba(255,255,255,0.03)';
+          });
           card.style.borderColor = 'var(--accent-color)';
+          card.style.background = 'rgba(255,209,0,0.1)';
 
           selectedEspnGame = { homeName, awayName, homeColor, awayColor, homeLogo, awayLogo, gameId, league };
 
@@ -345,6 +379,45 @@
       if (btnSearch) { btnSearch.disabled = false; btnSearch.textContent = '🔍 Buscar Partidos'; }
     }
   }
+  window.searchEspnGames = searchEspnGames;
+
+  // Manual Grid Game Creator Helpers
+  window.toggleManualGridGameForm = function(forceShow) {
+    const form = document.getElementById('manualGridGameForm');
+    if (!form) return;
+    if (typeof forceShow === 'boolean') {
+      form.style.display = forceShow ? 'block' : 'none';
+    } else {
+      form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    }
+  };
+
+  window.useManualGridGame = function() {
+    const away = (document.getElementById('manualAwayTeam')?.value || '').trim();
+    const home = (document.getElementById('manualHomeTeam')?.value || '').trim();
+    if (!away || !home) {
+      alert('Por favor escribe los nombres de ambos equipos (Visitante y Local).');
+      return;
+    }
+    const league = (document.getElementById('selectLeague') || {}).value || 'football/nfl';
+    selectedEspnGame = {
+      homeName: home,
+      awayName: away,
+      homeColor: '#ffd100',
+      awayColor: '#00b0ff',
+      homeLogo: window.getTeamLogoURL ? window.getTeamLogoURL(home) : 'img/logo.jpg',
+      awayLogo: window.getTeamLogoURL ? window.getTeamLogoURL(away) : 'img/logo.jpg',
+      gameId: 'manual_' + Date.now(),
+      league: league
+    };
+    const preview = document.getElementById('selectedGamePreview');
+    const previewInfo = document.getElementById('selectedGameInfo');
+    if (previewInfo) {
+      previewInfo.innerHTML = `<span style="color:#00b0ff">${away}</span> <span style="color:var(--text-muted)">vs</span> <span style="color:#ffd100">${home}</span> <span class="badge warning" style="font-size:9.5px; margin-left:6px;">Manual</span>`;
+    }
+    if (preview) preview.style.display = 'block';
+    alert(`✅ Partido seleccionado: ${away} vs ${home}\nAhora pulsa el botón "Crear Grid" abajo.`);
+  };
 
   let allCachedGrids = [];
 
@@ -499,6 +572,9 @@
     const btnSearchGames = document.getElementById('btnSearchGames');
     if (btnSearchGames) btnSearchGames.addEventListener('click', searchEspnGames);
 
+    const selectLeague = document.getElementById('selectLeague');
+    if (selectLeague) selectLeague.addEventListener('change', searchEspnGames);
+
     const btnAdminManualSync = document.getElementById('btnAdminManualSync');
     if (btnAdminManualSync) {
       btnAdminManualSync.addEventListener('click', async () => {
@@ -514,7 +590,7 @@
     if (btnAdminShareWhatsApp) {
       btnAdminShareWhatsApp.addEventListener('click', () => {
         if (!currentGridCode) {
-          alert('Primero carga un juego en el menú desplegable para compartir su enlace.');
+          alert('Primero selecciona y carga un juego en el menú desplegable.');
           return;
         }
         const home = (currentGame && (currentGame.homeTeam || currentGame.home)) || 'Local';
@@ -525,9 +601,26 @@
           away: away,
           home: home,
           sport: 'nfl'
-        }) : `share-grid.html?code=${encodeURIComponent(currentGridCode)}`;
-        const text = `🏈 *¡Únete a nuestro Grid de Drinks & Wins!*\n\n🏆 *Partido:* ${away} @ ${home}\n🔑 *Código:* ${currentGridCode}\n\n👉 *Toca aquí para registrarte y escoger tus casillas:*\n${joinUrl}`;
+        }) : `https://chefalbertomc.github.io/NFL-grids-/share-grid.html?code=${encodeURIComponent(currentGridCode)}`;
+        const text = `🏈 *¡ÚNETE AL GRID DE DRINKS & WINS!* 🔥\n\n` +
+          `👉 *ENTRA Y ESCOGE TUS CASILLAS AQUÍ:*\n${joinUrl}\n\n` +
+          `🏆 *Partido:* ${away} vs ${home}\n` +
+          `🔑 *Código:* ${currentGridCode}\n\n` +
+          `🎯 ¡Gana premios en cada cuarto con el marcador exacto!`;
         window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+      });
+    }
+
+    const btnAdminShareStory = document.getElementById('btnAdminShareStory');
+    if (btnAdminShareStory) {
+      btnAdminShareStory.addEventListener('click', () => {
+        if (!currentGridCode) {
+          alert('Primero selecciona y carga un grid del menú desplegable.');
+          return;
+        }
+        const home = (currentGame && (currentGame.homeTeam || currentGame.home)) || 'Local';
+        const away = (currentGame && (currentGame.awayTeam || currentGame.away)) || 'Visitante';
+        window.copyStoryLink('grids', currentGridCode, { home, away });
       });
     }
 
@@ -560,6 +653,11 @@
         btn.classList.add('active');
       });
     });
+
+    // Auto-search games on startup
+    setTimeout(() => {
+      if (typeof searchEspnGames === 'function') searchEspnGames();
+    }, 400);
   }
 
   async function createGridGame() {
@@ -567,7 +665,7 @@
     if (!store) { alert('Por favor selecciona una sucursal.'); return; }
 
     if (!selectedEspnGame) {
-      alert('Primero busca y selecciona un partido de la lista de ESPN.');
+      alert('Primero selecciona un partido de la lista o haz clic en "➕ Manual" para ingresar los equipos.');
       return;
     }
 

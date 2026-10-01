@@ -1017,13 +1017,13 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     const g = currentTriviaData;
     const origin = window.location.origin;
     const path = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    const shareUrl = `${origin}${path}share-trivia.html?pin=${encodeURIComponent(g.pin || g.id)}`;
+    const shareUrl = window.getDynamicShareUrl ? window.getDynamicShareUrl({ game: 'trivia', code: g.pin || g.id }) : `https://chefalbertomc.github.io/NFL-grids-/share-trivia.html?pin=${encodeURIComponent(g.pin || g.id)}`;
     const msg = `🧠 *¡TRIVIA EN VIVO EN DRINKS & WINS!* 🔥\n\n` +
+      `👉 *ENTRA AQUÍ:* \n${shareUrl}\n\n` +
       `📌 *Tema:* ${g.title}\n` +
       `📍 *Sucursal:* ${g.store || 'Juriquilla'}\n` +
       `🔢 *PIN de Acceso:* ${g.pin || g.id}\n\n` +
-      `🎯 Contesta desde tu celular en tiempo real y gana premios. ¡Los más rápidos se llevan más puntos!\n\n` +
-      `📲 *Únete aquí:* ${shareUrl}`;
+      `🎯 Contesta desde tu celular en tiempo real y gana premios.`;
 
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
   };
