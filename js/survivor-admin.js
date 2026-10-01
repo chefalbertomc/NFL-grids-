@@ -9,6 +9,7 @@
   let unsubTournament = null;
   let unsubPlayers = null;
   let tournamentPlayers = {};
+  let adminViewingWeek = null;
 
   const LEAGUES = [
     { label: '🏈 NFL (Americano)', sport: 'football', slug: 'nfl', defaultWeeks: 18 },
@@ -38,14 +39,19 @@
     }
   };
 
-  // Load all tournaments from 'survivors' collection
+  // Load all tournaments from 'survivors' collection with resilient fallback
   function loadSurvivorTournaments() {
+    if (!db && window.db) db = window.db;
     if (!db) return;
-    db.collection('survivors').orderBy('createdAt', 'desc').onSnapshot(snap => {
+
+    function processSnap(snap) {
       activeTournaments = [];
       snap.forEach(doc => {
         activeTournaments.push({ id: doc.id, ...doc.data() });
       });
+
+      // Sort client-side by createdAt desc
+      activeTournaments.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
       renderTournamentSelect();
 
@@ -58,10 +64,16 @@
         selectedTournamentId = null;
         renderNoTournamentsUI();
       }
-    }, err => {
-      console.error('[SurvivorAdmin] Error loading tournaments:', err);
+    }
+
+    db.collection('survivors').orderBy('createdAt', 'desc').onSnapshot(processSnap, err => {
+      console.warn('[SurvivorAdmin] orderBy createdAt failed, trying plain query fallback:', err);
+      db.collection('survivors').onSnapshot(processSnap, err2 => {
+        console.error('[SurvivorAdmin] Error loading tournaments fallback:', err2);
+      });
     });
   }
+  window.loadSurvivorTournaments = loadSurvivorTournaments;
 
   function matchStoreFilter(gameStore, filterVal) {
     if (!filterVal || filterVal === 'Todas' || filterVal === 'Todas las Sucursales') return true;
@@ -79,10 +91,15 @@
     const filterEl = document.getElementById('survAdminFilterStore');
     const filterVal = filterEl ? filterEl.value : 'Todas';
 
-    const filtered = activeTournaments.filter(t => matchStoreFilter(t.store, filterVal));
+    let filtered = activeTournaments.filter(t => matchStoreFilter(t.store, filterVal));
+
+    if (filtered.length === 0 && activeTournaments.length > 0) {
+      // Fallback: don't hide tournaments if store filter produced 0, show all tournaments with notice
+      filtered = activeTournaments;
+    }
 
     if (filtered.length === 0) {
-      sel.innerHTML = `<option value="">-- Sin torneos en ${filterVal} --</option>`;
+      sel.innerHTML = `<option value="">-- Sin torneos creados --</option>`;
       renderNoTournamentsUI();
       return;
     }
@@ -90,7 +107,9 @@
     filtered.forEach(t => {
       const opt = document.createElement('option');
       opt.value = t.id;
-      opt.textContent = `${t.name} [${t.store || 'General'}] (Sem. ${t.activeWeek || 1}/${t.totalWeeks || 18}) - ${t.status === 'active' ? '🟢 Activo' : '🔴 Cerrado'}`;
+      const isPriv = (t.isPrivate === true || t.visibility === 'private');
+      const privIcon = isPriv ? '🔒' : '🌐';
+      opt.textContent = `${privIcon} ${t.name} [${t.store || 'General'}] (Sem. ${t.activeWeek || 1}/${t.totalWeeks || 18}) • Cód: ${t.code || 'SURV'} - ${t.status === 'active' ? '🟢' : '🔴'}`;
       if (t.id === selectedTournamentId) opt.selected = true;
       sel.appendChild(opt);
     });
@@ -230,10 +249,72 @@
       statusBadge.className = `badge ${tourn.status === 'active' ? 'success' : 'danger'}`;
     }
 
+    // Populate week evaluation selector
+    const evalWeekSel = document.getElementById('survAdminEvalWeekSelect');
+    if (evalWeekSel) {
+      const prevVal = evalWeekSel.value ? parseInt(evalWeekSel.value, 10) : null;
+      evalWeekSel.innerHTML = '';
+      for (let w = startWeek; w <= totalWeeks; w++) {
+        const opt = document.createElement('option');
+        opt.value = w;
+        const isPast = w < activeWeek;
+        const isCurrent = w === activeWeek;
+        opt.textContent = `Semana ${w} ${isCurrent ? '⚡ (ACTUAL)' : (isPast ? '• Pasada' : '')}`;
+        evalWeekSel.appendChild(opt);
+      }
+      if (adminViewingWeek && adminViewingWeek >= startWeek && adminViewingWeek <= totalWeeks) {
+        evalWeekSel.value = adminViewingWeek;
+      } else if (prevVal && prevVal >= startWeek && prevVal <= totalWeeks) {
+        evalWeekSel.value = prevVal;
+        adminViewingWeek = prevVal;
+      } else {
+        evalWeekSel.value = activeWeek;
+        adminViewingWeek = activeWeek;
+      }
+    }
+
+    const viewingBadge = document.getElementById('survAdminViewingWeekBadge');
+    if (viewingBadge) {
+      viewingBadge.textContent = `Viendo Semana ${adminViewingWeek || activeWeek}`;
+    }
+
+    checkPendingPicksBanner(tourn);
+
     const panel = document.getElementById('survAdminManagementPanel');
     if (panel) panel.style.display = 'block';
     const noPanel = document.getElementById('survAdminNoTournaments');
     if (noPanel) noPanel.style.display = 'none';
+  }
+
+  function checkPendingPicksBanner(tourn) {
+    const banner = document.getElementById('survAdminPendingEvalBanner');
+    const bannerText = document.getElementById('survAdminPendingEvalBannerText');
+    if (!banner || !tourn) return;
+
+    let hasPendingPastPicks = false;
+    let pendingWeekNums = new Set();
+    const currActive = tourn.activeWeek || 1;
+
+    Object.values(tournamentPlayers).forEach(p => {
+      if (p.status !== 'approved' && p.approved !== true) return;
+      if (p.picks) {
+        Object.keys(p.picks).forEach(w => {
+          const wNum = parseInt(w, 10);
+          if (wNum <= currActive && p.picks[w]?.result === 'pending' && p.picks[w]?.team) {
+            hasPendingPastPicks = true;
+            pendingWeekNums.add(wNum);
+          }
+        });
+      }
+    });
+
+    if (hasPendingPastPicks) {
+      banner.style.display = 'flex';
+      const weeksStr = Array.from(pendingWeekNums).sort((a,b)=>a-b).join(', ');
+      if (bannerText) bannerText.innerHTML = `⚠️ <strong>Picks pendientes de calificar:</strong> La(s) Semana(s) <strong>${weeksStr}</strong> tiene(n) picks pendientes de calificar. Presiona "🚀 Calificar Automáticamente" para procesar con ESPN.`;
+    } else {
+      banner.style.display = 'none';
+    }
   }
 
   function renderNoTournamentsUI() {
@@ -528,11 +609,25 @@
       approved.forEach(p => {
         const isAlive = p.isAlive !== false;
         const lives = p.lives !== undefined ? p.lives : (isAlive ? maxLives : 0);
-        const currentPick = p.picks?.[activeWeek];
-        const pickTeamText = currentPick ? `${currentPick.teamName || currentPick.team}` : 'Sin pick';
+        const viewWeek = adminViewingWeek || activeWeek;
+        const currentPick = p.picks?.[viewWeek] || p.picks?.[String(viewWeek)];
+        const pickTeamText = currentPick && currentPick.team ? `${currentPick.teamName || currentPick.team}` : 'Sin pick';
         const actualAciertos = (p.aciertos !== undefined && p.aciertos <= 18) ? p.aciertos : (
           p.picks ? Object.values(p.picks).filter(pk => pk && pk.result === 'win').length : (p.totalPoints && p.totalPoints <= 18 ? p.totalPoints : 0)
         );
+
+        let pickStatusHtml = '';
+        if (!currentPick || !currentPick.team) {
+          pickStatusHtml = '<span class="badge" style="background:rgba(255,255,255,0.08); color:#888; font-size:9.5px;">⚠️ Sin pick</span>';
+        } else if (currentPick.result === 'win') {
+          pickStatusHtml = `<span class="badge success" style="font-size:9.5px; font-weight:800;">✓ Victoria (+1) ${currentPick.score !== undefined ? `(${currentPick.score}-${currentPick.oppScore})` : ''}</span>`;
+        } else if (currentPick.result === 'loss') {
+          pickStatusHtml = `<span class="badge danger" style="font-size:9.5px; font-weight:800;">✕ Derrota (-1 vida) ${currentPick.score !== undefined ? `(${currentPick.score}-${currentPick.oppScore})` : ''}</span>`;
+        } else if (currentPick.result === 'tie') {
+          pickStatusHtml = `<span class="badge warning" style="font-size:9.5px; font-weight:800;">⚖️ Empate</span>`;
+        } else {
+          pickStatusHtml = '<span class="badge" style="background:#ffd100; color:#000; font-weight:900; font-size:9.5px;">⏳ En Juego / Pendiente</span>';
+        }
 
         const heartIcons = '❤️'.repeat(lives) + '🖤'.repeat(Math.max(0, maxLives - lives));
 
@@ -543,14 +638,15 @@
           <div style="display:flex; align-items:center; gap:8px;">
             <img src="${p.photoURL || 'img/logo.jpg'}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1.5px solid ${isAlive ? '#00e676' : '#ff0033'};" onerror="this.src='img/logo.jpg'"/>
             <div>
-              <div style="display:flex; align-items:center; gap:6px;">
+              <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                 <strong style="color:#ffffff; font-size:13.5px;">${p.nickname || p.playerName}</strong>
                 <span class="badge ${isAlive ? 'success' : 'danger'}" style="font-size:9.5px; padding:1px 6px;">
                   ${isAlive ? `${heartIcons} ${lives}/${maxLives}` : `💀 ELIMINADO`}
                 </span>
+                ${pickStatusHtml}
               </div>
-              <div style="font-size:11px; color:#ffd100; font-weight:700;">
-                Sem. ${activeWeek}: <span style="color:#fff;">${pickTeamText}</span> • Aciertos: ${actualAciertos}
+              <div style="font-size:11px; color:#ffd100; font-weight:700; margin-top:2px;">
+                Sem. ${viewWeek}: <span style="color:#fff; font-weight:900;">${pickTeamText}</span> • Victorias Totales: ${actualAciertos}
               </div>
             </div>
           </div>
@@ -564,16 +660,27 @@
                 +1 ❤️
               </button>
             </div>
+
+            <!-- Quick result override for this viewed week -->
+            <div style="display:inline-flex; gap:2px;">
+              <button type="button" class="btn btn-secondary" onclick="window.adminSetPlayerWeekResult('${p.id}', ${viewWeek}, 'win')" style="padding:3px 6px; font-size:9.5px; border-color:#00e676; color:#00e676; background:rgba(0,230,118,0.1);" title="Marcar Victoria manual en Sem. ${viewWeek}">
+                ✓ Ganó
+              </button>
+              <button type="button" class="btn btn-secondary" onclick="window.adminSetPlayerWeekResult('${p.id}', ${viewWeek}, 'loss')" style="padding:3px 6px; font-size:9.5px; border-color:#ff4444; color:#ff4444; background:rgba(255,0,51,0.1);" title="Marcar Derrota manual (-1 vida) en Sem. ${viewWeek}">
+                ✕ Perdió
+              </button>
+            </div>
+
             <button class="btn btn-secondary" onclick="window.openSurvivorPicksModal('${p.id}')" style="padding:4px 8px; font-size:10.5px; width:auto; border-color:#3b82f6; color:#3b82f6;" title="Ver todos los picks semana por semana">
               🔍 Picks
             </button>
             ${p.isHost ? `
               <button class="btn btn-warning" onclick="window.toggleSurvivorHost('${p.id}', false)" style="padding:4px 8px; font-size:10.5px; width:auto; border-color:#ffd100; color:#ffd100; background:rgba(255,209,0,0.15);" title="Quitar permisos de Admin de este Torneo">
-                ⭐ Co-Admin (Quitar)
+                ⭐ Co-Admin
               </button>
             ` : `
               <button class="btn btn-secondary" onclick="window.toggleSurvivorHost('${p.id}', true)" style="padding:4px 8px; font-size:10.5px; width:auto; border-color:#ffd100; color:#ffd100;" title="Nombrar Admin de este Torneo">
-                👑 Nombrar Admin
+                👑 Host
               </button>
             `}
             ${!isAlive ? `
@@ -582,7 +689,7 @@
               </button>
             ` : `
               <button class="btn btn-danger" onclick="window.eliminateSurvivorPlayer('${p.id}')" style="padding:4px 8px; font-size:10.5px; width:auto;" title="Marcar como eliminado">
-                ☠️ Eliminar
+                ☠️
               </button>
             `}
             <button class="btn btn-secondary" onclick="window.deleteSurvivorPlayer('${p.id}')" style="padding:4px 8px; font-size:10.5px; width:auto; color:#ff4444;" title="Borrar del torneo">
@@ -685,26 +792,29 @@
     }
   };
 
-  // 1-Click Auto-Evaluation with ESPN Official API (Multi-Life Support)
-  window.evaluateSurvivorESPN = async function() {
+  // Multi-Week & Safe Idempotent Evaluation with ESPN Official API
+  window.evaluateSurvivorESPN = async function(customWeek = null, isBatch = false) {
     const targetId = getSelectedTournamentId();
-    if (!targetId || !db) return;
+    if (!targetId || !db) return { success: false, error: 'Sin torneo seleccionado' };
     const tourn = activeTournaments.find(t => t.id === targetId);
-    if (!tourn) return;
+    if (!tourn) return { success: false, error: 'Torneo no encontrado' };
 
     const btn = document.getElementById('btnEvaluateSurvivorESPN');
-    if (btn) { btn.disabled = true; btn.textContent = '⏳ Consultando ESPN...'; }
+    if (btn && !isBatch) { btn.disabled = true; btn.textContent = '⏳ Consultando ESPN...'; }
 
-    const activeWeek = tourn.activeWeek || 1;
+    const evalWeekSel = document.getElementById('survAdminEvalWeekSelect');
+    const targetWeek = customWeek || (evalWeekSel ? parseInt(evalWeekSel.value, 10) : (tourn.activeWeek || 1));
     const sport = tourn.sport || 'football';
     const slug = tourn.leagueSlug || 'nfl';
     const maxLives = tourn.maxLives || 3;
+    const startWeek = tourn.startWeek || 1;
+    const totalWeeks = tourn.totalWeeks || 18;
 
     try {
-      // Fetch scoreboard from ESPN
+      // Fetch scoreboard from ESPN for targetWeek
       let url = `https://site.api.espn.com/apis/site/v2/sports/${sport}/${slug}/scoreboard`;
       if (sport === 'football' && slug === 'nfl') {
-        url += `?week=${activeWeek}`;
+        url += `?week=${targetWeek}`;
       }
       const res = await fetch(url);
       if (!res.ok) throw new Error('No se pudo conectar con ESPN.');
@@ -712,9 +822,17 @@
       const events = data.events || [];
 
       if (events.length === 0) {
-        alert(`No se encontraron partidos de ESPN para la Semana ${activeWeek}.`);
-        return;
+        if (!isBatch) alert(`No se encontraron partidos de ESPN para la Semana ${targetWeek}.`);
+        return { success: false, reason: 'no_events' };
       }
+
+      // Check finished games count
+      let completedCount = 0;
+      let allFinished = true;
+      events.forEach(ev => {
+        if (ev.status?.type?.completed === true) completedCount++;
+        else allFinished = false;
+      });
 
       // Map team results
       const teamResults = {};
@@ -750,15 +868,12 @@
             }
           }
 
-          const diffH = homeScore - awayScore;
-          const diffA = awayScore - homeScore;
-
-          [homeAbbr, homeName].forEach(k => { if (k) teamResults[k] = { result: homeRes, score: homeScore, oppScore: awayScore, diff: diffH, finished: isFinished }; });
-          [awayAbbr, awayName].forEach(k => { if (k) teamResults[k] = { result: awayRes, score: awayScore, oppScore: homeScore, diff: diffA, finished: isFinished }; });
+          [homeAbbr, homeName].forEach(k => { if (k) teamResults[k] = { result: homeRes, score: homeScore, oppScore: awayScore, finished: isFinished }; });
+          [awayAbbr, awayName].forEach(k => { if (k) teamResults[k] = { result: awayRes, score: awayScore, oppScore: homeScore, finished: isFinished }; });
         }
       });
 
-      // Grade players with Multi-Life logic
+      // Grade players with Safe Idempotent Multi-Life logic
       const players = Object.values(tournamentPlayers).filter(p => p.status === 'approved' || p.approved === true);
       let survivedCount = 0;
       let lostLifeCount = 0;
@@ -768,104 +883,206 @@
       const tournRef = db.collection('survivors').doc(selectedTournamentId);
 
       players.forEach(p => {
-        if (p.isAlive === false) return; // already eliminated previously
-
-        const currentLives = p.lives !== undefined ? p.lives : maxLives;
-        const pick = p.picks?.[activeWeek];
         const pRef = tournRef.collection('players').doc(p.id);
-
-        const currentAciertos = (p.aciertos !== undefined && p.aciertos <= 18) ? p.aciertos : (
-          p.picks ? Object.values(p.picks).filter(pk => pk && pk.result === 'win').length : (p.totalPoints && p.totalPoints <= 18 ? p.totalPoints : 0)
-        );
+        const playerPicks = { ...(p.picks || {}) };
+        const pick = playerPicks[targetWeek] || playerPicks[String(targetWeek)];
 
         if (!pick || !pick.team) {
-          // No pick registered -> Lose 1 life
-          const newLives = Math.max(0, currentLives - 1);
-          const isAlive = newLives > 0;
+          // No pick registered for this week
+          playerPicks[targetWeek] = {
+            ...(playerPicks[targetWeek] || {}),
+            result: 'no_pick'
+          };
+        } else {
+          const cleanKey = (pick.team || '').toUpperCase();
+          const cleanNameKey = (pick.teamName || '').toLowerCase();
+          const matchRes = teamResults[cleanKey] || teamResults[cleanNameKey];
 
-          batch.update(pRef, {
-            lives: newLives,
-            isAlive: isAlive,
-            aciertos: currentAciertos,
-            totalWins: currentAciertos,
-            totalPoints: currentAciertos,
-            eliminatedWeek: isAlive ? null : activeWeek,
-            [`picks.${activeWeek}.result`]: 'no_pick'
-          });
-
-          if (!isAlive) eliminatedCount++;
-          else lostLifeCount++;
-          return;
-        }
-
-        const cleanKey = (pick.team || '').toUpperCase();
-        const cleanNameKey = (pick.teamName || '').toLowerCase();
-        const matchRes = teamResults[cleanKey] || teamResults[cleanNameKey];
-
-        if (matchRes && matchRes.finished) {
-          if (matchRes.result === 'win') {
-            const newAciertos = currentAciertos + 1;
-            batch.update(pRef, {
-              isAlive: true,
-              aciertos: newAciertos,
-              totalWins: newAciertos,
-              totalPoints: newAciertos, // 1 acierto por victoria, jamás diferencial de goles/puntos
-              [`picks.${activeWeek}.result`]: 'win',
-              [`picks.${activeWeek}.score`]: matchRes.score,
-              [`picks.${activeWeek}.oppScore`]: matchRes.oppScore
-            });
-            survivedCount++;
-          } else {
-            // Loss or Tie -> Lose 1 Life
-            const newLives = Math.max(0, currentLives - 1);
-            const isAlive = newLives > 0;
-
-            batch.update(pRef, {
-              lives: newLives,
-              isAlive: isAlive,
-              aciertos: currentAciertos,
-              totalWins: currentAciertos,
-              totalPoints: currentAciertos,
-              eliminatedWeek: isAlive ? null : activeWeek,
-              [`picks.${activeWeek}.result`]: matchRes.result,
-              [`picks.${activeWeek}.score`]: matchRes.score,
-              [`picks.${activeWeek}.oppScore`]: matchRes.oppScore
-            });
-
-            if (!isAlive) eliminatedCount++;
-            else lostLifeCount++;
+          if (matchRes && matchRes.finished) {
+            playerPicks[targetWeek] = {
+              ...pick,
+              result: matchRes.result,
+              score: matchRes.score,
+              oppScore: matchRes.oppScore
+            };
           }
         }
+
+        // Recalculate lives and aciertos across ALL weeks up to max(activeWeek, targetWeek)
+        let totalWins = 0;
+        let totalLosses = 0;
+        let elimWeek = null;
+
+        const maxEvalWeek = Math.max(tourn.activeWeek || 1, targetWeek);
+        for (let w = startWeek; w <= maxEvalWeek; w++) {
+          const pk = playerPicks[w] || playerPicks[String(w)];
+          if (pk) {
+            if (pk.result === 'win') {
+              totalWins++;
+            } else if (pk.result === 'loss' || pk.result === 'tie' || pk.result === 'no_pick') {
+              totalLosses++;
+              if (totalLosses >= maxLives && !elimWeek) {
+                elimWeek = w;
+              }
+            }
+          }
+        }
+
+        const remainingLives = Math.max(0, maxLives - totalLosses);
+        const isAlive = remainingLives > 0;
+
+        batch.update(pRef, {
+          lives: remainingLives,
+          isAlive: isAlive,
+          aciertos: totalWins,
+          totalWins: totalWins,
+          totalPoints: totalWins,
+          eliminatedWeek: isAlive ? null : (p.eliminatedWeek || elimWeek || targetWeek),
+          [`picks.${targetWeek}`]: playerPicks[targetWeek]
+        });
+
+        if (playerPicks[targetWeek]?.result === 'win') survivedCount++;
+        else if (!isAlive) eliminatedCount++;
+        else lostLifeCount++;
       });
 
       await batch.commit();
 
-      // Auto-advance activeWeek to next week and unlock picks
-      const nextWeek = activeWeek + 1;
-      const totalWeeks = tourn.totalWeeks || 18;
-      if (nextWeek <= totalWeeks) {
-        await tournRef.update({
-          activeWeek: nextWeek,
-          locked: false,
-          updatedAt: Date.now()
-        });
-        tourn.activeWeek = nextWeek;
-        tourn.locked = false;
-        const weekInp = document.getElementById('survAdminActiveWeek');
-        if (weekInp) weekInp.value = nextWeek;
-        const lockedChk = document.getElementById('survAdminLocked');
-        if (lockedChk) lockedChk.checked = false;
+      if (!isBatch) {
+        alert(`🎯 Calificación ESPN Semana ${targetWeek} completada:\n• Partidos terminados en ESPN: ${completedCount}/${events.length}\n• Victorias en esta semana: ${survivedCount}\n• Perdieron 1 Vida: ${lostLifeCount}\n• Eliminados esta semana (0 vidas): ${eliminatedCount}\n\nLos picks y vidas de la Semana ${targetWeek} han sido actualizados.`);
+        renderPlayersAdmin();
       }
-
-      alert(`🎯 Calificación ESPN Semana ${activeWeek} completada:\n• Victorias (Siguen vivos): ${survivedCount}\n• Perdieron 1 Vida: ${lostLifeCount}\n• Eliminados esta semana (0 vidas): ${eliminatedCount}${nextWeek <= totalWeeks ? `\n\n⏩ ¡El torneo avanzó automáticamente a la Semana ${nextWeek}! Los picks de la Semana ${nextWeek} están desbloqueados.` : '\n\n🏁 ¡El torneo ha finalizado todas sus semanas!'}`);
+      return { success: true, targetWeek, survivedCount, lostLifeCount, eliminatedCount, completedCount, totalEvents: events.length, allFinished };
     } catch (err) {
-      alert('Error en evaluación ESPN: ' + err.message);
+      if (!isBatch) alert('Error en evaluación ESPN: ' + err.message);
+      return { success: false, error: err.message };
     } finally {
-      if (btn) { btn.disabled = false; btn.textContent = '⚡ Calificar Semana con ESPN (1-Click)'; }
+      if (btn && !isBatch) { btn.disabled = false; btn.textContent = '⚡ Calificar Esta Semana (ESPN)'; }
     }
   };
 
-  // Auto-sync activeWeek with ESPN if current week is ahead
+  // Automatic Evaluator for ALL past weeks with un-graded picks (Full Auto 1-Click)
+  window.autoEvaluateAllSurvivorWeeks = async function() {
+    const targetId = getSelectedTournamentId();
+    if (!targetId || !db) {
+      alert('Selecciona un torneo primero.');
+      return;
+    }
+    const tourn = activeTournaments.find(t => t.id === targetId);
+    if (!tourn) return;
+
+    const btn = document.getElementById('btnAutoEvaluateAllWeeks');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Evaluando todas las semanas con ESPN...'; }
+
+    try {
+      const sport = tourn.sport || 'football';
+      const slug = tourn.leagueSlug || 'nfl';
+      const startWeek = tourn.startWeek || 1;
+      const totalWeeks = tourn.totalWeeks || 18;
+
+      // 1. Get current ESPN week
+      const res = await fetch(`https://site.api.espn.com/apis/site/v2/sports/${sport}/${slug}/scoreboard`);
+      if (!res.ok) throw new Error('No se pudo conectar con ESPN.');
+      const data = await res.json();
+      const espnWeek = data?.week?.number || (tourn.activeWeek || 1);
+
+      const evaluatedWeeks = [];
+      // Evaluate every week from startWeek up to espnWeek
+      for (let w = startWeek; w <= espnWeek; w++) {
+        const evalRes = await window.evaluateSurvivorESPN(w, true);
+        if (evalRes && evalRes.success) {
+          evaluatedWeeks.push(`Semana ${w}: ${evalRes.survivedCount} victorias, ${evalRes.lostLifeCount} vidas perdidas (${evalRes.completedCount}/${evalRes.totalEvents} partidos completados)`);
+        }
+      }
+
+      // If espnWeek is ahead and previous weeks are done, align activeWeek
+      if (espnWeek > (tourn.activeWeek || startWeek) && espnWeek <= totalWeeks) {
+        await db.collection('survivors').doc(tourn.id).update({
+          activeWeek: espnWeek,
+          updatedAt: Date.now()
+        });
+        tourn.activeWeek = espnWeek;
+      }
+
+      alert(`🚀 ¡Calificación Automática Finalizada!\n\n` +
+        `Torneo: ${tourn.name}\n` +
+        `Jornada reportada por ESPN: Semana ${espnWeek}\n\n` +
+        `Resultados procesados:\n• ${evaluatedWeeks.join('\n• ')}\n\n` +
+        `¡Todas las vidas, aciertos y resultados de partidos están 100% sincronizados con ESPN!`
+      );
+      renderTournamentDetails(tourn);
+      renderPlayersAdmin();
+    } catch (e) {
+      alert('Error en calificación automática: ' + e.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = '🚀 Calificar Automáticamente Semanas Pendientes con ESPN'; }
+    }
+  };
+
+  // Manual Override for a single player's pick result in a specific week
+  window.adminSetPlayerWeekResult = async function(pId, weekNum, newResult) {
+    const targetId = getSelectedTournamentId();
+    if (!targetId || !db) return;
+    const tourn = activeTournaments.find(t => t.id === targetId);
+    if (!tourn) return;
+
+    const player = tournamentPlayers[pId];
+    if (!player) return;
+
+    const playerPicks = { ...(player.picks || {}) };
+    playerPicks[weekNum] = {
+      ...(playerPicks[weekNum] || {}),
+      result: newResult
+    };
+
+    const maxLives = tourn.maxLives || 3;
+    const startWeek = tourn.startWeek || 1;
+    let totalWins = 0;
+    let totalLosses = 0;
+    let elimWeek = null;
+
+    const maxEvalWeek = Math.max(tourn.activeWeek || 1, weekNum);
+    for (let w = startWeek; w <= maxEvalWeek; w++) {
+      const pk = playerPicks[w] || playerPicks[String(w)];
+      if (pk) {
+        if (pk.result === 'win') totalWins++;
+        else if (pk.result === 'loss' || pk.result === 'tie' || pk.result === 'no_pick') {
+          totalLosses++;
+          if (totalLosses >= maxLives && !elimWeek) elimWeek = w;
+        }
+      }
+    }
+
+    const remainingLives = Math.max(0, maxLives - totalLosses);
+    const isAlive = remainingLives > 0;
+
+    try {
+      await db.collection('survivors').doc(targetId).collection('players').doc(pId).update({
+        lives: remainingLives,
+        isAlive: isAlive,
+        aciertos: totalWins,
+        totalWins: totalWins,
+        totalPoints: totalWins,
+        eliminatedWeek: isAlive ? null : (player.eliminatedWeek || elimWeek || weekNum),
+        [`picks.${weekNum}.result`]: newResult
+      });
+      renderPlayersAdmin();
+    } catch(err) {
+      alert('Error al actualizar resultado manual: ' + err.message);
+    }
+  };
+
+  // When admin switches viewed/evaluated week in dropdown
+  window.onSurvivorEvalWeekChange = function(w) {
+    adminViewingWeek = parseInt(w, 10);
+    const viewingBadge = document.getElementById('survAdminViewingWeekBadge');
+    if (viewingBadge) {
+      viewingBadge.textContent = `Viendo Semana ${adminViewingWeek}`;
+    }
+    renderPlayersAdmin();
+  };
+
+  // Safe Auto-sync activeWeek with ESPN: Auto-evaluate previous weeks first!
   let isSyncingAdminEspn = false;
   async function checkAndSyncEspnWeekAdmin(tourn) {
     if (!tourn || !tourn.id || isSyncingAdminEspn || !db) return;
@@ -882,7 +1099,13 @@
       const espnWeek = data?.week?.number;
 
       if (espnWeek && espnWeek > currentActiveWeek && espnWeek <= totalWeeks) {
-        console.log(`[Survivor Admin] ESPN reporta Semana ${espnWeek}, torneo en Semana ${currentActiveWeek}. Sincronizando...`);
+        console.log(`[Survivor Admin] ESPN reporta Semana ${espnWeek}, torneo en Semana ${currentActiveWeek}. Verificando evaluación de semanas anteriores...`);
+
+        // First evaluate previous weeks before advancing
+        for (let w = currentActiveWeek; w < espnWeek; w++) {
+          await window.evaluateSurvivorESPN(w, true);
+        }
+
         const firstEvent = data.events?.[0];
         const firstTime = firstEvent?.date ? new Date(firstEvent.date).getTime() : null;
         const isGameStarted = firstTime ? (Date.now() >= firstTime) : false;
@@ -899,6 +1122,8 @@
         if (weekInp) weekInp.value = espnWeek;
         const lockedChk = document.getElementById('survAdminLocked');
         if (lockedChk) lockedChk.checked = isGameStarted;
+        renderTournamentDetails(tourn);
+        renderPlayersAdmin();
       }
     } catch (err) {
       console.warn('[Survivor Admin] Error comprobando semana en ESPN:', err);
@@ -1059,7 +1284,11 @@
             <strong style="color:${isCurrent ? '#ffd100' : '#888'}; font-size:12px;">Semana ${w}:</strong>
             ${pickDetail}
           </div>
-          <div>${statusBadge}</div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            ${statusBadge}
+            <button type="button" class="btn btn-secondary" onclick="window.adminSetPlayerWeekResult('${playerId}', ${w}, 'win'); setTimeout(()=>window.openSurvivorPicksModal('${playerId}'), 250);" style="padding:2px 6px; font-size:9px; border-color:#00e676; color:#00e676; background:rgba(0,230,118,0.1);" title="Marcar Victoria">✓ Ganó</button>
+            <button type="button" class="btn btn-secondary" onclick="window.adminSetPlayerWeekResult('${playerId}', ${w}, 'loss'); setTimeout(()=>window.openSurvivorPicksModal('${playerId}'), 250);" style="padding:2px 6px; font-size:9px; border-color:#ff4444; color:#ff4444; background:rgba(255,0,51,0.1);" title="Marcar Derrota (-1 vida)">✕ Perdió</button>
+          </div>
         </div>
       `;
     }

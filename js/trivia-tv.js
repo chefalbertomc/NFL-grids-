@@ -602,6 +602,14 @@
 
     const pct = key => totalAnswers > 0 ? Math.round((counts[key] / totalAnswers) * 100) : 0;
 
+    // Identify fastest correct responder for on-screen shoutout
+    const correctPlayers = players
+      .filter(p => p.answers?.[currIdx]?.isCorrect)
+      .sort((a, b) => (b.answers[currIdx].pointsEarned || 0) - (a.answers[currIdx].pointsEarned || 0));
+    const fastest = correctPlayers[0];
+    const fastestAns = fastest ? fastest.answers[currIdx] : null;
+    const fastestSec = fastestAns?.responseTimeMs ? (fastestAns.responseTimeMs / 1000).toFixed(1) : null;
+
     container.innerHTML = `
       <div style="max-width:1450px; margin:0 auto; width:100%;">
         <!-- Question Box with Correct Badge & Fact -->
@@ -619,6 +627,16 @@
               💡 <strong>Dato Curioso / Explicación:</strong> ${q.exp || '¡Respuesta correcta verificada!'}
             </div>
           </div>
+
+          ${fastest ? `
+            <div style="margin-top:16px; background:rgba(0,230,118,0.15); border:2px solid #00e676; border-radius:18px; padding:10px 26px; display:inline-flex; align-items:center; gap:12px; box-shadow:0 4px 20px rgba(0,230,118,0.3);">
+              <span style="font-size:26px;">⚡</span>
+              <div style="font-size:20px; font-weight:950; color:#00e676;">
+                ¡MÁS RÁPIDO EN RESPONDER!: <span style="color:#ffffff;">${fastest.nickname || fastest.playerName}</span>
+                <span style="color:#ffd100; margin-left:6px;">(+${fastestAns.pointsEarned || 0} pts${fastestSec ? ` • ${fastestSec}s` : ''})</span>
+              </div>
+            </div>
+          ` : ''}
         </div>
 
         <!-- 4 Option Cards with Correct Highlight and Stats -->
@@ -671,7 +689,10 @@
     players.slice(0, 5).forEach((p, idx) => {
       const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
       const photoSrc = p.photoURL || p.userPhoto || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.nickname || p.playerName || 'J')}&background=ffd100&color=000&bold=true`;
-      const thisQPoints = p.answers?.[currIdx]?.pointsEarned || 0;
+      const thisQAns = p.answers?.[currIdx];
+      const thisQPoints = thisQAns?.pointsEarned || 0;
+      const thisQOrder = thisQAns?.order;
+      const thisQSec = thisQAns?.responseTimeMs ? (thisQAns.responseTimeMs / 1000).toFixed(1) : null;
 
       rowsHtml += `
         <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.08); border:2.5px solid ${idx === 0 ? '#ffd100' : 'rgba(255,255,255,0.15)'}; border-radius:22px; padding:18px 36px; margin-bottom:14px; box-shadow:0 8px 25px rgba(0,0,0,0.5);">
@@ -680,7 +701,7 @@
             <img src="${photoSrc}" style="width:64px; height:64px; border-radius:50%; object-fit:cover; border:3px solid ${idx === 0 ? '#ffd100' : '#fff'};" onerror="this.src='img/logo.jpg'"/>
             <div>
               <strong style="font-size:28px; color:#ffffff; font-family:'Outfit', sans-serif;">${p.nickname || p.playerName}</strong>
-              <div style="font-size:16px; color:#ffd100; font-weight:900;">${p.waiter ? 'Mesa: ' + p.waiter : 'Cliente'} ${thisQPoints > 0 ? `• 🔥 +${thisQPoints} pts` : ''}</div>
+              <div style="font-size:16px; color:#ffd100; font-weight:900;">${p.waiter ? 'Mesa: ' + p.waiter : 'Cliente'} ${thisQPoints > 0 ? `• 🔥 +${thisQPoints} pts ${thisQOrder === 1 ? '(🥇 ¡El más rápido!)' : `(#${thisQOrder}° en contestar${thisQSec ? ` • ${thisQSec}s` : ''})`}` : ''}</div>
             </div>
           </div>
           <div style="text-align:right;">

@@ -116,13 +116,26 @@
       const userKey = u ? u.uid : 'anon';
       const urlParams = new URLSearchParams(window.location.search);
       const paramCode = (urlParams.get('code') || urlParams.get('s') || '').trim().toUpperCase();
-      const unlockedPrivateTourns = JSON.parse(sessionStorage.getItem('unlocked_surv_tournaments_' + userKey) || sessionStorage.getItem('unlocked_surv_tournaments') || '[]');
-      const myJoinedTourns = JSON.parse(localStorage.getItem('my_joined_surv_' + userKey) || '[]');
+      const unlockedPrivateTourns = JSON.parse(
+        localStorage.getItem('unlocked_surv_tournaments_' + userKey) ||
+        localStorage.getItem('unlocked_surv_tournaments') ||
+        sessionStorage.getItem('unlocked_surv_tournaments_' + userKey) ||
+        sessionStorage.getItem('unlocked_surv_tournaments') ||
+        '[]'
+      );
+      const myJoinedTourns = JSON.parse(
+        localStorage.getItem('my_joined_surv_' + userKey) ||
+        sessionStorage.getItem('my_joined_surv_' + userKey) ||
+        '[]'
+      );
 
       const allTourns = [];
       snap.forEach(doc => {
         allTourns.push({ id: doc.id, ...doc.data() });
       });
+
+      // Keep reference to all tournaments for listing / unlocking
+      window._allAvailableSurvivorTournaments = allTourns;
 
       // Privacy Filter:
       activeTournaments = allTourns.filter(t => {
@@ -261,8 +274,16 @@
     if (found) {
       const u = getCurrentUser();
       const userKey = u ? u.uid : 'anon';
-      const unlocked = JSON.parse(sessionStorage.getItem('unlocked_surv_tournaments_' + userKey) || sessionStorage.getItem('unlocked_surv_tournaments') || '[]');
+      const unlocked = JSON.parse(
+        localStorage.getItem('unlocked_surv_tournaments_' + userKey) ||
+        localStorage.getItem('unlocked_surv_tournaments') ||
+        sessionStorage.getItem('unlocked_surv_tournaments_' + userKey) ||
+        sessionStorage.getItem('unlocked_surv_tournaments') ||
+        '[]'
+      );
       if (!unlocked.includes(found.id)) unlocked.push(found.id);
+      localStorage.setItem('unlocked_surv_tournaments_' + userKey, JSON.stringify(unlocked));
+      localStorage.setItem('unlocked_surv_tournaments', JSON.stringify(unlocked));
       sessionStorage.setItem('unlocked_surv_tournaments_' + userKey, JSON.stringify(unlocked));
       sessionStorage.setItem('unlocked_surv_tournaments', JSON.stringify(unlocked));
 
@@ -317,6 +338,31 @@
     if (!container) return;
 
     if (activeTournaments.length === 0) {
+      const availTourns = window._allAvailableSurvivorTournaments || [];
+      let availTournsHtml = '';
+      if (availTourns.length > 0) {
+        availTournsHtml = `
+          <div style="margin-top:22px; border-top:1px solid rgba(255,255,255,0.12); padding-top:16px; text-align:left;">
+            <div style="font-size:12px; font-weight:900; color:#ffd100; text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; gap:6px;">
+              <span>🏆</span> Torneos Activos Disponibles:
+            </div>
+            <div style="display:flex; flex-direction:column; gap:8px;">
+              ${availTourns.map(trn => `
+                <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,209,0,0.25); border-radius:12px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                  <div>
+                    <div style="font-size:13.5px; font-weight:900; color:#fff;">${trn.name || 'Torneo Survivor'}</div>
+                    <div style="font-size:11px; color:#aaa;">📍 Sucursal: <strong style="color:#ffd100;">${trn.store || 'Todas'}</strong> • Jornada Sem. ${trn.activeWeek || trn.startWeek || 1} • ${trn.sport === 'soccer' ? '⚽ Fútbol' : '🏈 NFL'}</div>
+                  </div>
+                  <button type="button" class="btn btn-secondary" onclick="window.unlockSurvivorWithCode(prompt('Ingresa el código para desbloquear ${trn.name || 'el torneo'}:', ''))" style="width:auto; padding:6px 14px; font-size:11.5px; font-weight:900; border-color:#ffd100; color:#ffd100; background:rgba(255,209,0,0.1);">
+                    🔑 Ingresar Código
+                  </button>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+
       container.innerHTML = `
         <section class="card text-center py-5" style="background:linear-gradient(135deg, rgba(255,209,0,0.08) 0%, rgba(10,14,22,0.98) 100%); border:1.5px solid rgba(255,209,0,0.35); border-radius:18px; max-width:540px; margin:20px auto; padding:28px 20px;">
           <span style="font-size:48px;">🏆</span>
@@ -334,8 +380,9 @@
             </button>
           </div>
           <p class="hint-text" style="font-size:11px; margin:0;">¿No tienes código? Pídeselo a tu anfitrión o mesero para unirte.</p>
+          ${availTournsHtml}
         </section>
-        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.27</span></footer>
+        <footer class="tab-footer-version"><span>DRINKS & WINS</span> • <span class="ver">v215.28</span></footer>
       `;
       return;
     }
@@ -1278,6 +1325,14 @@
   let isSyncingEspn = false;
   async function checkAndSyncEspnWeek(tourn) {
     if (!tourn || !tourn.id || isSyncingEspn || !db) return;
+    const u = getCurrentUser();
+    const isHostOrAdmin = (
+      (u && (tourn.hostUid === u.uid || tourn.createdBy === u.uid)) ||
+      (u && (u.email === 'chefalbertomc@gmail.com' || u.email === 'sguerra70@hotmail.com'))
+    );
+    // Regular players should not advance activeWeek in Firestore to protect pending evaluation
+    if (!isHostOrAdmin) return;
+
     const sport = tourn.sport || 'football';
     const slug = tourn.leagueSlug || 'nfl';
     const currentActiveWeek = tourn.activeWeek || tourn.startWeek || 1;

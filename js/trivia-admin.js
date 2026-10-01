@@ -424,7 +424,7 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
   }
 
   // =========================================================================
-  // PARSER PARA PEGAR PREGUNTAS DESDE GEMINI WEB / CHATGPT / WHATSAPP
+  // PARSER PARA PEGAR PREGUNTAS DESDE WORD (.docx), TEXTO, WHATSAPP O CHATGPT
   // =========================================================================
   function parsePastedQuestionsText(text) {
     if (!text || !text.trim()) return [];
@@ -454,23 +454,36 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
       // Not JSON, continue to text block parsing
     }
 
-    // 2. Line-by-line smart parser for natural text lists
+    // 2. Line-by-line smart parser for natural text lists and Word documents
     const lines = raw.split(/\r?\n/);
     const parsedQuestions = [];
     let currentQ = null;
+
+    function finishCurrentQ() {
+      if (currentQ && currentQ.q) {
+        // Fallback for missing options
+        if (!currentQ.a) currentQ.a = 'Verdadero';
+        if (!currentQ.b) currentQ.b = 'Falso';
+        if (!currentQ.c) currentQ.c = 'Ninguna de las anteriores';
+        if (!currentQ.d) currentQ.d = 'Todas las anteriores';
+        if (!['A', 'B', 'C', 'D'].includes(currentQ.correct)) currentQ.correct = 'A';
+        parsedQuestions.push(currentQ);
+      }
+    }
 
     for (let line of lines) {
       line = line.trim();
       if (!line) continue;
 
-      // Detect Question Start: "1.", "1)", "¿", "Pregunta 1:"
-      const isNewQ = /^(\d+[\.\)]\s*|pregunta\s*\d+[\:\.]?\s*|¿)/i.test(line);
+      // Clean Word bullets
+      line = line.replace(/^[•\-\*–—]\s*/, '').trim();
+
+      // Detect Question Start: "1.", "1)", "¿", "Pregunta 1:", "Q1:", "P1."
+      const isNewQ = /^(\d+[\.\)]\s*|pregunta\s*\d+[\:\.]?\s*|p\d+[\:\.]\s*|q\d+[\:\.]\s*|¿)/i.test(line);
 
       if (isNewQ && (!currentQ || currentQ.a || currentQ.b)) {
-        if (currentQ && currentQ.q && currentQ.a && currentQ.b) {
-          parsedQuestions.push(currentQ);
-        }
-        let qText = line.replace(/^\d+[\.\)]\s*/, '').replace(/^pregunta\s*\d+[\:\.]?\s*/i, '').trim();
+        finishCurrentQ();
+        let qText = line.replace(/^(\d+[\.\)]\s*|pregunta\s*\d+[\:\.]?\s*|p\d+[\:\.]\s*|q\d+[\:\.]\s*)/i, '').trim();
         currentQ = { q: qText, a: '', b: '', c: '', d: '', correct: 'A', exp: '' };
         continue;
       }
@@ -480,38 +493,77 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
         continue;
       }
 
-      // Detect Options A, B, C, D
-      const matchA = line.match(/^[aA][\.\)\-:]\s*(.+)/);
-      const matchB = line.match(/^[bB][\.\)\-:]\s*(.+)/);
-      const matchC = line.match(/^[cC][\.\)\-:]\s*(.+)/);
-      const matchD = line.match(/^[dD][\.\)\-:]\s*(.+)/);
-
-      if (matchA) { currentQ.a = matchA[1].trim(); continue; }
-      if (matchB) { currentQ.b = matchB[1].trim(); continue; }
-      if (matchC) { currentQ.c = matchC[1].trim(); continue; }
-      if (matchD) { currentQ.d = matchD[1].trim(); continue; }
-
-      // Detect Correct Answer indicator (e.g. "Respuesta: B", "Correcta: C", "R: A")
-      const matchCorrect = line.match(/(?:respuesta|correcta|soluci[oó]n|ans|r)[\s\:\*\-]+([a-dA-D])/i);
+      // Check if line indicates correct answer directly, e.g. "Respuesta: B", "Correcta: C", "Solución: A"
+      const matchCorrect = line.match(/(?:respuesta|correcta|soluci[oó]n|ans|r)[\s\:\*\-]+([a-dA-D1-4])/i);
       if (matchCorrect) {
-        currentQ.correct = matchCorrect[1].toUpperCase();
+        const val = matchCorrect[1].toUpperCase();
+        const mapNum = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
+        currentQ.correct = mapNum[val] || val;
         continue;
       }
 
       // Detect Explanation
-      const matchExp = line.match(/(?:explicaci[oó]n|dato|exp|curioso)[\s\:\*\-]+(.+)/i);
+      const matchExp = line.match(/(?:explicaci[oó]n|dato|exp|curioso|nota)[\s\:\*\-]+(.+)/i);
       if (matchExp) {
         currentQ.exp = matchExp[1].trim();
         continue;
       }
+
+      // Detect Options A, B, C, D (or 1, 2, 3, 4)
+      const matchA = line.match(/^(\*?[aA1][\.\)\-:]\s*|\([aA1]\)\s*)(.+)/);
+      const matchB = line.match(/^(\*?[bB2][\.\)\-:]\s*|\([bB2]\)\s*)(.+)/);
+      const matchC = line.match(/^(\*?[cC3][\.\)\-:]\s*|\([cC3]\)\s*)(.+)/);
+      const matchD = line.match(/^(\*?[dD4][\.\)\-:]\s*|\([dD4]\)\s*)(.+)/);
+
+      function parseOptionText(optText, letter) {
+        let isCorrectMarked = false;
+        let cleanText = optText.trim();
+
+        // Check if text has (correcta), [correcta], or ends with *
+        if (/\((?:correcta|correct|respuesta)\)|\[(?:correcta|correct)\]|\*$/i.test(cleanText)) {
+          isCorrectMarked = true;
+          cleanText = cleanText.replace(/\((?:correcta|correct|respuesta)\)|\[(?:correcta|correct)\]|\*$/ig, '').trim();
+        }
+        if (isCorrectMarked) {
+          currentQ.correct = letter;
+        }
+        return cleanText;
+      }
+
+      if (matchA) {
+        if (line.startsWith('*')) currentQ.correct = 'A';
+        currentQ.a = parseOptionText(matchA[2], 'A');
+        continue;
+      }
+      if (matchB) {
+        if (line.startsWith('*')) currentQ.correct = 'B';
+        currentQ.b = parseOptionText(matchB[2], 'B');
+        continue;
+      }
+      if (matchC) {
+        if (line.startsWith('*')) currentQ.correct = 'C';
+        currentQ.c = parseOptionText(matchC[2], 'C');
+        continue;
+      }
+      if (matchD) {
+        if (line.startsWith('*')) currentQ.correct = 'D';
+        currentQ.d = parseOptionText(matchD[2], 'D');
+        continue;
+      }
+
+      // If options A and B are already filled and line doesn't match, append to question or explanation
+      if (!currentQ.a) {
+        currentQ.q += ' ' + line;
+      } else {
+        currentQ.exp += (currentQ.exp ? ' ' : '') + line;
+      }
     }
 
-    if (currentQ && currentQ.q && (currentQ.a || currentQ.b)) {
-      parsedQuestions.push(currentQ);
-    }
+    finishCurrentQ();
 
     return parsedQuestions;
   }
+  window.parsePastedQuestionsText = parsePastedQuestionsText;
 
   // =========================================================================
   // FALLBACK SMART MATCHER (100% REAL CURATED DATA, ZERO PLACEHOLDER HALLUCINATIONS)
@@ -805,7 +857,7 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
         <div>
           ${hasAnsweredThisQ ? `
             <span class="badge ${ansObj.isCorrect ? 'success' : 'danger'}" style="font-size:10.5px; font-weight:900;">
-              ${ansObj.choice} (${ansObj.isCorrect ? '+' + ansObj.pointsEarned + ' pts' : '0 pts'})
+              ${ansObj.choice} (${ansObj.isCorrect ? (ansObj.order ? '#' + ansObj.order + ' • ' : '') + '+' + (ansObj.pointsEarned || 0) + ' pts' + (ansObj.responseTimeMs ? ' • ' + (ansObj.responseTimeMs/1000).toFixed(1) + 's' : '') : '0 pts'})
             </span>
           ` : `
             <span class="badge" style="background:rgba(255,255,255,0.1); font-size:10px; opacity:0.7;">Pensando...</span>
@@ -1171,36 +1223,114 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
   };
 
   // =========================================================================
-  // PASTE QUESTIONS MODAL WORKFLOW
+  // MULTI-INPUT METHODS (WORD .docx, TXT, COPY-PASTE, GEMINI AI)
   // =========================================================================
-  window.openPasteQuestionsModal = function() {
-    const pasteBox = document.getElementById('trivPasteQuestionsBox');
-    if (pasteBox) {
-      pasteBox.style.display = pasteBox.style.display === 'none' ? 'block' : 'none';
-      if (pasteBox.style.display === 'block') {
-        document.getElementById('trivPasteTextInput')?.focus();
+  window.switchTriviaInputTab = function(tabName) {
+    const tabs = ['upload', 'paste', 'ai'];
+    tabs.forEach(t => {
+      const btn = document.getElementById(`trivTabBtn_${t}`) || document.getElementById(`trivTabBtn${t.charAt(0).toUpperCase() + t.slice(1)}`);
+      const panel = document.getElementById(`trivInputPanel_${t}`) || document.getElementById(`trivInputPanel${t.charAt(0).toUpperCase() + t.slice(1)}`);
+      if (btn) btn.classList.toggle('active', t === tabName);
+      if (panel) panel.style.display = (t === tabName) ? 'block' : 'none';
+    });
+  };
+
+  // Upload Word (.docx) or Text (.txt / .json) File
+  window.handleTriviaFileUpload = async function(event) {
+    const file = event.target?.files?.[0];
+    if (!file) return;
+
+    const statusEl = document.getElementById('trivUploadStatusMsg') || document.getElementById('trivGenStatusMsg');
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.innerHTML = `⏳ <em>Leyendo archivo "${file.name}" (${(file.size / 1024).toFixed(1)} KB)...</em>`;
+    }
+
+    try {
+      const fileName = file.name.toLowerCase();
+      let extractedText = '';
+
+      if (fileName.endsWith('.docx')) {
+        // Read Word .docx via Mammoth.js
+        if (typeof mammoth === 'undefined') {
+          throw new Error('La librería Mammoth.js se está cargando. Espera unos segundos o pega el texto directamente.');
+        }
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+        extractedText = result.value || '';
+      } else {
+        // Read plain text file (.txt, .json, .csv)
+        extractedText = await file.text();
       }
+
+      if (!extractedText.trim()) {
+        throw new Error('El archivo no contiene texto legible.');
+      }
+
+      const parsed = parsePastedQuestionsText(extractedText);
+      if (parsed.length === 0) {
+        throw new Error('No se pudieron extraer preguntas con opciones del archivo. Asegúrate de incluir preguntas y opciones A, B, C, D.');
+      }
+
+      // Add to buffer
+      generatedQuestionsBuffer = [...generatedQuestionsBuffer, ...parsed];
+      renderQuestionsPreview(generatedQuestionsBuffer);
+
+      // Auto-set title from file name if empty
+      const titleInp = document.getElementById('newTrivTitle');
+      if (titleInp && !titleInp.value) {
+        const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
+        titleInp.value = `🧠 Trivia ${cleanName}`;
+      }
+
+      if (statusEl) {
+        statusEl.innerHTML = `🎉 <strong>¡Éxito!</strong> Se importaron <strong>+${parsed.length} preguntas</strong> desde <em>${file.name}</em> (${generatedQuestionsBuffer.length} preguntas en total).`;
+      }
+      alert(`🎉 ¡Archivo "${file.name}" procesado con éxito!\n\nSe extrajeron y generaron ${parsed.length} preguntas listas para proyectar en las pantallas.`);
+    } catch (err) {
+      console.error('[TriviaAdmin] File upload error:', err);
+      if (statusEl) {
+        statusEl.innerHTML = `⚠️ <strong>Error al leer archivo:</strong> ${err.message}. Puedes copiar el contenido y pegarlo en la pestaña "Copiar y Pegar Texto".`;
+      }
+      alert('Error al leer archivo: ' + err.message);
+    } finally {
+      // Clear file input so same file can be re-uploaded if modified
+      if (event.target) event.target.value = '';
     }
   };
 
-  window.applyPastedQuestions = function() {
-    const textInp = document.getElementById('trivPasteTextInput');
+  // Copy-Paste from Textarea
+  window.applyPastedQuestionsFromTextarea = function() {
+    const textInp = document.getElementById('trivPasteQuestionsTextarea') || document.getElementById('trivPasteTextInput');
     const rawText = textInp?.value || '';
     if (!rawText.trim()) {
-      alert('Por favor pega el texto con las preguntas generadas.');
+      alert('Por favor pega el texto de las preguntas en el recuadro antes de presionar procesar.');
       return;
     }
 
     const parsed = parsePastedQuestionsText(rawText);
     if (parsed.length === 0) {
-      alert('No se pudieron extraer preguntas del texto pegado. Asegúrate de incluir opciones A), B), C), D) o formato JSON.');
+      alert('No se pudieron extraer preguntas del texto pegado. Asegúrate de incluir preguntas con opciones A), B), C), D) o formato JSON.');
       return;
     }
 
-    generatedQuestionsBuffer = parsed;
+    generatedQuestionsBuffer = [...generatedQuestionsBuffer, ...parsed];
     renderQuestionsPreview(generatedQuestionsBuffer);
-    window.openPasteQuestionsModal(); // hide box
-    alert(`🎉 ¡Se importaron con éxito ${parsed.length} preguntas! Revisa y ajusta lo que necesites.`);
+
+    const statusEl = document.getElementById('trivGenStatusMsg');
+    if (statusEl) {
+      statusEl.style.display = 'block';
+      statusEl.innerHTML = `🎉 <strong>¡Éxito!</strong> Se importaron <strong>+${parsed.length} preguntas</strong> pegadas (${generatedQuestionsBuffer.length} preguntas en total).`;
+    }
+
+    if (textInp) textInp.value = '';
+    alert(`🎉 ¡Se importaron con éxito ${parsed.length} preguntas! Revisa la lista abajo y ajusta cualquier detalle.`);
+  };
+
+  // Backward-compatibility alias
+  window.applyPastedQuestions = window.applyPastedQuestionsFromTextarea;
+  window.openPasteQuestionsModal = function() {
+    window.switchTriviaInputTab('paste');
   };
 
   // =========================================================================
