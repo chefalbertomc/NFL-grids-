@@ -186,11 +186,16 @@
     const filterEl = document.getElementById('bingoFilterStore');
     const filterVal = filterEl ? filterEl.value : 'Todas';
 
-    const filtered = allCachedBingoRooms.filter(r => matchStoreFilter(r.store, filterVal));
+    let filtered = allCachedBingoRooms.filter(r => matchStoreFilter(r.store, filterVal));
+
+    // Fallback: if store filter matched nothing but rooms exist, show all
+    if (filtered.length === 0 && allCachedBingoRooms.length > 0) {
+      filtered = allCachedBingoRooms;
+    }
 
     dropdown.innerHTML = '<option value="" disabled selected>-- Selecciona una sala --</option>';
     if (filtered.length === 0) {
-      dropdown.innerHTML = `<option value="" disabled selected>No hay salas en ${filterVal}</option>`;
+      dropdown.innerHTML = `<option value="" disabled selected>No hay salas de Bingo creadas</option>`;
       const details = document.getElementById('bingoActiveRoomDetails');
       if (details) details.style.display = 'none';
       return;
@@ -213,7 +218,8 @@
     const dropdown = document.getElementById('bingoActiveRoomsDropdown');
     
     if (unsubBingoRooms) unsubBingoRooms();
-    unsubBingoRooms = db.collection('bingo_games').orderBy('createdAt', 'desc').onSnapshot(snap => {
+
+    function processSnap(snap) {
       allCachedBingoRooms = [];
       if (snap.empty) {
         if (dropdown) dropdown.innerHTML = '<option value="" disabled selected>No hay salas activas</option>';
@@ -221,12 +227,19 @@
         if (details) details.style.display = 'none';
         return;
       }
-
       snap.forEach(doc => {
         allCachedBingoRooms.push({ id: doc.id, ...doc.data() });
       });
-
+      allCachedBingoRooms.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       renderFilteredBingoRoomsDropdown();
+    }
+
+    unsubBingoRooms = db.collection('bingo_games').orderBy('createdAt', 'desc').onSnapshot(processSnap, err => {
+      console.warn('[bingo] orderBy index missing, falling back to plain query:', err.message);
+      if (unsubBingoRooms) unsubBingoRooms();
+      unsubBingoRooms = db.collection('bingo_games').onSnapshot(processSnap, err2 => {
+        console.error('[bingo] Error loading rooms (fallback):', err2);
+      });
     });
   }
 

@@ -698,10 +698,15 @@ RESPONDE ÚNICAMENTE con un arreglo JSON puro de objetos con esta estructura (si
     const filterEl = document.getElementById('trivAdminFilterStore');
     const filterVal = filterEl ? filterEl.value : 'Todas';
 
-    const filtered = activeTriviaGames.filter(g => matchStoreFilter(g.store, filterVal));
+    let filtered = activeTriviaGames.filter(g => matchStoreFilter(g.store, filterVal));
+
+    // Fallback: if filter matched nothing but there ARE games, show all (avoids blank panel)
+    if (filtered.length === 0 && activeTriviaGames.length > 0) {
+      filtered = activeTriviaGames;
+    }
 
     if (filtered.length === 0) {
-      sel.innerHTML = `<option value="">-- Sin trivias en ${filterVal} --</option>`;
+      sel.innerHTML = `<option value="">-- Sin trivias creadas --</option>`;
       renderNoTriviaUI();
       return;
     }

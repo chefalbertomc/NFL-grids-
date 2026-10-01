@@ -358,11 +358,16 @@
     const filterEl = document.getElementById('filterGridStore');
     const filterVal = filterEl ? filterEl.value : 'Todas';
 
-    const filtered = allCachedGrids.filter(g => matchStoreFilter(g.store, filterVal));
+    let filtered = allCachedGrids.filter(g => matchStoreFilter(g.store, filterVal));
+
+    // Fallback: if store filter matched nothing but games exist, show all
+    if (filtered.length === 0 && allCachedGrids.length > 0) {
+      filtered = allCachedGrids;
+    }
 
     selectGame.innerHTML = '';
     if (filtered.length === 0) {
-      selectGame.innerHTML = `<option disabled selected>— Sin grids en ${filterVal} —</option>`;
+      selectGame.innerHTML = `<option disabled selected>— No hay grids creados —</option>`;
       return;
     }
 
@@ -384,34 +389,23 @@
 
   async function loadGamesDropdown() {
     if (!selectGame) return;
-    selectGame.innerHTML = '';
-    
-    try {
-      const snap = await db.collection('games').orderBy('createdAt', 'desc').get();
-      if (snap.empty) {
-        selectGame.innerHTML = '<option disabled selected>— No hay grids creados —</option>';
-        allCachedGrids = [];
-        return;
-      }
+    selectGame.innerHTML = '<option disabled selected>— Cargando... —</option>';
+
+    async function processGameSnap(snap) {
+      const docs = [];
+      snap.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
+      // Client-side sort by createdAt desc (avoids index requirement)
+      docs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
       allCachedGrids = [];
-      let validGamesCount = 0;
-
-      for (const doc of snap.docs) {
-        const g = doc.data() || {};
-        const code = doc.id;
+      for (const g of docs) {
+        const code = g.id;
         const away = (g.awayTeam || g.away || '').trim();
         const home = (g.homeTeam || g.home || '').trim();
+        // Skip empty/placeholder documents (don't auto-delete — may lack write permission)
+        if (!away || !home) continue;
+        if (home.toLowerCase() === 'local' && away.toLowerCase() === 'visitante') continue;
 
-        // If it's a dummy test placeholder game, auto-purge it from database and skip
-        if (!away || !home || (home.toLowerCase() === 'local' && away.toLowerCase() === 'visitante')) {
-          try {
-            await doc.ref.delete();
-          } catch (err) {}
-          continue;
-        }
-
-        validGamesCount++;
         allCachedGrids.push({
           code,
           away,
@@ -421,14 +415,25 @@
         });
       }
 
-      if (validGamesCount === 0) {
+      if (allCachedGrids.length === 0) {
         selectGame.innerHTML = '<option disabled selected>— No hay grids creados —</option>';
         return;
       }
-
       renderFilteredGridsDropdown();
+    }
+
+    try {
+      const snap = await db.collection('games').orderBy('createdAt', 'desc').get();
+      await processGameSnap(snap);
     } catch (e) {
-      console.error('[admin] Error listing grids:', e);
+      console.warn('[admin] orderBy createdAt index missing, falling back to plain query:', e.message);
+      try {
+        const snap = await db.collection('games').get();
+        await processGameSnap(snap);
+      } catch (e2) {
+        console.error('[admin] Error listing grids (fallback):', e2);
+        selectGame.innerHTML = '<option disabled selected>— Error al cargar grids —</option>';
+      }
     }
   }
 
@@ -2106,11 +2111,16 @@
     const filterEl = document.getElementById('fgFilterStore');
     const filterVal = filterEl ? filterEl.value : 'Todas';
 
-    const filtered = allCachedFGGames.filter(g => matchStoreFilter(g.store, filterVal));
+    let filtered = allCachedFGGames.filter(g => matchStoreFilter(g.store, filterVal));
+
+    // Fallback: if store filter matched nothing but games exist, show all
+    if (filtered.length === 0 && allCachedFGGames.length > 0) {
+      filtered = allCachedFGGames;
+    }
 
     dropdown.innerHTML = '';
     if (filtered.length === 0) {
-      dropdown.innerHTML = `<option value="">-- Sin juegos en ${filterVal} --</option>`;
+      dropdown.innerHTML = `<option value="">-- Sin juegos de Primer Gol creados --</option>`;
       const panel = document.getElementById('fgManagePanel');
       if (panel) panel.style.display = 'none';
       return;
@@ -2135,26 +2145,29 @@
 
     if (fgUnsubGamesDropdown) fgUnsubGamesDropdown();
 
+    function processSnap(snap) {
+      allCachedFGGames = [];
+      if (snap.empty) {
+        dropdown.innerHTML = '<option value="">-- No hay juegos --</option>';
+        return;
+      }
+      snap.forEach(doc => {
+        allCachedFGGames.push({ id: doc.id, ...doc.data() });
+      });
+      allCachedFGGames.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      renderFilteredFGGamesDropdown();
+    }
+
     fgUnsubGamesDropdown = db.collection('first_goal_games')
       .orderBy('createdAt', 'desc')
-      .onSnapshot(snap => {
-        allCachedFGGames = [];
-        if (snap.empty) {
-          dropdown.innerHTML = '<option value="">-- No hay juegos --</option>';
-          return;
-        }
-
-        snap.forEach(doc => {
-          const game = doc.data();
-          allCachedFGGames.push({
-            id: doc.id,
-            ...game
+      .onSnapshot(processSnap, err => {
+        console.warn('[fg] orderBy index missing, falling back to plain query:', err.message);
+        // Fallback: unordered snapshot
+        if (fgUnsubGamesDropdown) fgUnsubGamesDropdown();
+        fgUnsubGamesDropdown = db.collection('first_goal_games')
+          .onSnapshot(processSnap, err2 => {
+            console.error('[fg] Error loading games dropdown (fallback):', err2);
           });
-        });
-
-        renderFilteredFGGamesDropdown();
-      }, err => {
-        console.error('[fg] Error loading games dropdown:', err);
       });
   }
 

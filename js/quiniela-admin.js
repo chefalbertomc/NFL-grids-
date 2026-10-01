@@ -543,11 +543,16 @@
     const filterEl = document.getElementById('selectQuinielaFilterStore');
     const filterVal = filterEl ? filterEl.value : 'Todas';
 
-    const filtered = allCachedQuinielas.filter(q => matchStoreFilter(q.store, filterVal));
+    let filtered = allCachedQuinielas.filter(q => matchStoreFilter(q.store, filterVal));
+
+    // Fallback: if store filter matched nothing but quinielas exist, show all
+    if (filtered.length === 0 && allCachedQuinielas.length > 0) {
+      filtered = allCachedQuinielas;
+    }
 
     sel.innerHTML = '';
     if (filtered.length === 0) {
-      sel.innerHTML = `<option disabled selected>— Sin quinielas en ${filterVal} —</option>`;
+      sel.innerHTML = `<option disabled selected>— No hay quinielas creadas —</option>`;
       if (panel) panel.style.display = 'none';
       return;
     }
