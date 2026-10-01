@@ -27,8 +27,7 @@
     // experimentalForceLongPolling usa HTTP largo en su lugar -> funciona en CUALQUIER red.
     window.db = firebase.firestore();
     window.db.settings({
-      experimentalForceLongPolling: true,
-      merge: true
+      experimentalForceLongPolling: true
     });
 
     // PERSISTENCIA OFFLINE
@@ -39,11 +38,7 @@
         console.log("[firebase-config.js] Offline persistence enabled");
       })
       .catch(function(err) {
-        if (err.code === 'failed-precondition') {
-          console.warn("[firebase-config.js] Persistence skipped (multiple tabs)");
-        } else if (err.code === 'unimplemented') {
-          console.warn("[firebase-config.js] Persistence not supported in this browser");
-        }
+        console.warn("[firebase-config.js] Persistence note (using memory):", err ? (err.message || err.code || err) : 'disabled');
       });
 
     window._bwwFirebaseReady = true;

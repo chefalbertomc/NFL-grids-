@@ -192,8 +192,14 @@
     const btnSync = document.getElementById('btnQAdminSync');
     if (btnSync) btnSync.addEventListener('click', () => syncQuinielaScores(activeQuinielaId));
 
+    const btnReloadQ = document.getElementById('btnQAdminReload');
+    if (btnReloadQ) btnReloadQ.addEventListener('click', () => loadActiveQuinielas(true));
+
     const qDropdown = document.getElementById('selectActiveQuiniela');
     if (qDropdown) {
+      qDropdown.addEventListener('focus', () => {
+        if (allCachedQuinielas.length === 0) loadActiveQuinielas();
+      });
       qDropdown.addEventListener('change', () => {
         activeQuinielaId = qDropdown.value;
         loadQuinielaStandings(activeQuinielaId);
@@ -202,7 +208,13 @@
 
     const filterStoreEl = document.getElementById('selectQuinielaFilterStore');
     if (filterStoreEl) {
-      filterStoreEl.addEventListener('change', renderFilteredQuinielasDropdown);
+      filterStoreEl.addEventListener('change', () => {
+        if (allCachedQuinielas.length === 0) {
+          loadActiveQuinielas();
+        } else {
+          renderFilteredQuinielasDropdown();
+        }
+      });
     }
 
     const btnDelete = document.getElementById('btnDeleteQuiniela');
@@ -589,22 +601,25 @@
     }
   }
 
-  function loadActiveQuinielas() {
+  async function loadActiveQuinielas(showFeedback) {
     if (!db && window.db) db = window.db;
-    if (!db) return;
+    if (!db) {
+      if (showFeedback) alert('⚠️ Base de datos conectando... intenta de nuevo en 2 segundos.');
+      return;
+    }
     const sel = document.getElementById('selectActiveQuiniela');
     const panel = document.getElementById('qManagePanel');
     if (!sel) return;
 
-    if (unsubActiveQuinielas) {
-      unsubActiveQuinielas();
-      unsubActiveQuinielas = null;
+    if (sel.options.length === 0 || sel.value === '') {
+      sel.innerHTML = '<option disabled selected>— Cargando quinielas... —</option>';
     }
 
     function processSnap(snap) {
       if (!snap || snap.empty) {
         allCachedQuinielas = [];
         renderFilteredQuinielasDropdown();
+        if (showFeedback) alert('ℹ️ Se consultó el servidor pero no hay quinielas creadas en Firestore.');
         return;
       }
       const docs = [];
@@ -622,21 +637,30 @@
       allCachedQuinielas = docs;
       attachGlobalQuinielasWatchers(docs);
       renderFilteredQuinielasDropdown();
+      if (showFeedback) {
+        const names = docs.map(d => `• ${d.name} [${d.store || 'Sin sucursal'}]`).join('\n');
+        alert(`✅ ¡${docs.length} quinielas cargadas con éxito!\n\n${names}`);
+      }
     }
 
+    // 1. Inmediato via GET directo
     try {
-      unsubActiveQuinielas = db.collection('quinielas').onSnapshot(processSnap, err => {
-        console.warn('[QAdmin] snapshot note, fallback to get():', err.message);
-        db.collection('quinielas').get().then(processSnap).catch(err2 => {
-          console.error('[QAdmin] load quinielas error:', err2);
-          if (allCachedQuinielas.length === 0) {
-            sel.innerHTML = '<option disabled selected>— Error al cargar quinielas —</option>';
-            if (panel) panel.style.display = 'none';
-          }
+      const snap = await db.collection('quinielas').get();
+      processSnap(snap);
+    } catch (e) {
+      console.warn('[QAdmin] direct get note:', e);
+      if (showFeedback) alert('⚠️ Error al cargar quinielas: ' + e.message);
+    }
+
+    // 2. Realtime listener
+    if (!unsubActiveQuinielas) {
+      try {
+        unsubActiveQuinielas = db.collection('quinielas').onSnapshot(processSnap, err => {
+          console.warn('[QAdmin] snapshot note:', err.message);
         });
-      });
-    } catch (err) {
-      db.collection('quinielas').get().then(processSnap).catch(console.error);
+      } catch (err) {
+        console.warn('[QAdmin] listener error:', err);
+      }
     }
   }
 

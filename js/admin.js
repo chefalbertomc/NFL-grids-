@@ -443,24 +443,48 @@
       }
 
       renderFilteredGridsDropdown();
+      if (showFeedback) {
+        alert(`✅ ¡${allCachedGrids.length} grids cargados del servidor!`);
+      }
     }
 
     try {
-      gridGamesUnsub = db.collection('games').onSnapshot(processGameSnap, err => {
-        console.warn('[admin] games snapshot note, fallback to get:', err.message);
-        db.collection('games').get().then(processGameSnap).catch(err2 => {
-          console.error('[admin] games fallback error:', err2);
-        });
-      });
+      const snap = await db.collection('games').get();
+      processGameSnap(snap);
     } catch (e) {
-      db.collection('games').get().then(processGameSnap).catch(console.error);
+      console.warn('[admin] direct get games error:', e);
+      if (showFeedback) alert('⚠️ Error al cargar grids: ' + e.message);
+    }
+
+    if (!gridGamesUnsub) {
+      try {
+        gridGamesUnsub = db.collection('games').onSnapshot(processGameSnap, err => {
+          console.warn('[admin] games snapshot note:', err.message);
+        });
+      } catch (e) {}
     }
   }
 
   function setupGridUI() {
-    if (selectGame) selectGame.addEventListener('change', loadGameDetail);
+    if (selectGame) {
+      selectGame.addEventListener('focus', () => {
+        if (allCachedGrids.length === 0) loadGamesDropdown();
+      });
+      selectGame.addEventListener('change', loadGameDetail);
+    }
+    const btnReloadGrids = document.getElementById('btnReloadGrids');
+    if (btnReloadGrids) btnReloadGrids.addEventListener('click', () => loadGamesDropdown(true));
+
     const filterGridStore = document.getElementById('filterGridStore');
-    if (filterGridStore) filterGridStore.addEventListener('change', renderFilteredGridsDropdown);
+    if (filterGridStore) {
+      filterGridStore.addEventListener('change', () => {
+        if (allCachedGrids.length === 0) {
+          loadGamesDropdown();
+        } else {
+          renderFilteredGridsDropdown();
+        }
+      });
+    }
     if (btnCreateGame) btnCreateGame.addEventListener('click', createGridGame);
     if (btnLoadGame) btnLoadGame.addEventListener('click', loadGameDetail);
     if (btnLock) btnLock.addEventListener('click', () => toggleGridLock(true));
