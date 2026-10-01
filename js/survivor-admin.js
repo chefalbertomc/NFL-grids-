@@ -45,12 +45,13 @@
     if (!db) return;
 
     function processSnap(snap) {
+      if (!snap) return;
       activeTournaments = [];
       snap.forEach(doc => {
         activeTournaments.push({ id: doc.id, ...doc.data() });
       });
 
-      // Sort client-side by createdAt desc
+      // Sort client-side by createdAt desc (no index needed)
       activeTournaments.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
       renderTournamentSelect();
@@ -66,12 +67,17 @@
       }
     }
 
-    db.collection('survivors').orderBy('createdAt', 'desc').onSnapshot(processSnap, err => {
-      console.warn('[SurvivorAdmin] orderBy createdAt failed, trying plain query fallback:', err);
-      db.collection('survivors').onSnapshot(processSnap, err2 => {
-        console.error('[SurvivorAdmin] Error loading tournaments fallback:', err2);
-      });
+    // Direct fetch immediately
+    db.collection('survivors').get().then(processSnap).catch(err => {
+      console.warn('[SurvivorAdmin] direct get error:', err);
     });
+
+    // Realtime listener
+    try {
+      db.collection('survivors').onSnapshot(processSnap, err => {
+        console.warn('[SurvivorAdmin] snapshot note:', err);
+      });
+    } catch (e) {}
   }
   window.loadSurvivorTournaments = loadSurvivorTournaments;
 
