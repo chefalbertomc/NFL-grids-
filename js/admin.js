@@ -478,7 +478,7 @@
   }
 
   let gridGamesUnsub = null;
-  function loadGamesDropdown() {
+  async function loadGamesDropdown(showFeedback = false) {
     if (!selectGame) return;
     if (!db && window.db) db = window.db;
     if (!db) return;
