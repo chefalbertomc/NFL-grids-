@@ -224,9 +224,12 @@
       disableAllInputs(false);
 
       fillTeamSelects();
-      loadGamesDropdown();
-      if (window.initSurvivorAdmin) window.initSurvivorAdmin();
-      loadFGGamesList();
+      if (typeof loadGamesDropdown === 'function') loadGamesDropdown();
+      if (typeof window.loadActiveQuinielas === 'function') window.loadActiveQuinielas();
+      if (typeof window.initSurvivorAdmin === 'function') window.initSurvivorAdmin();
+      if (typeof loadFGGamesList === 'function') loadFGGamesList();
+      if (typeof window.loadBingoRooms === 'function') window.loadBingoRooms();
+      if (typeof window.initTriviaAdmin === 'function') window.initTriviaAdmin();
     });
   }
 
@@ -358,6 +361,20 @@
     const filterEl = document.getElementById('filterGridStore');
     const filterVal = filterEl ? filterEl.value : 'Todas';
 
+    // Auto-populate filter options with stores found in games
+    if (filterEl && allCachedGrids.length > 0) {
+      const existingOpts = new Set(Array.from(filterEl.options).map(o => o.value.toLowerCase()));
+      allCachedGrids.forEach(g => {
+        if (g.store && !existingOpts.has(g.store.toLowerCase())) {
+          const opt = document.createElement('option');
+          opt.value = g.store;
+          opt.textContent = g.store;
+          filterEl.appendChild(opt);
+          existingOpts.add(g.store.toLowerCase());
+        }
+      });
+    }
+
     let filtered = allCachedGrids.filter(g => matchStoreFilter(g.store, filterVal));
 
     // Fallback: if store filter matched nothing but games exist, show all
@@ -387,14 +404,25 @@
     }
   }
 
-  async function loadGamesDropdown() {
+  let gridGamesUnsub = null;
+  function loadGamesDropdown() {
     if (!selectGame) return;
-    selectGame.innerHTML = '<option disabled selected>— Cargando... —</option>';
+    if (!db && window.db) db = window.db;
+    if (!db) return;
 
-    async function processGameSnap(snap) {
+    if (gridGamesUnsub) {
+      gridGamesUnsub();
+      gridGamesUnsub = null;
+    }
+
+    function processGameSnap(snap) {
       const docs = [];
+      if (!snap || snap.empty) {
+        allCachedGrids = [];
+        renderFilteredGridsDropdown();
+        return;
+      }
       snap.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
-      // Client-side sort by createdAt desc (avoids index requirement)
       docs.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
       allCachedGrids = [];
@@ -402,7 +430,6 @@
         const code = g.id;
         const away = (g.awayTeam || g.away || '').trim();
         const home = (g.homeTeam || g.home || '').trim();
-        // Skip empty/placeholder documents (don't auto-delete — may lack write permission)
         if (!away || !home) continue;
         if (home.toLowerCase() === 'local' && away.toLowerCase() === 'visitante') continue;
 
@@ -415,25 +442,18 @@
         });
       }
 
-      if (allCachedGrids.length === 0) {
-        selectGame.innerHTML = '<option disabled selected>— No hay grids creados —</option>';
-        return;
-      }
       renderFilteredGridsDropdown();
     }
 
     try {
-      const snap = await db.collection('games').orderBy('createdAt', 'desc').get();
-      await processGameSnap(snap);
+      gridGamesUnsub = db.collection('games').onSnapshot(processGameSnap, err => {
+        console.warn('[admin] games snapshot note, fallback to get:', err.message);
+        db.collection('games').get().then(processGameSnap).catch(err2 => {
+          console.error('[admin] games fallback error:', err2);
+        });
+      });
     } catch (e) {
-      console.warn('[admin] orderBy createdAt index missing, falling back to plain query:', e.message);
-      try {
-        const snap = await db.collection('games').get();
-        await processGameSnap(snap);
-      } catch (e2) {
-        console.error('[admin] Error listing grids (fallback):', e2);
-        selectGame.innerHTML = '<option disabled selected>— Error al cargar grids —</option>';
-      }
+      db.collection('games').get().then(processGameSnap).catch(console.error);
     }
   }
 
@@ -3097,9 +3117,11 @@
     }
   }
 
-  // Expose FirstGoal functions directly
+  // Expose functions directly
   window.searchFGGames = searchFGGames;
   window.createFirstGoalGame = createFirstGoalGame;
+  window.loadGamesDropdown = loadGamesDropdown;
+  window.loadFGGamesList = loadFGGamesList;
 
   // Start initialization
   initAdmin();

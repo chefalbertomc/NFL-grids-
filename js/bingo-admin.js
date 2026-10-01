@@ -349,6 +349,9 @@
     } catch(e) {}
   };
 
+  window.initBingoAdmin = initBingoAdmin;
+  window.loadBingoRooms = loadBingoRooms;
+
   // Auto-init
   document.addEventListener('DOMContentLoaded', initBingoAdmin);
 })();

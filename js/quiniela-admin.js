@@ -526,12 +526,13 @@
   }
 
   let allCachedQuinielas = [];
+  let unsubActiveQuinielas = null;
 
   function matchStoreFilter(gameStore, filterVal) {
-    if (!filterVal || filterVal === 'Todas' || filterVal === 'Todas las Sucursales') return true;
+    if (!filterVal || filterVal === 'Todas' || filterVal === 'Todas las Sucursales' || filterVal === '') return true;
     if (!gameStore) return true;
-    const g = gameStore.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    const f = filterVal.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    const g = String(gameStore).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+    const f = String(filterVal).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
     return g.includes(f) || f.includes(g) || g.includes('todas');
   }
 
@@ -542,6 +543,20 @@
 
     const filterEl = document.getElementById('selectQuinielaFilterStore');
     const filterVal = filterEl ? filterEl.value : 'Todas';
+
+    // Auto-populate filter options with any stores present in quinielas
+    if (filterEl && allCachedQuinielas.length > 0) {
+      const existingOpts = new Set(Array.from(filterEl.options).map(o => o.value.toLowerCase()));
+      allCachedQuinielas.forEach(q => {
+        if (q.store && !existingOpts.has(q.store.toLowerCase())) {
+          const opt = document.createElement('option');
+          opt.value = q.store;
+          opt.textContent = q.store;
+          filterEl.appendChild(opt);
+          existingOpts.add(q.store.toLowerCase());
+        }
+      });
+    }
 
     let filtered = allCachedQuinielas.filter(q => matchStoreFilter(q.store, filterVal));
 
@@ -574,30 +589,54 @@
     }
   }
 
-  async function loadActiveQuinielas() {
+  function loadActiveQuinielas() {
+    if (!db && window.db) db = window.db;
     if (!db) return;
     const sel = document.getElementById('selectActiveQuiniela');
     const panel = document.getElementById('qManagePanel');
     if (!sel) return;
 
-    sel.innerHTML = '<option disabled selected>— Cargando... —</option>';
-    try {
-      const snap = await db.collection('quinielas').limit(50).get();
-      if (snap.empty) {
-        sel.innerHTML = '<option disabled selected>— No hay quinielas creadas —</option>';
+    if (unsubActiveQuinielas) {
+      unsubActiveQuinielas();
+      unsubActiveQuinielas = null;
+    }
+
+    function processSnap(snap) {
+      if (!snap || snap.empty) {
         allCachedQuinielas = [];
-        if (panel) panel.style.display = 'none';
+        renderFilteredQuinielasDropdown();
         return;
       }
       const docs = [];
-      snap.forEach(doc => docs.push({ id: doc.id, ...doc.data() }));
-      docs.sort((a, b) => (b.createdAt?.seconds || b.createdAt || 0) - (a.createdAt?.seconds || a.createdAt || 0));
+      snap.forEach(doc => {
+        const data = doc.data() || {};
+        docs.push({ id: doc.id, ...data });
+      });
+
+      docs.sort((a, b) => {
+        const tA = (a.createdAt && a.createdAt.seconds) ? a.createdAt.seconds * 1000 : (Number(a.createdAt) || 0);
+        const tB = (b.createdAt && b.createdAt.seconds) ? b.createdAt.seconds * 1000 : (Number(b.createdAt) || 0);
+        return tB - tA;
+      });
 
       allCachedQuinielas = docs;
       attachGlobalQuinielasWatchers(docs);
       renderFilteredQuinielasDropdown();
+    }
+
+    try {
+      unsubActiveQuinielas = db.collection('quinielas').onSnapshot(processSnap, err => {
+        console.warn('[QAdmin] snapshot note, fallback to get():', err.message);
+        db.collection('quinielas').get().then(processSnap).catch(err2 => {
+          console.error('[QAdmin] load quinielas error:', err2);
+          if (allCachedQuinielas.length === 0) {
+            sel.innerHTML = '<option disabled selected>— Error al cargar quinielas —</option>';
+            if (panel) panel.style.display = 'none';
+          }
+        });
+      });
     } catch (err) {
-      console.error('[QAdmin] load quinielas error:', err);
+      db.collection('quinielas').get().then(processSnap).catch(console.error);
     }
   }
 
@@ -1377,6 +1416,8 @@
 
   window.qAdminLoadStandings = loadQuinielaStandings;
   window.qAdminSyncQuiniela = syncQuinielaScores;
+  window.loadActiveQuinielas = loadActiveQuinielas;
+  window.initQuinielaAdmin = loadActiveQuinielas;
 
   initQAdmin();
 })();
